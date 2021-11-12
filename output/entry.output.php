@@ -44,14 +44,23 @@ $brewer_info['brewerClubs'] = strtr($brewer_info['brewerClubs'],$html_remove);
 $brewer_info['brewerEmail'] = strtr($brewer_info['brewerEmail'],$html_remove);
 $organizer = $row_brewer_organizer['brewerFirstName']." ".$row_brewer_organizer['brewerLastName'];
 
+// MJM call to new function defined in user extension section
+include(MODS.'user_functions.php');
+$table_info = get_table_name($brewing_info['brewStyle']);
+$table_number = sprintf("%2s",$table_info['tableNumber']);
+
 if (in_array($_SESSION['prefsEntryForm'],$barcode_qrcode_array)) {
 
 	// Generate Barcode
 	$barcode = $brewing_id;
 	if ((NHC) && ($prefix == "final_")) $barcode = sprintf("%06s",$barcode);
 
-	$barcode_link = "http://www.brewcompetition.com/includes/barcode/html/image.php?filetype=PNG&dpi=300&scale=1&rotation=0&font_family=Arial.ttf&font_size=10&text=".$barcode."&thickness=50&code=BCGcode39";
+//	$barcode_link = "http://www.brewcompetition.com/includes/barcode/html/image.php?filetype=PNG&dpi=300&scale=2&rotation=0&font_family=Arial.ttf&font_size=10&text=".$barcode."&thickness=50&code=BCGcode39";
+  $barcode_link = $base_url."barcode.php?f=png&s=code39&d=$barcode&sf=2&h=125";
 
+//  $barcode_table_link = "http://www.brewcompetition.com/includes/barcode/html/image.php?filetype=PNG&dpi=300&scale=2&rotation=0&font_family=Arial.ttf&font_size=10&text=".$table_number."&thickness=50&code=BCGcode39";
+  $barcode_table_link = $base_url."barcode.php?f=png&s=code39&d=$table_number&sf=2&h=125";
+  
 	// Generate QR Code
 	require_once (CLASSES.'qr_code/qrClass.php');
 	$qr = new qRClas();

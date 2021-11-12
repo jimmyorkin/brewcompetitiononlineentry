@@ -51,7 +51,7 @@ if ($flights > 0) $flights = $flights; else $flights = "0";
 			"sDom": 'rt',
 			"bStateSave" : false,
 			"bLengthChange" : false,
-			"aaSorting": [[2,'asc'],[1,'asc']],
+			"aaSorting": [[1,'asc']],
 			"bProcessing" : false,
 			"aoColumns": [
 				{ "asSorting": [  ] },
@@ -168,7 +168,7 @@ if ($flights > 0) $flights = $flights; else $flights = "0";
 			"sDom": 'rt',
 			"bStateSave" : false,
 			"bLengthChange" : false,
-			"aaSorting": [[2,'asc'],[1,'asc']],
+			"aaSorting": [[1,'asc']],
 			"bProcessing" : false,
 			"aoColumns": [
 				{ "asSorting": [  ] },
@@ -285,7 +285,7 @@ if (($row_table_round['count'] >= 1) || ($round == "default")) {
 			"sDom": 'rt',
 			"bStateSave" : false,
 			"bLengthChange" : false,
-			"aaSorting": [[2,'asc'],[1,'asc']],
+			"aaSorting": [[1,'asc']],
 			"bProcessing" : false,
 			"aoColumns": [
 				{ "asSorting": [  ] },
@@ -382,7 +382,7 @@ $entry_count = get_table_info(1,"count_total",$row_tables['id'],$dbTable,"defaul
 			"sDom": 'rt',
 			"bStateSave" : false,
 			"bLengthChange" : false,
-			"aaSorting": [[2,'asc'],[1,'asc']],
+			"aaSorting": [[1,'asc']],
 			"bProcessing" : false,
 			"aoColumns": [
 				{ "asSorting": [  ] },
@@ -494,7 +494,7 @@ if ($style_type_info[0] == "Y") {
 			"sDom": 'rt',
 			"bStateSave" : false,
 			"bLengthChange" : false,
-			"aaSorting": [[2,'asc'],[1,'asc']],
+			"aaSorting": [[1,'asc']],
 			"bProcessing" : false,
 			"aoColumns": [
 				{ "asSorting": [  ] },

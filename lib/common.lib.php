@@ -3120,8 +3120,21 @@ function limit_subcategory($style,$pref_num,$pref_exception_sub_num,$pref_except
 
 	$pref_exception_sub_array = explode(",",$pref_exception_sub_array);
 
-	if ($style_break[0] <= 9) $style_num = sprintf('%02d',$style_break[0]);
-	else $style_num = $style_break[0];
+
+
+// broken. Did not deal with Cats not all numberic, discovered by Jimmy
+//	if ($style_break[0] <= 9) $style_num = sprintf('%02d',$style_break[0]);
+//	else $style_num = $style_break[0];
+  if (preg_match("/^[[:digit:]]+$/", $style_break[0]))
+  {
+  	$style_num = sprintf('%02d',$style_break[0]);
+  }
+  else
+  {
+  	$style_num = $style_break[0];
+  }
+
+//echo "jo," . $style . "," . $prefix."styles" . "," . $_SESSION['prefsStyleSet'] . "," . $style_num . "," . $style_break[1];
 
 	$query_style = sprintf("SELECT id FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleGroup='%s' AND brewStyleNum='%s'",$prefix."styles",$_SESSION['prefsStyleSet'],$style_num,$style_break[1]);
 	$style = mysqli_query($connection,$query_style) or die (mysqli_error($connection));

@@ -5,9 +5,15 @@
  *              entries - references the "brewing" database table.
  *
  */
+
+include (DB.'BBOtables.db.php');
+
 include (DB.'styles.db.php');
+
 if (strpos($styleSet,"BABDB") !== false) include (INCLUDES.'ba_constants.inc.php');
 include (DB.'styles_special.db.php');
+
+
 
 // Define custom functions
 function display_array_content_style($arrayname,$method,$base_url) {
@@ -453,6 +459,8 @@ else $relocate_referrer = $_SERVER['HTTP_REFERER'];
 					$style_value_edit = $row_styles['brewStyleGroup']."-".$row_styles['brewStyleNum'];
 					$selected_disabled = "";
 					$selected = "";
+					$BBOtableLimitDisabled = FALSE;
+					
 
 					if (($_SESSION['userLevel'] <= 1) && ($bid != "default"))  $subcat_limit = limit_subcategory($style_value,$user_subcat_limit,$user_subcat_limit_exception,$row_limits['prefsUSCLEx'],$bid);
 					else $subcat_limit = limit_subcategory($style_value,$user_subcat_limit,$user_subcat_limit_exception,$row_limits['prefsUSCLEx'],$_SESSION['user_id']);
@@ -465,7 +473,8 @@ else $relocate_referrer = $_SERVER['HTTP_REFERER'];
 
 					if (($remaining_entries > 0) && (!$disable_fields)) $selected_disabled = $subcat_limit;
 					elseif ($disable_fields) $selected_disabled = "DISABLED";
-
+					
+					
 					if (($action == "edit") && ($view == $style_value_edit)) {
 						$selected = " SELECTED";
 						$selected_disabled = "";
@@ -474,18 +483,44 @@ else $relocate_referrer = $_SERVER['HTTP_REFERER'];
 					// Build selection variable
 					if (preg_match("/^[[:digit:]]+$/",$row_styles['brewStyleGroup'])) {
 						if ($_SESSION['prefsStyleSet'] == "BA") $selection = $row_styles['brewStyle'];
-						else $selection = sprintf('%02d',$row_styles['brewStyleGroup']).$row_styles['brewStyleNum']." ".$row_styles['brewStyle'];
+						else
+						{
+						  $selection = sprintf('%02d',$row_styles['brewStyleGroup']).$row_styles['brewStyleNum']." ".$row_styles['brewStyle'];
+						  $BBOsubcat = sprintf('%02d',$row_styles['brewStyleGroup']).$row_styles['brewStyleNum'];
+					  }
 					}
 					else {
 						if ($_SESSION['prefsStyleSet'] == "BA") $selection = $row_styles['brewStyle'];
 						$selection = $row_styles['brewStyleGroup'].$row_styles['brewStyleNum']." ".$row_styles['brewStyle'];
+						$BBOsubcat = $row_styles['brewStyleGroup'].$row_styles['brewStyleNum'];
 					}
+					
+					if (array_key_exists($BBOsubcat, $BBOSubCatCount) && ($BBOtables[$BBOSubCatCount["$BBOsubcat"]['table']]['count'] >= 48))
+					{
+				    $BBOtableLimitDisabled = TRUE;
+						$selected_disabled = "DISABLED";
+					} 
+					else
+					{
+						$BBOtableLimitDisabled = FALSE;
+					}
+					
 					if ($row_styles['brewStyleReqSpec'] == 1) $selection .= " &spades;";
 					if ($row_styles['brewStyleStrength'] == 1) $selection .= " &diams;";
 					if ($row_styles['brewStyleCarb'] == 1) $selection .= " &clubs;";
 					if ($row_styles['brewStyleSweet'] == 1) $selection .= " &hearts;";
-					if (($selected_disabled == "DISABLED") && ($bid == "default")) $selection .= " ".$brew_text_002;
-					if (($selected_disabled == "DISABLED") && ($bid != "default")) $selection .= " ".$brew_text_003;
+					
+					if (($selected_disabled == "DISABLED") && ($BBOtableLimitDisabled == TRUE))
+					{
+						$selection .= " [disabled - Medal Cat is full]";
+				  }
+				  else
+				  {
+					 if (($selected_disabled == "DISABLED") && ($bid == "default")) $selection .= " ".$brew_text_002;
+					 if (($selected_disabled == "DISABLED") && ($bid != "default")) $selection .= " ".$brew_text_003;
+				  }
+
+// Check for Table being full
 
 				if (!empty($row_styles['brewStyleGroup'])) {
 				// Display

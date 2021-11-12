@@ -1,5 +1,10 @@
 <?php
 
+
+
+$special_beer_info['35-A'] = "You MUST specify the base style under which the beer should be judged.  Follow the rules of the specific category/subcategory that the beer would best fit under. i.e. Enter a Baltic Porter as such, do not enter as simply “Porter”.  If the base style requires special ingredient information, include that information as well.";
+
+
 /*
 Checked Single
 2016-06-06

@@ -588,6 +588,8 @@ $header_text_109 = "You have registered as a steward.";
 $header_text_110 = "All entries have been un-marked as paid.";
 $header_text_111 = "All entries have been un-marked as received.";
 
+
+
 // -------------------- Navigation --------------------
 
 
@@ -1458,6 +1460,9 @@ $label_this_style = "This Style";
 $label_notes = "Notes";
 $label_possible_allergens = "Possible Allergens";
 $label_please_choose = "Please Choose";
+
+// Bluebonnet
+$header_text_117 = "The Medal category is full.";
 
 // ***********************************************************************************
 // END TRANSLATIONS

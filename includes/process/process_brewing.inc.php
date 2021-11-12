@@ -24,6 +24,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 	if ($row_limits['prefsUserEntryLimit'] != "") {
 
 		// Check if user has reached the limit of entries in a particular sub-category. If so, redirect.
+		// Not entries checked here but max entries in competition
 		$query_brews = sprintf("SELECT COUNT(*) as 'count' FROM $brewing_db_table WHERE brewBrewerId = '%s'", $_SESSION['user_id']);
 		$brews = mysqli_query($connection,$query_brews) or die (mysqli_error($connection));
 		$row_brews = mysqli_fetch_assoc($brews);
@@ -33,6 +34,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 				$pattern = array('\'', '"');
 				$insertGoTo = str_replace($pattern, "", $insertGoTo);
 				$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
+//				goto BBOend;
 			}
 
 	}
@@ -240,6 +242,19 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 	}
 
 	if ($action == "add") {
+		
+		include (DB.'BBOtables.db.php');
+		
+		$BBOsubcat = str_replace("-", "", $styleReturn);
+
+		if (array_key_exists($BBOsubcat, $BBOSubCatCount) && ($BBOtables[$BBOSubCatCount["$BBOsubcat"]['table']]['count'] >= 48))
+		{ 
+			$insertGoTo = $base_url."index.php?section=list&msg=13";
+			$pattern = array('\'', '"');
+			$insertGoTo = str_replace($pattern, "", $insertGoTo);
+			$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
+			goto BBOend;
+		}
 
 		if ($row_user['userLevel'] <= 1) {
 
@@ -995,6 +1010,8 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		$redirect_go_to = sprintf("Location: %s", stripslashes($massUpdateGoTo));
 
 	}
+
+BBOend:
 
 } else {
 	$redirect_go_to = sprintf("Location: %s", $base_url."index.php?msg=98");
