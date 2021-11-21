@@ -4,6 +4,18 @@ $entries_updated[] = "";
 
 //echo "Post=", print_r($_POST);
 
+/*
+Here are the tests for an entry.
+1. Does the entry number exist in the brewing table
+2. Has this entry alread been assigned a judging number. Determined by the judging number being less than or equal to 9999
+3. Has the judging number already been assigned to another entry
+4. Has this entry already been recieved by looking at the received column in the brewing table
+5. Does the table from the entry form match the what the entry has in the database?
+
+We propagate the brewPaid value from the database back into the database
+
+*/
+
 foreach ($_POST['id'] as $id) {
   
 	$skip_update = 0;
@@ -18,32 +30,36 @@ foreach ($_POST['id'] as $id) {
 		$row_enum = mysqli_fetch_assoc($enum);
 		$totalRows_enum = mysqli_num_rows($enum);
 		
-		// Check to see if the judging number has already been used and if so, flag it
-		$query_jnum = sprintf("SELECT COUNT(*) AS 'count' FROM %s WHERE brewJudgingNumber='%s'",$prefix."brewing",$judging_number);
-		$jnum = mysqli_query($connection,$query_jnum) or die (mysqli_error($connection));
-		$row_jnum = mysqli_fetch_assoc($jnum);
+		// If there is no row in the brewing table, no need to look further.
+		if ($totalRows_enum > 0) {
 		
-		// Get Table Number to match against entry form
-		// First get id of style from brewing and style tables
-		$query_styleid_in_DB = sprintf("SELECT a.id FROM %s a, %s b WHERE brewStyleGroup = brewCategorySort and brewStyleNum = brewSubCategory and brewStyleVersion = 'BJCP2015' AND b.id = %u", $prefix."styles", $prefix."brewing", $_POST['eid'.$id]);
-//echo "select1=", $query_styleid_in_DB, "\n";
-		$styleid_in_DB = mysqli_query($connection,$query_styleid_in_DB) or die (mysqli_error($connection));
-		$row_styleid_in_DB = mysqli_fetch_assoc($styleid_in_DB);
-		
-		if ($row_styleid_in_DB['id'] == 99)
-		  {
-		    $likeString = "'99%'";
-		  }
-		else
-		  {
-		    $likeString = "'%" . strval($row_styleid_in_DB['id']) . "%'";
-		  }
-		
-    // The get the table number from the table table
-		$query_table = sprintf("SELECT tableNumber FROM %s WHERE tableStyles LIKE %s", $prefix."judging_tables", $likeString);
-//echo "select2=", $query_table, "\n";
-		$table = mysqli_query($connection,$query_table) or die (mysqli_error($connection));
-		$row_table = mysqli_fetch_assoc($table);
+				// Check to see if the judging number has already been used and if so, flag it
+				$query_jnum = sprintf("SELECT COUNT(*) AS 'count' FROM %s WHERE brewJudgingNumber='%s'",$prefix."brewing",$judging_number);
+				$jnum = mysqli_query($connection,$query_jnum) or die (mysqli_error($connection));
+				$row_jnum = mysqli_fetch_assoc($jnum);
+				
+				// Get Table Number to match against entry form
+				// First get id of style from brewing and style tables
+				$query_styleid_in_DB = sprintf("SELECT a.id FROM %s a, %s b WHERE brewStyleGroup = brewCategorySort and brewStyleNum = brewSubCategory and brewStyleVersion = 'BJCP2015' AND b.id = %u", $prefix."styles", $prefix."brewing", $_POST['eid'.$id]);
+
+				$styleid_in_DB = mysqli_query($connection,$query_styleid_in_DB) or die (mysqli_error($connection));
+				$row_styleid_in_DB = mysqli_fetch_assoc($styleid_in_DB);
+				
+				if ($row_styleid_in_DB['id'] == 99)
+				  {
+				    $likeString = "'99%'";
+				  }
+				else
+				  {
+				    $likeString = "'%" . strval($row_styleid_in_DB['id']) . "%'";
+				  }
+				
+		    // The get the table number from the table table
+				$query_table = sprintf("SELECT tableNumber FROM %s WHERE tableStyles LIKE %s", $prefix."judging_tables", $likeString);
+
+				$table = mysqli_query($connection,$query_table) or die (mysqli_error($connection));
+				$row_table = mysqli_fetch_assoc($table);
+		}
 			
 		if ($totalRows_enum == 0) {
 			$flag_enum_not_found[] = $_POST['eid'.$id];
@@ -95,7 +111,7 @@ foreach ($_POST['id'] as $id) {
 				$updateSQL = sprintf("UPDATE %s SET brewReceived='1', brewJudgingNumber='%s', brewBoxNum='%s', brewPaid='%s' WHERE id='%s';",$brewing_db_table,$judging_number, $_POST['box'.$id],$brewPaid,$eid);
 				mysqli_real_escape_string($connection,$updateSQL);
 				$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
-				//echo $updateSQL."<br>";
+
 			}
 		}
 	}

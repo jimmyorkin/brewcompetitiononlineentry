@@ -10,15 +10,15 @@ ini_set('display_errors', '1');
 
 $fields = 24;
 $entry_list = "";
-$flag_enum_not_found = "";
+$flag_enum_not_found = [];
 $flag_enum_not_found_info = "";
-$flag_entry_prev_assigned_jnum = "";
+$flag_entry_prev_assigned_jnum = [];
 $flag_entry_prev_assigned_jnum_info = "";
-$flag_jnum_assign_other_entry = "";
+$flag_jnum_assign_other_entry = [];
 $flag_jnum_assign_other_entry_info = "";
-$flag_enum_already_received = "";
+$flag_enum_already_received = [];
 $flag_enum_already_received_info = "";
-$mismatch_table = "";
+$mismatch_table = [];
 $mismatch_table_info = "";
 
 
