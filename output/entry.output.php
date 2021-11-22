@@ -33,7 +33,10 @@ if ((!pay_to_print($_SESSION['prefsPayToPrint'],$brewing_info['brewPaid'])) && (
 }
 
 $category_end = $_SESSION['style_set_category_end'];
-$brewing_id = sprintf("%06s",$brewing_info['id']);
+
+// Bluebonnet still using 4 character Entry IDs, Changed 6 to 4
+$brewing_id = sprintf("%04s",$brewing_info['id']);
+
 $brewer_info['brewerFirstName'] = html_entity_decode($brewer_info['brewerFirstName']);
 $brewing_info['brewName'] = html_entity_decode($brewing_info['brewName']);
 $style_entry = $brewing_info['brewCategory']."-".$brewing_info['brewSubCategory'];
@@ -55,11 +58,23 @@ if ($brewer_info['brewerCountry'] = "United States") {
 
 $organizer = $row_brewer_organizer['brewerFirstName']." ".$row_brewer_organizer['brewerLastName'];
 
+// Bluebonnet get table name and number for entry sheets and bottle lables
+include(MODS.'user_functions.php');
+$table_info = get_table_name($brewing_info['brewStyle']);
+$table_number = sprintf("%2s",$table_info['tableNumber']);
+// End of get table info
+
 if (in_array($_SESSION['prefsEntryForm'],$barcode_qrcode_array)) {
 
 	// Generate Barcode
-	$barcode_link = "http://www.brewcompetition.com/includes/barcode/html/image.php?filetype=PNG&dpi=300&scale=1&rotation=0&font_family=Arial.ttf&font_size=10&text=".$brewing_id."&thickness=50&code=BCGcode39";
-
+// Use local barcode generator.	
+//	$barcode_link = "http://www.brewcompetition.com/includes/barcode/html/image.php?filetype=PNG&dpi=300&scale=1&rotation=0&font_family=Arial.ttf&font_size=10&text=".$brewing_id."&thickness=50&code=BCGcode39";
+  $barcode_link = $base_url."barcode.php?f=png&s=code39&d=$brewing_id&sf=2&h=125";
+  
+// Added Bluebonnet Table barecode  
+  $barcode_table_link = $base_url."barcode.php?f=png&s=code39&d=$table_number&sf=2&h=125";
+  
+  
 	// Generate QR Code
 	require_once (CLASSES.'qr_code/qrClass.php');
 	$qr = new qRClas();
