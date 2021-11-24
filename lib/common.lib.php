@@ -452,6 +452,8 @@ function GetSQLValueString($theValue, $theType, $theDefinedValue = "", $theNotDe
 
 function currency_info($input,$method) {
 
+	$currency_code = "";
+
 	if ($method == 1) {
 
 		switch ($input) {
@@ -4452,6 +4454,13 @@ function normalizeClubs($string) {
 	$club = preg_replace( "/[^a-z0-9]/i", "", $club );
 	$club = preg_replace( '/  +/', ' ', $club );
 	return $club;
+}
+
+function clean_up_text($text) {
+	$r = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+	$r = preg_replace( "/\r|\n/", "", $r);
+	$r = htmlspecialchars_decode($r);
+	return $r;
 }
 
 ?>
