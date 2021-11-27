@@ -5,6 +5,10 @@
  *              entries - references the "brewing" database table.
  *
  */
+
+// Bluebonnet 
+include (DB.'BBOtables.db.php');
+
 include (DB.'styles.db.php');
 if ($_SESSION['prefsStyleSet'] == "BA") include (INCLUDES.'ba_constants.inc.php');
 include (DB.'styles_special.db.php');
@@ -330,11 +334,17 @@ if ($add_or_edit) {
 // Construct styles drop-down
 $styles_dropdown = "";
 
+/*
+print_r($BBOSubCatCount);
+echo("<br><br>");
+print_r($BBOtables);
+*/
+
 do {
 
 	$style_value = style_number_const($row_styles['brewStyleGroup'],$row_styles['brewStyleNum'],$_SESSION['style_set_system_separator'],999);
 	$style_value_edit = style_number_const($row_styles['brewStyleGroup'],$row_styles['brewStyleNum'],$_SESSION['style_set_system_separator'],1);
-
+//print_r("noedit=" . $style_value . " edit=" . $style_value_edit . "<br>");
 	if (($_SESSION['userLevel'] <= 1) && ($bid != "default")) $subcat_limit = limit_subcategory($style_value,$user_subcat_limit,$user_subcat_limit_exception,$row_limits['prefsUSCLEx'],$bid);
 	else $subcat_limit = limit_subcategory($style_value,$user_subcat_limit,$user_subcat_limit_exception,$row_limits['prefsUSCLEx'],$_SESSION['user_id']);
 
@@ -342,16 +352,30 @@ do {
 	$selected_disabled = "";
 	$selected = "";
 	
+	// Bluebonnet
+	$BBOtableLimitDisabled = FALSE;
+	$BBOsubcat = $style_value_edit; // With leading zero
+	
 	if ($action == "edit") {
-		if ($row_styles['brewStyleGroup'].$row_styles['brewStyleNum'] == $row_log['brewCategorySort'].$row_log['brewSubCategory']) $selected_disabled = "SELECTED";
-		if (($row_styles['brewStyleGroup'].$row_styles['brewStyleNum'] != $row_log['brewCategorySort'].$row_log['brewSubCategory']) && ($subcat_limit)) $selected_disabled = "DISABLED";
+		if ($row_styles['brewStyleGroup'].$row_styles['brewStyleNum'] == $row_log['brewCategorySort'].$row_log['brewSubCategory']) $selected_disabled = "SELECTED"; // We are on the row being edited
+		if (($row_styles['brewStyleGroup'].$row_styles['brewStyleNum'] != $row_log['brewCategorySort'].$row_log['brewSubCategory']) && ($subcat_limit)) $selected_disabled = "DISABLED"; // Mark other rows as disabled if at the entrants subcat limit
 	}
 	
 	if (($remaining_entries > 0) && (!$disable_fields) && ($subcat_limit)) $selected_disabled = "DISABLED";
 	elseif ($disable_fields) $selected_disabled = "DISABLED";
 
+	// Bluebonnet
+	if ($BBOtables[$BBOSubCatCount["$BBOsubcat"]['table']]['count'] >= $BBOtableMaxEntries)
+	{
+	 	$BBOtableLimitDisabled = TRUE;
+		$selected_disabled = "DISABLED";
+	} 
+	else
+	{
+		$BBOtableLimitDisabled = FALSE;
+	}
 	
-	if (($action == "edit") && ($view == $style_value_edit)) {
+	if (($action == "edit") && ($view == $style_value_edit)) { // You can always change the entry you are trying to edit
 		$selected = " SELECTED";
 		$selected_disabled = "";
 	}
@@ -363,8 +387,17 @@ do {
 	if ($row_styles['brewStyleStrength'] == 1) $selection .= " &diams;";
 	if ($row_styles['brewStyleCarb'] == 1) $selection .= " &clubs;";
 	if ($row_styles['brewStyleSweet'] == 1) $selection .= " &hearts;";
-	if (($selected_disabled == "DISABLED") && ($bid == "default")) $selection .= " ".$brew_text_002;
-	if (($selected_disabled == "DISABLED") && ($bid != "default")) $selection .= " ".$brew_text_003;
+	
+	// Bluebonnet
+	if (($selected_disabled == "DISABLED") && ($BBOtableLimitDisabled == TRUE))
+	{
+		$selection .= " [disabled - medal category is full]";
+	}
+	else
+	{
+		if (($selected_disabled == "DISABLED") && ($bid == "default")) $selection .= " ".$brew_text_002;
+		if (($selected_disabled == "DISABLED") && ($bid != "default")) $selection .= " ".$brew_text_003;
+	}
 
 	if (!empty($row_styles['brewStyleGroup'])) {
 		$styles_dropdown .= "<option value=\"".$style_value."\"";

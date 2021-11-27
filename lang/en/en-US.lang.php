@@ -1948,6 +1948,14 @@ $output_text_033 = "When submitting your report to the BJCP, it is possible that
 
 $styles_entry_text_PRX3 = "Entrant must specify the varietal of grapes or grape must used.";
 
+/** 
+  * ------------------------------------------------------------------------
+  * Bluebonnet Additions
+  * ------------------------------------------------------------------------
+  */
+
+  $bbo_message_001 = "The Medal category is full.";
+
 /**
  * ----------------------------------------------------------------------------------
  * END TRANSLATIONS

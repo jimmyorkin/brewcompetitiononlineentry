@@ -5,16 +5,21 @@
  */
 
 // if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) && (isset($_SESSION['userLevel'])))) echo "YES"; else echo "NO"; exit;
+
 /*
 foreach ($_POST as $key => $value) {
-	echo $key.": ".$value."<br>";
+	error_log( $key.": ".$value, 0);
 }
+error_log("action=$action");
 */
 
 if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) && (isset($_SESSION['userLevel'])))) {
 
 	include (DB.'entries.db.php');
     include (INCLUDES.'constants.inc.php');
+    
+  // Bluebonnet 
+  include (DB.'BBOtables.db.php');
 
 	// Instantiate HTMLPurifier
 	require (CLASSES.'htmlpurifier/HTMLPurifier.standalone.php');
@@ -62,6 +67,28 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
 		header($redirect_go_to);
 		exit;
+	}
+	
+	if (($action == "add") || ($action == "edit"))
+	{
+		$BBOWork = explode('-', $_POST['brewStyle']);
+		if (preg_match("/^[[:digit:]]+$/",$BBOWork[0]))
+		{
+			$BBOLookUpStyle = sprintf('%02d',$BBOWork[0]) . "-" . $BBOWork[1];
+		}
+		else
+		{
+			$BBOLookUpStyle = $_POST['brewStyle'];
+		}
+		if ($BBOtables[$BBOSubCatCount["$BBOLookUpStyle"]['table']]['count'] >= $BBOtableMaxEntries)
+		{
+			$insertGoTo = $base_url."index.php?section=list&msg=13";
+			$pattern = array('\'', '"');
+			$insertGoTo = str_replace($pattern, "", $insertGoTo);
+			$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
+			header($redirect_go_to);
+			exit;
+		}
 	}
 
 	if (($action == "add") || ($action == "edit")) {

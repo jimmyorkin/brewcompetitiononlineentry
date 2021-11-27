@@ -263,6 +263,7 @@ switch($section) {
 		elseif ($msg == "10") $output = sprintf("<strong>%s</strong>",$header_text_109);
 		elseif ($msg == "11") $output = sprintf("<strong>%s</strong>",$output_text_004);
 		elseif ($msg == "12") $output = sprintf("<strong>%s</strong>",$header_text_113);
+		elseif ($msg == "13") $output = sprintf("<strong>%s</strong> %s",$bbo_message_001,$header_text_048);
 		else $output = "";
 	break;
 
