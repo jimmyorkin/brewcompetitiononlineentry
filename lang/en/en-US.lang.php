@@ -1957,6 +1957,14 @@ $styles_entry_text_PRX3 = "Entrant must specify the varietal of grapes or grape 
   $bbo_message_001 = "The Medal category is full.";
 
 /**
+ * ------------------------------------------------------------------------
+ * Version 2.3.3 Additions
+ * ------------------------------------------------------------------------
+ */
+
+$winners_text_007 = "There are no winning entries at this table.";
+
+/**
  * ----------------------------------------------------------------------------------
  * END TRANSLATIONS
  * ----------------------------------------------------------------------------------
