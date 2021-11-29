@@ -2440,7 +2440,9 @@ $club_array = array(
     "MontreAlers",
     "Keepers of Craft",
     "STLBrewhogs",
-    "Brewly Homebrew Club"
+    "Brewly Homebrew Club",
+    "NINJA Homebrewers",
+    "Round Rock HOPS"
 );
 asort($club_array);
 
