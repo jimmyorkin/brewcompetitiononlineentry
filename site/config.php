@@ -206,4 +206,12 @@ $base_url .= $_SERVER['SERVER_NAME'].$sub_directory.'/';
 $server_root = $_SERVER['DOCUMENT_ROOT'];
 //$server_root = $_SERVER['SUBDOMAIN_DOCUMENT_ROOT'];
 
+/*
+ * ******************************************************************************
+ * Set the maximun number of entries for a table
+ * ******************************************************************************
+ */
+
+$BBOtableMaxEntries = 4;
+
 ?>
