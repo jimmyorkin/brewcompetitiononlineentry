@@ -7,7 +7,7 @@
 //$table   = $_GET['table'];
 
 
-//$connection = new mysqli('127.0.0.1', 'bbbrewof_bbuser', 'bb4beer', 'bbbrewof_bcoem2020');
+//$connection = new mysqli('127.0.0.1', 'bbbrewof_bbuser', 'bb4beer', 'password');
 
 //if ($connection->connect_errno)
 //{
@@ -47,6 +47,11 @@ while ($BBOrow = $BBOresult->fetch_assoc())
 
   $BBOBnumToBJCP["$BBOxrefId"] = $BBOxrefBrewStyleGroup . "-" . $BBOxrefBrewStyleNum;
 }
+
+/* 
+  Data from styles table
+  $BBOBnumToBJCP['99'] => '01-A'
+*/
 
 //echo "<br>";
 //foreach($BBOBnumToBJCP as $BBOkey => $BBOvalue)
@@ -91,9 +96,13 @@ while ($BBOrow = $BBOresult->fetch_assoc())
   
   $BBOSubCatCount["$BBOBJCPSubCat"]['count'] = $BBOcount;
   $BBOSubCatCount["$BBOBJCPSubCat"]['table'] = 0;
-  
-
 }
+
+/*
+  Data from brewing table
+	$BBOSubCatCount['01-A'] => ['count'] => 12; the number of entries in the style 
+	$BBOSubCatCount['01-A'] => ['table'] => 0; initializes table key to zero
+*/
 
 //var_dump($BBOSubCatCount);
 
@@ -136,6 +145,12 @@ while ($BBOrow = $BBOresult->fetch_assoc())
   $BBOtables["$BBOtableNumber"]['count'] = 0;
 }
 
+/*
+  Data from judging_tables table
+  $BBOtables['51'] => ['styles'] => '99,100,103'
+  $BBOtables['51'] => ['count'] => 0
+*/
+
 //var_dump($BBOtables);
 
 //echo "<br>";
@@ -163,6 +178,12 @@ foreach($BBOtables as $BBOkey => $BBOvalue)
     }
   }
 }
+
+/*
+  $BBOtables['51'] => ['styles'] => '99,100,103'
+  $BBOtables['51'] => ['count'] => has number of entries in the table
+  $BBOSubCatCount['01-A']['table'] => 51;
+*/
 
 //foreach($BBOtables as $BBOkey => $BBOvalue)
 //{

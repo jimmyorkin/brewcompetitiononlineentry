@@ -13,6 +13,7 @@ foreach ($_POST as $key => $value) {
 error_log("action=$action");
 */
 
+
 if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) && (isset($_SESSION['userLevel'])))) {
 
 	include (DB.'entries.db.php');
@@ -69,8 +70,9 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		exit;
 	}
 	
-	if (($action == "add") || ($action == "edit"))
-	{
+	// $_POST['brewStyle'] is the new style
+	// brewEditStyle is the old style
+
 		$BBOWork = explode('-', $_POST['brewStyle']);
 		if (preg_match("/^[[:digit:]]+$/",$BBOWork[0]))
 		{
@@ -80,6 +82,25 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		{
 			$BBOLookUpStyle = $_POST['brewStyle'];
 		}
+	
+	if ($action == "edit")
+	{
+		if ($BBOtables[$BBOSubCatCount["$BBOLookUpStyle"]['table']]['count'] >= $BBOtableMaxEntries)
+		{
+		  if ($BBOSubCatCount[$_POST['brewEditStyle']]['table'] != $BBOSubCatCount[$_POST['brewStyle']]['table']) // The entrant can change the style as long as it stays in the same table
+			{
+				$insertGoTo = $base_url."index.php?section=list&msg=13";
+				$pattern = array('\'', '"');
+				$insertGoTo = str_replace($pattern, "", $insertGoTo);
+				$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
+				header($redirect_go_to);
+				exit;
+			}
+	  }
+	}
+
+	if ($action == "add")
+	{
 		if ($BBOtables[$BBOSubCatCount["$BBOLookUpStyle"]['table']]['count'] >= $BBOtableMaxEntries)
 		{
 			$insertGoTo = $base_url."index.php?section=list&msg=13";
@@ -88,8 +109,9 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 			$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
 			header($redirect_go_to);
 			exit;
-		}
+	  }
 	}
+
 
 	if (($action == "add") || ($action == "edit")) {
 
