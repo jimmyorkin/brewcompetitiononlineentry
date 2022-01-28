@@ -142,7 +142,8 @@ if ($round == 1 )
 	 	c.flightNumber,
 	  a.brewJudgingNumber,
 	  a.brewCategorySort,
-	  a.brewSubCategory
+	  a.brewSubCategory,
+	  a.id
 	FROM 
 	  brewing a,
 	  judging_tables b,
@@ -190,6 +191,7 @@ while ($row = $result->fetch_assoc())
     $flightNumber = 0;
 	}
 	$brewJudgingNumber = $row['brewJudgingNumber'];
+	$brewEntryNumber   = $row['id'];
 	
 if (($oldtableNum <> $tableNumber) or ( $oldflightNub <> $flightNumber))
 {
@@ -201,10 +203,10 @@ if (($oldtableNum <> $tableNumber) or ( $oldflightNub <> $flightNumber))
   
   $pdf->SetFont('Arial', 'B', 14);
   
-  $pdf->Cell(0, .4, "Table: $tableNumber $tableName", 1, 0, 'C' );
+  $pdf->Cell(0, .4, "Table: T$tableNumber $tableName", 1, 0, 'C' );
   $pdf->Ln(1);
   $pdf->Cell(1.75, .4, "Judging Number", 1, 0, 'C' );
-  $pdf->Cell(1, .4, "Style", 1, 0, 'C' );
+  $pdf->Cell(1.2, .4, "Entry Num", 1, 0, 'C' );
   $pdf->Cell(1, .4, "Seq#", 1, 0, 'C' );
   $pdf->Cell(1, .4, "Found?", 1, 0, 'C' );
   $pdf->Cell(0, .4, "Two Bottles? Notes", 1, 1, 'C' );
@@ -213,7 +215,7 @@ if (($oldtableNum <> $tableNumber) or ( $oldflightNub <> $flightNumber))
 $entries++;
 
 $pdf->Cell(1.75, .4, $brewJudgingNumber, 1, 0, 'C' );
-$pdf->Cell(1, .4, $style, 1, 0, 'C' );
+$pdf->Cell(1.2, .4, "E$brewEntryNumber", 1, 0, 'C' );
 $pdf->Cell(1, .4, $entries, 1, 0, 'C' );
 $pdf->Cell(1, .4, "", 1, 0, 'C' );
 $pdf->Cell(0, .4, "", 1, 1, 'C' );
