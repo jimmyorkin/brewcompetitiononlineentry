@@ -124,7 +124,9 @@ set_time_limit(30);
 $pdf = new PDF('P', 'in', 'Letter');
 $pdf->AliasNbPages();
 
-$mysqli = new mysqli('127.0.0.1', 'bbbrewof_bbuser', 'bb4beer', 'bcoem231');
+require '../paths.php';
+require '../site/config.php';
+$mysqli = new mysqli($hostname, $username, $password, $database);
 
 if ($mysqli->connect_errno)
 {

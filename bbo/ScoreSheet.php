@@ -129,7 +129,9 @@ if (($table == 92) or ($table == 93))
 
 $pageId = $pdf->importPage(1);
 
-$mysqli = new mysqli('127.0.0.1', 'bbbrewof_bbuser', 'bb4beer', 'bcoem231');
+require '../paths.php';
+require '../site/config.php';
+$mysqli = new mysqli($hostname, $username, $password, $database);
 
 if ($mysqli->connect_errno)
 {
