@@ -20,7 +20,7 @@
  * *** https://www.godaddy.com/help/viewing-your-database-details-with-shared-hosting-accounts-39
  */
 
-$hostname = 'localhost';
+$hostname = '';
 
 /**
  * Enter the username for your database (generally the same as your login code 
@@ -31,7 +31,7 @@ $hostname = 'localhost';
  */
 
 
-$username = 'bcoem';
+$username = '';
 
 
 /**
@@ -40,7 +40,7 @@ $username = 'bcoem';
  * $password = 'flintsone'.
  */
 
-$password = 'bcoempw';
+$password = '';
 
 /**
  * The following line is the name of your MySQL database you set up already.
@@ -48,7 +48,7 @@ $password = 'bcoempw';
  * http://brewcompetition.com/install-instructions for setup instructions.
  */
 
-$database = 'bcoem-bluebonnet';
+$database = '';
 
 
 /**
@@ -117,7 +117,7 @@ $prefix = '';
  * change the variable to something completely unique for each installation.
  */
 
-$installation_id = 'bcoem-bluebonnet';
+$installation_id = '';
 
 /*
  * ******************************************************************************
@@ -164,7 +164,7 @@ $setup_free_access = FALSE;
  * .htaccess file.
  */
 
-$sub_directory = '/bcoem-bluebonnet';
+$sub_directory = '';
 
 /*
  * ******************************************************************************
