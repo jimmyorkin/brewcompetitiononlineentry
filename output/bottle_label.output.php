@@ -72,13 +72,13 @@ if (isset($_SESSION['loginUsername'])) {
     if ($anon) {
       $bottle_label_colCountLimit = 12; // number of labels per page
       $bottle_label_height = 200;
-      $page_info0 = sprintf("<strong>%s</strong> %s", $bottle_labels_002, $bottle_labels_003);
+      $page_info0 = sprintf("%s <strong>%s</strong>", $bottle_labels_002, strtoupper($bottle_labels_001));
     }
 
     else {
       $bottle_label_colCountLimit = 9; // number of labels per page
       $bottle_label_height = 290;
-      $page_info0 = "<strong>".$bottle_labels_001."</strong>";
+      $page_info0 = sprintf("%s <strong>%s</strong>", $bottle_labels_003, strtoupper($bottle_labels_001));
     }
 
     if ($brewerCountry == "United States") $phone = format_phone_us($brewerPhone1);
@@ -123,7 +123,6 @@ if (isset($_SESSION['loginUsername'])) {
             if ($_SESSION['prefsStyleSet'] == "BA") $page_info1 .= "<strong>Cat: ".$row_log['brewStyle']."<br>";
             elseif ($_SESSION['prefsStyleSet'] == "AABC")  $page_info1 .= "<strong>".$label_category.":</strong> ".ltrim($row_log['brewCategory'],"0").".".ltrim($row_log['brewSubCategory'],"0")." ".$row_log['brewStyle']."<br>";
             else $page_info1 .= "<strong>".$label_category.":</strong> ".$row_log['brewCategory'].$row_log['brewSubCategory']." ".$row_log['brewStyle']."<br>";
-            
 
             if ($anon) {
               
@@ -272,7 +271,7 @@ else {
 </head>
 <body>
 <div class="container-fluid">
-  <p class="lead"><small><?php echo $page_info0; ?></small></p>
+  <p style="font-size: 1.3em;"><?php echo $page_info0; ?></p>
   <?php echo $page_info1; ?>
 </div><!-- end container -->
 </body>

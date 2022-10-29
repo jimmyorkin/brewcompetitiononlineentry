@@ -19,9 +19,6 @@ To implement:
 use PHPMailer\PHPMailer\PHPMailer;
 require ('paths.php');
 require (CONFIG.'bootstrap.php');
-require (INCLUDES.'url_variables.inc.php');
-include (INCLUDES.'scrubber.inc.php');
-require (LANG.'language.lang.php');
 require (LIB.'email.lib.php');
 
 $query_prefs = sprintf("SELECT prefsPayPalAccount FROM %s WHERE id='1'", $prefix."preferences");
@@ -59,6 +56,19 @@ $user_info = mysqli_query($connection,$query_user_info) or die (mysqli_error($co
 $row_user_info = mysqli_fetch_assoc($user_info);
 $totalRows_user_info = mysqli_num_rows($user_info);
 
+$url = str_replace("www.","",$_SERVER['SERVER_NAME']);
+
+$paypal_email_address = filter_var($row_prefs['prefsPayPalAccount'],FILTER_SANITIZE_EMAIL);
+
+$from_email = (!isset($mail_default_from) || trim($mail_default_from) === '') ? "noreply@".$url : $mail_default_from;
+
+$confirm_to_email_address = "PayPal IPN Confirmation <".$paypal_email_address.">";
+$confirm_to_email_address = mb_convert_encoding($confirm_to_email_address, "UTF-8");
+
+$confirm_from_email_address = $row_logo['contestName']." Server <".$from_email.">";
+
+if (!isset($mail_use_smtp)) $mail_use_smtp = FALSE;
+
 // Set this to true to use the sandbox endpoint during testing:
 if ((DEBUG) || (TESTING)) {
 	$enable_sandbox = TRUE;
@@ -71,15 +81,6 @@ else {
 }
 
 $save_log_file = TRUE;
-
-$url = str_replace("www.","",$_SERVER['SERVER_NAME']);
-
-$paypal_email_address = $row_prefs['prefsPayPalAccount'];
-
-$from_email = (!isset($mail_default_from) || trim($mail_default_from) === '') ? "noreply@".$url : $mail_default_from;
-
-$confirm_to_email_address = "PayPal IPN Confirmation <".$paypal_email_address.">";
-$confirm_from_email_address = $row_logo['contestName']." Server <".$from_email.">";
 
 $to_email = "";
 $to_recipient = "";
@@ -127,22 +128,23 @@ if ($verified) {
 
 		$paypal_ipn_status = "Completed Successfully";
 
-		// Process IPN
-        // A list of variables are available here:
-        // https://developer.paypal.com/webapps/developer/docs/classic/ipn/integration-guide/IPNandPDTVariables/
-
 		// If payment completed, update the brewing table rows for each paid entry
 
 		if (strpos($custom_parts[1],"-")) $b = explode("-",$custom_parts[1]);
 		else $b = array($custom_parts[1]);
+		
 		$queries = "";
 		$display_entry_no = array();
 
 		foreach ($b as $key=>$value) {
 
-			$updateSQL = sprintf("UPDATE %s SET brewPaid='1', brewUpdated=NOW( ) WHERE id='%s'",$prefix."brewing",$value);
-			mysqli_real_escape_string($connection,$updateSQL);
-			$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+			$update_table = $prefix."brewing";
+			$data_paid = array(
+				'brewPaid' => 1,
+				'brewUpdated' => $db_conn->now()
+			);
+			$db_conn->where ('id', $value);
+			$result = $db_conn->update ($update_table, $data_paid);
 
 			$display_entry_no[$key] = sprintf("%.06s",$b[$key]);
 
@@ -151,17 +153,23 @@ if ($verified) {
 		$display_entry_numbers = implode(", ", $display_entry_no);
 		$display_entry_numbers = rtrim($display_entry_numbers, ", ");
 
-		$to_email = 	$row_user_info['brewerEmail'];
-		$to_recipient = $row_user_info['brewerFirstName']." ".$row_user_info['brewerLastName'];
+		$to_recipient = mb_convert_encoding($row_user_info['brewerFirstName']." ".$row_user_info['brewerLastName'], "UTF-8");
 
-		$cc_email = 	$data['payer_email'];
-		$cc_recipient = $data['first_name']." ".$data['last_name'];
+		$to_email = filter_var($row_user_info['brewerEmail'],FILTER_SANITIZE_EMAIL);
+		$to_email = mb_convert_encoding($to_email, "UTF-8");
+		$to_email_formatted .= $to_recipient." <".$to_email.">";
 
-		$headers  = "MIME-Version: 1.0" . "\r\n";
-		$headers .= "Content-type: text/html; charset=utf-8" . "\r\n";
-		$headers .= "To: ".$to_recipient. " <".$to_email .">, " . "\r\n";
-		$headers .= "Bcc: ".$cc_recipient. " <".$cc_email.">, " . "\r\n";
-		$headers .= "From: ".$row_logo['contestName']." Server <".$from_email.">\r\n";
+		$from_email = filter_var($from_email,FILTER_SANITIZE_EMAIL);
+		$from_email = mb_convert_encoding($from_email, "UTF-8");
+
+		$cc_email = mb_convert_encoding($data['payer_email'], "UTF-8");
+		$cc_recipient = mb_convert_encoding($data['first_name']." ".$data['last_name'], "UTF-8");
+
+		$headers  = "MIME-Version: 1.0"."\r\n";
+		$headers .= "Content-type: text/html; charset=utf-8"."\r\n";
+		$headers .= "From: ".$row_logo['contestName']." Server <".$from_email.">"."\r\n";
+		$headers .= "Reply-To: ".$from_name." <".$from_email.">"."\r\n";
+		$headers .= "Bcc: ".$cc_recipient. " <".$cc_email.">"."\r\n";
 
 		$message_top = "";
 		$message_body = "";
@@ -170,27 +178,30 @@ if ($verified) {
 		$message_top .= "<body>";
 		$message_top .= "<html>";
 		if ((isset($row_logo['contestLogo'])) && (file_exists(USER_IMAGES.$row_logo['contestLogo']))) $message_body .= "<p><img src='".$base_url."/user_images/".$row_logo['contestLogo']."' height='150'></p>";
-		$message_body .= "<p>".$row_user_info['brewerFirstName'].",</p>";
-		$message_body .= sprintf("<p>%s</p>",$paypal_response_text_000);
-		$message_body .= sprintf("<p><strong>%s</strong></p>",$paypal_response_text_001);
+		
+		$message_body .= "<p>".mb_convert_encoding($row_user_info['brewerFirstName'], "UTF-8").",</p>";
+		$message_body .= sprintf("<p>%s</p>",mb_convert_encoding($paypal_response_text_000, "UTF-8"));
+		$message_body .= sprintf("<p><strong>%s</strong></p>",mb_convert_encoding($paypal_response_text_001, "UTF-8"));
+		
 		$message_body .= "<table cellpadding=\"5\" cellspacing=\"0\">";
 		$message_body .= sprintf("<tr valign='top'><td nowrap><strong>%s %s:</strong></td><td>".$to_recipient."<td></tr>",$label_payer,$label_name);
-		$message_body .= sprintf("<tr valign='top'><td nowrap><strong>%s %s:</strong></td><td>".$data['payer_email']."<td></tr>",$label_payer,$label_email);
-		$message_body .= sprintf("<tr valign='top'><td nowrap><strong>%s:</strong></td><td>".$data['payment_status']."<td></tr>",$label_status);
-		$message_body .= sprintf("<tr valign='top'><td nowrap><strong>%s:</strong></td><td>".$data['payment_amount']." ".$data['payment_currency']."<td></tr>",$label_amount);
-		$message_body .= sprintf("<tr valign='top'><td nowrap><strong>%s:</strong></td><td>".$data['txn_id']."<td></tr>",$label_transaction_id);
-		$message_body .= sprintf("<tr valign='top'><td nowrap><strong>%s %s:</strong></td><td>".$display_entry_numbers."<td></tr>",$label_entry_numbers,$label_paid);
+		$message_body .= sprintf("<tr valign='top'><td nowrap><strong>%s %s:</strong></td><td>".mb_convert_encoding($data['payer_email'], "UTF-8")."<td></tr>",mb_convert_encoding($label_payer, "UTF-8"),mb_convert_encoding($label_email, "UTF-8"));
+		$message_body .= sprintf("<tr valign='top'><td nowrap><strong>%s:</strong></td><td>".mb_convert_encoding($data['payment_status'], "UTF-8")."<td></tr>",mb_convert_encoding($label_status, "UTF-8"));
+		$message_body .= sprintf("<tr valign='top'><td nowrap><strong>%s:</strong></td><td>".mb_convert_encoding($data['payment_amount']." ".$data['payment_currency'], "UTF-8")."<td></tr>",mb_convert_encoding($label_amount, "UTF-8"));
+		$message_body .= sprintf("<tr valign='top'><td nowrap><strong>%s:</strong></td><td>".mb_convert_encoding($data['txn_id'], "UTF-8")."<td></tr>",mb_convert_encoding($label_transaction_id, "UTF-8"));
+		$message_body .= sprintf("<tr valign='top'><td nowrap><strong>%s:</strong></td><td>".mb_convert_encoding($display_entry_numbers, "UTF-8")."<td></tr>",mb_convert_encoding($label_entry_numbers, "UTF-8"));
 		$message_body .= "</table>";
-
-		$message_body .= sprintf("<p>%s</p>",$paypal_response_text_002);
-		$message_body .= sprintf("<p><small>%s</small></p>",$paypal_response_text_003);
+		
+		$message_body .= sprintf("<p>%s</p>",mb_convert_encoding($paypal_response_text_002, "UTF-8"));
+		$message_body .= sprintf("<p><small>%s</small></p>",mb_convert_encoding($paypal_response_text_003, "UTF-8"));
+		
 		$message_bottom .= "</body>";
 		$message_bottom .= "</html>";
 
 		$message_all = $message_top.$message_body.$message_bottom;
 
 		// Send the email message
-		$subject = $test_text." ".$data['item_name']." - ".ucwords($paypal_response_text_009);
+		$subject = mb_convert_encoding($test_text." ".$data['item_name']." - ".ucwords($paypal_response_text_009), "UTF-8");
 
 		if ($mail_use_smtp) {
 			$mail = new PHPMailer(true);
@@ -203,9 +214,8 @@ if ($verified) {
 			$mail->Body = $message_all;
 			sendPHPMailerMessage($mail);
 		} else {
-			mail($to_email, $subject, $message_all, $headers);
+			mail($to_email_formatted, $subject, $message_all, $headers);
 		}
-
 
     }
 
@@ -221,9 +231,20 @@ elseif ($_POST['test_ipn'] == 1) {
 
 if ($save_log_file) {
 
-	$insertSQL = sprintf ("INSERT INTO %s (uid, first_name, last_name, item_name, txn_id, payment_gross, currency_code, payment_status, payment_entries, payment_time) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')", $prefix."payments", $custom_parts[0], $data['first_name'], $data['last_name'], $data['item_name'], $data['txn_id'], $data['payment_amount'], $data['payment_currency'], $paypal_ipn_status, $custom_parts[1], time());
-	mysqli_real_escape_string($connection,$insertSQL);
-	$result = mysqli_query($connection,$insertSQL) or die (mysqli_error($connection));
+	$update_table = $prefix."payments";
+	$data_ppv = array(
+		'uid' => $custom_parts[0],
+		'first_name' => $data['first_name'],
+		'last_name' => $data['last_name'],
+		'item_name' => $data['item_name'],
+		'txn_id' => $data['txn_id'],
+		'payment_gross' => $data['payment_amount'],
+		'currency_code' => $data['payment_currency'],
+		'payment_status' => $paypal_ipn_status,
+		'payment_entries' => $custom_parts[1],
+		'payment_time' => time()
+	);
+	$result = $db_conn->insert ($update_table, $data_ppv);
 
 }
 
@@ -231,10 +252,11 @@ if ($send_confirmation_email) {
 
 	// Send confirmation email
 
-	$headers_confirm  = "MIME-Version: 1.0" . "\r\n";
-	$headers_confirm .= "Content-type: text/html; charset=utf-8" . "\r\n";
-	$headers_confirm .= "To: ".$confirm_to_email_address.", " . "\r\n";
-	$headers_confirm .= "From: ".$confirm_from_email_address."\r\n";
+	$headers_confirm  = "MIME-Version: 1.0"."\r\n";
+	$headers_confirm .= "Content-type: text/html; charset=utf-8"."\r\n";
+	$headers_confirm .= "From: ".mb_convert_encoding($confirm_from_email_address, "UTF-8")."\r\n";
+
+	$subject_confirm =  mb_convert_encoding("PayPal IPN: ".$paypal_ipn_status, "UTF-8");
 
 	$message_top_confirm = "";
 	$message_body_confirm = "";
@@ -260,8 +282,6 @@ if ($send_confirmation_email) {
 	$message_bottom_confirm .= "</html>";
 
 	$message_all_confirm = $message_top_confirm.$message_body_confirm.$message_bottom_confirm;
-
-	$subject_confirm = "PayPal IPN: ".$paypal_ipn_status;
 
 	if ($mail_use_smtp) {
 		$mail = new PHPMailer(true);

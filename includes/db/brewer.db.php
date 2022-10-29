@@ -190,13 +190,16 @@ if (isset($_SESSION['user_id'])) {
 	}
 
 	// Assign BOS judges query
-	elseif (($section == "admin") && ($go == "judging") && ($filter == "bos")  && ($dbTable == "default") && ($action == "assign")) {
-		$query_brewer = "SELECT * FROM $brewer_db_table WHERE (brewerJudgeRank LIKE 'Recognized%' OR brewerJudgeRank LIKE 'Certified%' OR brewerJudgeRank LIKE 'National%' OR brewerJudgeRank LIKE 'Master%' OR brewerJudgeRank LIKE '%Cicerone' OR brewerJudgeRank LIKE 'Grand%')";
+	elseif (($section == "admin") && ($go == "judging") && ($filter == "bos") && ($dbTable == "default") && ($action == "assign")) {
+		
+		if ($view == "ranked") $query_brewer = "SELECT * FROM $brewer_db_table WHERE (brewerJudgeRank LIKE 'Recognized%' OR brewerJudgeRank LIKE 'Certified%' OR brewerJudgeRank LIKE 'National%' OR brewerJudgeRank LIKE 'Master%' OR brewerJudgeRank LIKE '%Cicerone' OR brewerJudgeRank LIKE 'Grand%' OR brewerJudgeMead='Y' OR brewerJudgeCider='Y') AND brewerJudge='Y'";
+		else $query_brewer = "SELECT * FROM $brewer_db_table WHERE brewerJudge='Y'";
+
 		if (SINGLE) $query_brewer .= sprintf(" AND brewerJudge='%s' AND FIND_IN_SET('%s',brewerCompParticipant) > 0", "Y-".$_SESSION['comp_id'], $_SESSION['comp_id']);
-		else $query_brewer .= " AND brewerJudge='Y'";
 		$brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
 		$row_brewer = mysqli_fetch_assoc($brewer);
 		$totalRows_brewer = mysqli_num_rows($brewer);
+	
 	}
 
 	// Assigned judges at table query
@@ -254,7 +257,7 @@ if (isset($_SESSION['user_id'])) {
 	}
 
 	if ($section != "step2") {
-		$query_brewerID = sprintf("SELECT id,brewerEmail FROM $brewer_db_table WHERE id = '%s'", $id);
+		$query_brewerID = sprintf("SELECT id,brewerEmail FROM %s WHERE uid = '%s'", $brewer_db_table, $_SESSION['user_id']);
 		$brewerID = mysqli_query($connection,$query_brewerID) or die (mysqli_error($connection));
 		$row_brewerID = mysqli_fetch_assoc($brewerID);
 		$totalRows_brewerID = mysqli_num_rows($brewerID);

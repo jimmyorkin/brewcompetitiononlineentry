@@ -17,58 +17,61 @@ if (($filter != "default") && ($filter != "rounds"))  {
 
 		include (DB.'admin_judging_flights.db.php');
 
-		do {
+		if ($row_entries) {
 
-			$random = random_generator(7,2);
-			$flight_number_entry = "";
-			$flight_number_value = "";
+			do {
 
-			if ($action == "edit") {
-				$flight_number_entry = flight_entry_info($row_entries['id']);
-				$flight_number_value = explode("^",$flight_number_entry);
-			}
+				$random = random_generator(7,2);
+				$flight_number_entry = "";
+				$flight_number_value = "";
+				$hidden_input_id = "";
+				$checked = "";
 
-			$hidden_input_id = "";
-			$checked = "";
+				if ($action == "edit") {
+					$flight_number_entry = flight_entry_info($row_entries['id']);
+					$flight_number_value = explode("^",$flight_number_entry);
+				}
 
-			if ($action == "add") $hidden_input_id = $row_entries['id'];
-			elseif (($action == "edit") && (!empty($flight_number_value[0]))) $hidden_input_id = $flight_number_value[0];
-			else $hidden_input_id = $random;
+				if ($action == "add") $hidden_input_id = $row_entries['id'];
+				elseif (($action == "edit") && (!empty($flight_number_value[0]))) $hidden_input_id = $flight_number_value[0];
+				else $hidden_input_id = $random;
 
-			$flight_table_tbody .= "<tr>\n";
-			$flight_table_tbody .= "<td>";
-			$flight_table_tbody .= $row_entries['brewJudgingNumber'];
-			$flight_table_tbody .= "<input type=\"hidden\" name=\"id[]\" value=\"".$hidden_input_id."\">";
-			$flight_table_tbody .= "<input type=\"hidden\" name=\"flightTable\" value=\"".$row_tables_edit['id']."\">";
-			$flight_table_tbody .= "<input type=\"hidden\" name=\"flightEntryID".$hidden_input_id."\" value=\"".$row_entries['id']."\">";
-			$flight_table_tbody .= "</td>\n";
-
-			$flight_table_tbody .= "<td>";
-			if ($_SESSION['prefsStyleSet'] == "BA") $flight_table_tbody .= $row_entries['brewStyle'];
-			elseif ($_SESSION['prefsStyleSet'] == "AABC") $flight_table_tbody .= ltrim($row_entries['brewCategorySort'],"0").".".ltrim($row_entries['brewSubCategory'],"0")." ".style_convert($row_entries['brewCategorySort'],1).": ".$row_entries['brewStyle'];
-			else $flight_table_tbody .= $row_entries['brewCategorySort'].$row_entries['brewSubCategory']." ".style_convert($row_entries['brewCategorySort'],1).": ".$row_entries['brewStyle'];
-			$flight_table_tbody .= "</td>\n";
-
-			for($i=1; $i<$flight_count+1; $i++) {
-				if (($action == "add") && ($i == 1)) $checked = "checked";
-				elseif (($action == "edit") && ($flight_number_value[1] == $i)) $checked = "checked";
-				else $checked = "";
+				$flight_table_tbody .= "<tr>\n";
 				$flight_table_tbody .= "<td>";
-				$flight_table_tbody .= "<input type=\"radio\" name=\"flightNumber".$hidden_input_id."\" value=\"flight".$i."\" ".$checked.">";
+				$flight_table_tbody .= $row_entries['brewJudgingNumber'];
+				$flight_table_tbody .= "<input type=\"hidden\" name=\"id[]\" value=\"".$hidden_input_id."\">";
+				$flight_table_tbody .= "<input type=\"hidden\" name=\"flightTable\" value=\"".$row_tables_edit['id']."\">";
+				$flight_table_tbody .= "<input type=\"hidden\" name=\"flightEntryID".$hidden_input_id."\" value=\"".$row_entries['id']."\">";
 				$flight_table_tbody .= "</td>\n";
-			}
 
-			$flight_table_tbody .= "<td>";
-			if ($action == "edit") $flight_table_tbody .= $flight_number_value[3];
-			else $flight_table_tbody .= "&nbsp;";
-			$flight_table_tbody .= "</td>\n";
-			$flight_table_tbody .= "<td>";
-			$flight_table_tbody .= str_replace("^"," | ",$row_entries['brewInfo']);
-			if (!empty($row_entries['brewInfoOptional'])) $flight_table_tbody .= $row_entries['brewInfoOptional'];
-			$flight_table_tbody .= "</td>\n";
-			$flight_table_tbody .= "</tr>\n";
+				$flight_table_tbody .= "<td>";
+				if ($_SESSION['prefsStyleSet'] == "BA") $flight_table_tbody .= $row_entries['brewStyle'];
+				elseif ($_SESSION['prefsStyleSet'] == "AABC") $flight_table_tbody .= ltrim($row_entries['brewCategorySort'],"0").".".ltrim($row_entries['brewSubCategory'],"0")." ".style_convert($row_entries['brewCategorySort'],1).": ".$row_entries['brewStyle'];
+				else $flight_table_tbody .= $row_entries['brewCategorySort'].$row_entries['brewSubCategory']." ".style_convert($row_entries['brewCategorySort'],1).": ".$row_entries['brewStyle'];
+				$flight_table_tbody .= "</td>\n";
 
-		}  while ($row_entries = mysqli_fetch_assoc($entries));
+				for($i=1; $i<$flight_count+1; $i++) {
+					if (($action == "add") && ($i == 1)) $checked = "checked";
+					elseif (($action == "edit") && ($flight_number_value[1] == $i)) $checked = "checked";
+					else $checked = "";
+					$flight_table_tbody .= "<td>";
+					$flight_table_tbody .= "<input type=\"radio\" name=\"flightNumber".$hidden_input_id."\" value=\"flight".$i."\" ".$checked.">";
+					$flight_table_tbody .= "</td>\n";
+				}
+
+				$flight_table_tbody .= "<td>";
+				if ($action == "edit") $flight_table_tbody .= $flight_number_value[3];
+				else $flight_table_tbody .= "&nbsp;";
+				$flight_table_tbody .= "</td>\n";
+				$flight_table_tbody .= "<td>";
+				$flight_table_tbody .= str_replace("^"," | ",$row_entries['brewInfo']);
+				if (!empty($row_entries['brewInfoOptional'])) $flight_table_tbody .= $row_entries['brewInfoOptional'];
+				$flight_table_tbody .= "</td>\n";
+				$flight_table_tbody .= "</tr>\n";
+
+			}  while ($row_entries = mysqli_fetch_assoc($entries));
+
+		}
 
 	}
 
@@ -259,24 +262,31 @@ if (($action == "assign") && ($filter == "rounds")) {
 			//echo $query_flights."<br>";
 			//echo $totalRows_flights."<br>";
 
-
-
 			$judging_location_rounds = "";
-			if ($row_table_location['judgingRounds'] > 1) $judging_location_rounds = $row_table_location['judgingRounds']." rounds";
-			else $judging_location_rounds = $judging_location_rounds = $row_table_location['judgingRounds']." round";
-
 			$judging_table_name = "Table ".$row_tables['tableNumber']." &ndash; ".$row_tables['tableName'];
-			if ($_SESSION['jPrefsQueued'] == "N") $judging_table_name .= " <small><a href=\"".$base_url."index.php?section=admin&amp;go=judging_flights&amp;filter=define&amp;action=edit&amp;id=".$flight_table." data-toggle=\"tooltip\" data-placement=\"top\" title=\"Define/Edit the ".$row_tables['tableName']." Flights\"><span class=\"fa fa-lg fa-pencil-square-o\"></span></a></small>";
+			$judging_location_string = "";
+			$location_missing = FALSE;
 
-			$judging_location_string = $row_table_location['judgingLocName']." &ndash; ".getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_table_location['judgingDate'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "long", "date-time")." (".$judging_location_rounds." <a href=\"".$base_url."index.php?section=admin&amp;go=judging&amp;action=edit&amp;id=".$row_table_location['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Edit the ".$row_table_location['judgingLocName']." location\">defined for this location</a>)";
-			?>
+			if ($row_table_location) {
+				if ($row_table_location['judgingRounds'] > 1) $judging_location_rounds = $row_table_location['judgingRounds']." rounds";
+				else $judging_location_rounds = $judging_location_rounds = $row_table_location['judgingRounds']." round";
+				if ($_SESSION['jPrefsQueued'] == "N") $judging_table_name .= " <small><a href=\"".$base_url."index.php?section=admin&amp;go=judging_flights&amp;filter=define&amp;action=edit&amp;id=".$flight_table." data-toggle=\"tooltip\" data-placement=\"top\" title=\"Define/Edit the ".$row_tables['tableName']." Flights\"><span class=\"fa fa-lg fa-pencil-square-o\"></span></a></small>";
+
+				$judging_location_string = $row_table_location['judgingLocName']." &ndash; ".getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_table_location['judgingDate'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "long", "date-time")." (".$judging_location_rounds." <a href=\"".$base_url."index.php?section=admin&amp;go=judging&amp;action=edit&amp;id=".$row_table_location['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Edit the ".$row_table_location['judgingLocName']." location\">defined for this location</a>)";
+			} else {
+				$location_missing = TRUE;
+				$judging_location_string = sprintf("<span class=\"text-danger\">No location chosen.</span> <a href=\"%s%s\">Choose a location</a>.",$base_url."index.php?section=admin&amp;go=judging_tables&amp;action=edit&amp;id=",$row_tables['id']);
+			}
+			
+?>
 
 
 	<h4><?php echo $judging_table_name; ?></h4>
 
 	<p><strong>Location:</strong> <?php echo $judging_location_string; ?></p>
 	<?php
-	if ($totalRows_flights > 0) {
+
+	if (($totalRows_flights > 0) && (!$location_missing)) {
 		if ($_SESSION['jPrefsQueued'] == "N") $flight_no_total = $row_flights['flightNumber']; else $flight_no_total = 1;
 
 		for($i=1; $i<$flight_no_total+1; $i++) {

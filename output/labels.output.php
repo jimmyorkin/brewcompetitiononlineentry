@@ -2,6 +2,7 @@
 require('../paths.php');
 require(CONFIG.'bootstrap.php');
 require(CLASSES.'fpdf/pdf_label.php');
+require(CLASSES.'fpdf/FPDFPlus.php');
 include (DB.'output_labels.db.php');
 include (LIB.'output.lib.php');
 include (DB.'styles.db.php');
@@ -25,7 +26,8 @@ if ($_SESSION['prefsStyleSet'] == "AABC") $aabc = TRUE;
  * -------------------------------------------------------------------
  */
 
-$character_limit = 34;
+$character_limit = 32;
+$total_possible_characters = (6 * $character_limit); // 6 lines in 5160/3422
 
 if (isset($_SESSION['loginUsername'])) {
 
@@ -54,10 +56,6 @@ if (isset($_SESSION['loginUsername'])) {
 
 	} while ($row_styles = mysqli_fetch_assoc($styles));
 
-	//print_r($special_ingredients); 
-
-	//print_r($mead); exit;
-
 	if ($_SESSION['userLevel'] <= 1) {
 
 		/**
@@ -66,27 +64,191 @@ if (isset($_SESSION['loginUsername'])) {
 		 * Updated for 2.1.15 to remove special characters
 		 * Updated for 2.1.18:
 		 * - Convert UTF-8 characters to windows-1252 standard (FPDF limitation)
-		 * - Limit to 34 characters per line (Courier 8 pt)
+		 * - Limit to 32 characters per line (Courier 8 pt)
 		 * - Made formatting of both types consistent
 		 * -------------------------------------------------------------------
 		 */
 
-		if (($go == "entries") && (($action == "bottle-judging") || ($action == "bottle-entry"))) {
+		// -----------------------------------------------
+		// Judging box labels
+		// -----------------------------------------------
+		
+		if (($go == "judging_tables")) {
 			
-			// Begin PDF generation 
+			include(DB.'admin_common.db.php');
+
 			if ($psort == "3422") $pdf = new PDF_Label('3422');
 			else $pdf = new PDF_Label('5160');
+
+			if ($filter == "judges") {
+				
+				$filename = str_replace(" ", "_", $_SESSION['contestName']) . "_Virtual_Judge_Labels";
+				if ($psort == "3422") $filename .= "_Avery3422";
+				else $filename .= "_Avery5160";
+				$filename .= ".pdf";
+
+				$pdf->AddPage();
+				$pdf->Next_Label();
+				$pdf->SetFont('Arial', '', 12);
+
+				// Get a list of virtual/distributed locations
+				$virtual_locations = virtual_locations();
+				
+				do {
+					
+					$judge_info = judge_info($row_brewer['uid']);
+					$judge_info = explode("^", $judge_info);
+					$locations = explode(",", $judge_info[8]);
+					
+					// Is this judge virtual
+					$isVirtual = false;
+					foreach ($virtual_locations as $v_loc) {
+						
+						if (in_array($v_loc['check'], $locations)) {
+							$isVirtual = true;
+							break;
+						}
+
+					}
+
+					reset($virtual_locations);
+					
+					if ($isVirtual) {
+
+						for ($i = 1; $i <= $sort; $i++) {
+
+							$brewer_info = brewer_info($row_brewer['uid']);
+							$brewer_info = explode("^", $brewer_info);
+
+							// Add name to the label
+							$pdf->SetFont('Arial', 'B', 14);
+							$judge_name = $judge_info[0] . ' ' . $judge_info[1];
+							$pdf->Cell(66, 7, $judge_name, 0, 2, 'C');
+							
+							// Add location to the label
+							$pdf->SetFont('Arial', '', 10);
+							$judge_loc = $brewer_info[11] . ', ' . $brewer_info[12] ;
+							$pdf->Cell(66, 6, $judge_loc, 0, 2, 'C');
+
+							// Add table flights to the label
+							$table_flights = array();
+							
+							foreach ($virtual_locations as $v_loc) {
+								
+								if (in_array($v_loc['check'], $locations)) {
+									// Find which table this judge is assigned to for that location.
+									$assign = judge_assignment($brewer_info[7], $v_loc['id'] );
+									//$assign = explode("^", $flight);
+									$table_flights[] = $assign['tableNumber'];
+								}
+
+							}
+
+							// Display the assigned table number(s)
+							if (isset($table_flights[0])) {
+
+								if (sizeof($table_flights) > 1) $t_sring = "Tables";
+								else $t_string = "Table";
+								
+								$pdf->SetFont('Arial', 'B', 12);
+								$judge_flight = $t_string.": ". join(', ', $table_flights);
+								$pdf->Cell(66, 6, $judge_flight, 0, 2, 'C');
+							
+							} 
+
+							else {
+
+								$pdf->SetFont('Arial', 'B', 12);
+								$judge_flight = "Table: ______";
+								$pdf->Cell(66, 6, $judge_flight, 0, 2, 'C');
+
+							}
+
+							$pdf->Next_Label();
+
+						}
+						
+						reset($virtual_locations);
+					
+					}
+
+				} while ($row_brewer = mysqli_fetch_assoc($brewer));
+
+			} // end if ($filter == "judges")
+
+			else {
+				
+				$filename = str_replace(" ", "_", $_SESSION['contestName']) . "_Box_Labels";
+				if ($psort == "3422") $filename .= "_Avery3422";
+				else $filename .= "_Avery5160";
+				$filename .= ".pdf";
+
+				$pdf->AddPage();
+				$pdf->Next_Label();
+				$pdf->SetFont('Arial', '', 12);
+
+				do {
+					
+					$style_arr = array(get_table_info("0", "list", $row_tables['id'], $dbTable, "default"));
+					$styles = str_replace('&nbsp;', ' ', display_array_content($style_arr, 0));
+					$styles = rtrim($styles,", ");
+
+					$loc_arr = explode("^", get_table_info($row_tables['tableLocation'], "location", $row_tables['id'], $dbTable, "default"));
+					$location = $loc_arr[2];
+
+					for ($i = 1; $i <= $sort; $i++) {
+						
+						$pdf->SetFont('Arial', '', 36);
+						
+						if ($loc_arr[4] == 1) {
+							$pdf->SetFillColor(225, 225, 225);
+							$fill = true;
+						}
+
+						else $fill = false;
+						
+						$pdf->Cell(18, 18, $row_tables["tableNumber"], 0, 0, "C", $fill);
+						
+						$tableName = htmlspecialchars_decode($row_tables["tableName"]);
+						$pdf->SetFont('Arial', 'B', 10);		
+						if ($pdf->GetStringWidth($tableName) > 48) {
+							$tableName = substr($tableName, 0, (50 - ($pdf->GetStringWidth($tableName) / 2)));
+						}
+						$pdf->Cell(48, 5, $tableName, 0, 2, 'L');
+
+						$pdf->SetFont('Arial', '', 9);
+						$pdf->Cell(48, 5, $location, 0, 2);
+						$pdf->MultiCell(48, 5, $styles, 0, 'L');
+						$pdf->Next_Label();
+					
+					}
+
+				} while ($row_tables = mysqli_fetch_assoc($tables_edit));
 			
-			$pdf->AddPage();
+			} // end else
+
+			if (ob_get_length()) ob_clean();
+			//$pdf->Output();
+			$pdf->Output($filename,'D');
+
+		} // end if (($go == "judging_tables"))
+
+		if (($go == "entries") && (($action == "bottle-judging") || ($action == "bottle-entry"))) {
 
 			if ($view == "default") {
+
+				// Begin PDF generation 
+				if ($psort == "3422") $pdf = new PDF_Label('3422');
+				else $pdf = new PDF_Label('5160');
+				
+				$pdf->AddPage();
 				
 				$filename = str_replace(" ","_",$_SESSION['contestName'])."_Bottle_Labels_Entry_Numbers";
 				if ($filter != "default") 	$filename .= "_Category_".$filter;
 				if ($psort == "3422") 		$filename .= "_Avery3422";
 				else 						$filename .= "_Avery5160";
 				$filename .= ".pdf";
-				$pdf->SetFont('Courier','',7);
+				$pdf->SetFont('Courier','',6);
 				
 				// Print labels
 				do {
@@ -108,14 +270,103 @@ if (isset($_SESSION['loginUsername'])) {
 					$entry_no, $cat_output
 					);
 
-					$text = iconv('UTF-8', 'windows-1252//IGNORE', $text);
+					$text = (iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", transliterator_transliterate('Any-Latin; Latin-ASCII', $text)));              
 					$pdf->Add_Label($text);
 
 				} while ($row_log = mysqli_fetch_assoc($log));
 
+				if (ob_get_length()) ob_clean();
+				//$pdf->Output();
+				$pdf->Output($filename,'D');
+
+			}
+
+			// -----------------------------------------------
+			// Custom Quicksort PDF
+			// -----------------------------------------------
+			elseif ($view == "quicksort") {
+				
+				$filename = str_replace(" ", "_", $_SESSION['contestName']) . "_QuickSort_Labels_Judging_Numbers";
+				$filename .= ".pdf";
+				$pdf = new PDF_Label('5167');
+
+				$pdf->AddPage();
+				$pdf->SetFont('Arial', '', 9);
+				$lastStyle = '';
+
+				do {
+					
+					if ($lastStyle != '') {
+						if ($lastStyle == $row_log['brewCategory']) {
+							$pdf->SetLineWidth(0.1);
+							$pdf->SetDash(1, 1);
+							// GetTopMargin function is not defined
+							// $pdf->Line(0, $pdf->GetY() + $pdf->GetTopMargin(), 200, $pdf->GetY() + $pdf->GetTopMargin());
+							$pdf->Line(0, $pdf->GetY() + 5, 200, $pdf->GetY() + 5);
+						} else {
+							$pdf->SetLineWidth(1);
+							$pdf->Line(0, $pdf->GetY() + 5, 200, $pdf->GetY() + 5);
+						}
+					}
+					
+
+					$lastStyle = $row_log['brewCategory'];
+					
+					$judging_number = readable_judging_number($row_log['brewCategory'], $row_log['brewJudgingNumber']);
+					$entry_number = sprintf("%06s", $row_log['id']);
+					$style = $row_log['brewCategory'] . $row_log['brewSubCategory'];
+					$style_name = truncate($row_log['brewStyle'], 22);
+					$brewer_name = truncate($row_log['brewBrewerFirstName']." ".$row_log['brewBrewerLastName'],30);
+					
+					$bottles = ['#1', '#2', '#3'];
+
+					$pdf->SetFont('Arial', '', 9);
+					foreach ($bottles as $b) {
+						$text = sprintf("\n              %s  %s\n                     %s", $style, $judging_number, $b);
+						$text = iconv('UTF-8', 'windows-1252', $text);
+						$pdf->Add_Label($text);
+					}
+					
+					reset($bottles);
+
+					$bottles = ['#4', '#5', 'BOS'];
+
+					// Print Entrant info
+					$pdf->SetFont('Arial', '', 9);
+					$text = sprintf("\n%s %s\n%s", $style, $style_name, $brewer_name);
+					$text = iconv('UTF-8', 'windows-1252', $text);
+					$pdf->Add_Label($text);
+
+					$pdf->SetFont('Arial', '', 9);
+					foreach ($bottles as $b) {
+						$text = sprintf("\n              %s  %s\n                     %s", $style, $judging_number, $b);
+						$text = iconv('UTF-8', 'windows-1252', $text);
+						$pdf->Add_Label($text);
+					}
+
+					reset($bottles);
+
+					$pdf->SetFont('Arial', '', 13);
+					if ($entry_number == $judging_number) $text = sprintf("\n%s", $entry_number);
+					else $text = sprintf("\n%s | %s", $entry_number, $judging_number);
+					$text = iconv('UTF-8', 'windows-1252', $text);
+					$pdf->Add_Label($text);
+
+				} while ($row_log = mysqli_fetch_assoc($log));
+				
+				if (ob_get_length()) ob_clean();
+				//$pdf->Output();
+				$pdf->Output($filename,'D');
+			
 			}
 
 			else {
+
+				// Begin PDF generation 
+				if ($psort == "3422") $pdf = new PDF_Label('3422');
+				else $pdf = new PDF_Label('5160');
+				
+				$pdf->AddPage();
 
 				$special_strength = array(
 					"Strength" => "",
@@ -154,9 +405,13 @@ if (isset($_SESSION['loginUsername'])) {
 				if ($psort == "3422") $filename .= "_Avery3422";
 				else $filename .= "_Avery5160";
 				$filename .= ".pdf";
+
+				
 				
 				// Print labels
 				do {
+
+					$character_length = 0;
 					
 					for($i=0; $i<$sort; $i++) {
 						
@@ -165,6 +420,7 @@ if (isset($_SESSION['loginUsername'])) {
 						$special = "";
 						$special_only = "";
 						$optional = "";
+						$allergens = "";
 						$entry_str_sweet_carb = "";
 						$mead_cider = "";
 						$beer_strength = "";
@@ -195,7 +451,8 @@ if (isset($_SESSION['loginUsername'])) {
 						$style_name = truncate($style_name,21);
 						
 						if ($ba) $entry_info = sprintf("%s (%s)", $entry_no, $style_name);
-						else $entry_info = sprintf("\n%s (%s: %s)", $entry_no, $style_display, $style_name);
+						else $entry_info = sprintf("%s (%s: %s)", $entry_no, $style_display, $style_name);
+						$character_length += strlen($entry_info);
 
 						if (in_array($style,$special_ingredients)) {
 
@@ -225,18 +482,26 @@ if (isset($_SESSION['loginUsername'])) {
 							$special = str_replace("^", "", $special);
 							$special = trim($special);
 							$entry_str_sweet_carb .= $beer_carbonation.$beer_sweeteness.$beer_strength;
-							if (!empty($special)) $special = sprintf("\n%s", $special);
+							if (!empty($special)) {
+								$character_length += strlen($special);
+								$special = sprintf("\n%s", $special);
+								
+							}
 						}
-						
-						if (!empty($row_log['brewInfoOptional'])) {
+
+						if ((!empty($row_log['brewPossAllergens'])) && ($character_length < $total_possible_characters)) {
 							
 							$character_limit_adjust = $character_limit * 2; // Allow for two lines
-							$special_optional = strip_tags($row_log['brewInfoOptional']);
-							$special_optional = iconv('UTF-8', 'windows-1252', html_entity_decode($special_optional));
-							$optional = str_replace("\n"," ",truncate($special_optional,$character_limit_adjust,""));
-							$optional = html_entity_decode($optional);
-							$optional = sprintf("\n%s",$optional);
-
+							$allergens = strip_tags($row_log['brewPossAllergens']);
+							$allergens = iconv('UTF-8', 'windows-1252', html_entity_decode($allergens));
+							$allergens = sprintf("%s: %s",$label_allergens,$allergens);
+							$allergens = str_replace("\n"," ",truncate($allergens,$character_limit_adjust,""));
+							$allergens = html_entity_decode($allergens);
+							if (!empty($allergens)) {
+								$character_length += strlen($allergens);
+								$allergens = sprintf("\n%s",$allergens);
+							}
+							
 						}
 						
 						if (in_array($style,$mead)) {
@@ -254,31 +519,45 @@ if (isset($_SESSION['loginUsername'])) {
 							$entry_str_sweet_carb = str_replace("Sparkling", "Spark", $entry_str_sweet_carb);
 							$entry_str_sweet_carb = str_replace("Hydromel", "Hydro", $entry_str_sweet_carb);
 							$entry_str_sweet_carb = str_replace("Petillant", "Petill", $entry_str_sweet_carb);
+							$character_length += strlen($entry_str_sweet_carb);
 							$entry_str_sweet_carb = sprintf("\n%s",$entry_str_sweet_carb);
 
 						}
-						
-						if ($view == "special") {
 
-							if ((in_array($style,$special_ingredients)) || (in_array($style,$mead))) $text = $entry_info.$special.$entry_str_sweet_carb.$optional;
-							else $text = "";
+						if (!empty($row_log['brewInfoOptional'])) {
+							
+							$optional = strip_tags($row_log['brewInfoOptional']);
+							
+							if ((!empty($optional)) && ($character_length < ($total_possible_characters - $character_limit))) {
+								$optional = html_entity_decode($optional);
+								$optional = iconv('UTF-8', 'windows-1252', html_entity_decode($optional));
+								$optional = str_replace("\n"," ",truncate($optional,$character_limit_adjust,""));
+								$character_length += strlen($optional);
+								$optional = sprintf("\n%s",$optional);
+							}
 
+							else $optional = "";
+							
 						}
 						
-						else $text = $entry_info.$special.$entry_str_sweet_carb.$optional;
-						$text = iconv('UTF-8', 'windows-1252//IGNORE', $text);
+						if ($view == "special") {
+							if ((in_array($style,$special_ingredients)) || (in_array($style,$mead))) $text = $entry_info.$special.$entry_str_sweet_carb.$allergens.$optional;
+							else $text = "";
+						}
 						
+						else $text = $entry_info.$special.$entry_str_sweet_carb.$allergens.$optional;
+						$text = (iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", transliterator_transliterate('Any-Latin; Latin-ASCII', $text))); 
 						if (!empty($text)) $pdf->Add_Label($text);
 
 					}
 
 				} while ($row_log = mysqli_fetch_assoc($log));
 
-			} // end else
+				if (ob_get_length()) ob_clean();
+				//$pdf->Output();
+				$pdf->Output($filename,'D');
 
-			if (ob_get_length()) ob_clean();
-			//$pdf->Output();
-			$pdf->Output($filename,'D');
+			} // end else
 
 		}
 
@@ -310,14 +589,14 @@ if (isset($_SESSION['loginUsername'])) {
 					if (($entry_no != "") && ($filter == "default")) {
 						if ($aabc) $text = sprintf("\n%s\n(%s)",$entry_no, ltrim($row_log['brewCategory'],"0").".".ltrim($row_log['brewSubCategory'],"0"));
 						else $text = sprintf("\n%s\n(%s)",$entry_no, $row_log['brewCategory'].$row_log['brewSubCategory']);
-						$text = iconv('UTF-8', 'windows-1252//IGNORE', $text);
+						$text = (iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", transliterator_transliterate('Any-Latin; Latin-ASCII', $text))); 
 						$pdf->Add_Label($text);
 					}
 
 					if (($entry_no != "") && ($filter == "recent") && (strtotime($row_log['brewUpdated']) > $row_contest_dates['contestRegistrationDeadline'])) {
 						if ($aabc) $text = sprintf("\n%s\n(%s)",$entry_no, ltrim($row_log['brewCategory'],"0").".".ltrim($row_log['brewSubCategory'],"0"));
 						else $text = sprintf("\n%s\n(%s)",$entry_no, $row_log['brewCategory'].$row_log['brewSubCategory']);
-						$text = iconv('UTF-8', 'windows-1252//IGNORE', $text);
+						$text = (iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", transliterator_transliterate('Any-Latin; Latin-ASCII', $text))); 
 						$pdf->Add_Label($text);
 					}
 
@@ -326,7 +605,7 @@ if (isset($_SESSION['loginUsername'])) {
 			} while ($row_log = mysqli_fetch_assoc($log));
 
 			//$pdf->Output();
-			if (ob_get_length()) ob_clean();;
+			if (ob_get_length()) ob_clean();
 			$pdf->Output($filename,'D');
 
 		}
@@ -355,13 +634,14 @@ if (isset($_SESSION['loginUsername'])) {
 					if ((!empty($entry_no)) && ($filter == "default")) {
 						if ($aabc) $text = sprintf("\n%s\n(%s)",$entry_no, ltrim($row_log['brewCategory'],"0").".".ltrim($row_log['brewSubCategory'],"0"));
 						else $text = sprintf("\n%s\n(%s)",$entry_no, $row_log['brewCategory'].$row_log['brewSubCategory']);
+						$text = (iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", transliterator_transliterate('Any-Latin; Latin-ASCII', $text))); 
 						$pdf->Add_Label($text);
 					}
 
 					if ((!empty($entry_no)) && ($filter == "recent") && (strtotime($row_log['brewUpdated']) > $row_contest_dates['contestRegistrationDeadline'])) {
 						if ($aabc) $text = sprintf("\n%s\n(%s)",$entry_no, ltrim($row_log['brewCategory'],"0").".".ltrim($row_log['brewSubCategory'],"0"));
 						else $text = sprintf("\n%s\n(%s)",$entry_no, $row_log['brewCategory'].$row_log['brewSubCategory']);
-						$text = iconv('UTF-8', 'windows-1252//IGNORE', $text);
+						$text = (iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", transliterator_transliterate('Any-Latin; Latin-ASCII', $text))); 
 						$pdf->Add_Label($text);
 					}
 
@@ -370,7 +650,7 @@ if (isset($_SESSION['loginUsername'])) {
 			} while ($row_log = mysqli_fetch_assoc($log));
 
 			//$pdf->Output();
-			if (ob_get_length()) ob_clean();;
+			if (ob_get_length()) ob_clean();
 			$pdf->Output($filename,'D');
 
 		}
@@ -394,14 +674,14 @@ if (isset($_SESSION['loginUsername'])) {
 				for($i=0; $i<$sort; $i++) {
 					if ($aabc) $text = sprintf("\n%s",ltrim($row_log['brewCategorySort'],"0").".".ltrim($row_log['brewSubCategory'],"0"));
 					else $text = sprintf("\n%s",$row_log['brewCategorySort'].$row_log['brewSubCategory']);
-					$text = iconv('UTF-8', 'windows-1252//IGNORE', $text);
+					$text = (iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", transliterator_transliterate('Any-Latin; Latin-ASCII', $text))); 
 					$pdf->Add_Label($text);
 				}
 
 			} while ($row_log = mysqli_fetch_assoc($log));
 
 			//$pdf->Output();
-			if (ob_get_length()) ob_clean();;
+			if (ob_get_length()) ob_clean();
 			$pdf->Output($filename,'D');
 		}
 
@@ -436,14 +716,14 @@ if (isset($_SESSION['loginUsername'])) {
 						$brewerLocation
 					);
 
-					$text = iconv('UTF-8', 'windows-1252//IGNORE', $text);
+					$text = (iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", transliterator_transliterate('Any-Latin; Latin-ASCII', $text))); 
 					$pdf->Add_Label($text);
 
 				}
 
 			} while ($row_brewer = mysqli_fetch_assoc($brewer));
 
-			if (ob_get_length()) ob_clean();;
+			if (ob_get_length()) ob_clean();
 			$pdf->Output($filename,'D');
 
 		}
@@ -465,6 +745,7 @@ if (isset($_SESSION['loginUsername'])) {
 
 				$bjcp_rank = explode(",",$row_brewer['brewerJudgeRank']);
 				$rank = bjcp_rank($bjcp_rank[0],2);
+				if (((strpos($rank, "Non-BJCP Judge") !== false)) && (($row_brewer['brewerJudgeMead'] == "Y") || ($row_brewer['brewerJudgeCider'] == "Y"))) $rank = "BJCP Cider or Mead Judge";
 				$mead = "";
 				$pro = "";
 				$cert_cicerone = "";
@@ -500,6 +781,10 @@ if (isset($_SESSION['loginUsername'])) {
 				elseif ((empty($cicerone)) && (!empty($other))) $other_combined = $other;
 				else $other_combined = "";
 				if (!empty($other_combined)) $other_ranks = implode(", ", $other_combined);
+				$other_ranks = ltrim($other_ranks," ,");
+				$other_ranks = ltrim($other_ranks," , ");
+				$other_ranks = ltrim($other_ranks,", ");
+				$other_ranks = ltrim($other_ranks,",");
 
 				$first_name = $row_brewer['brewerFirstName'];
 				$last_name = $row_brewer['brewerLastName'];
@@ -525,14 +810,13 @@ if (isset($_SESSION['loginUsername'])) {
 						);
 					}
 
-
-					$text = iconv('UTF-8', 'windows-1252//IGNORE', $text);
+					$text = (iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", transliterator_transliterate('Any-Latin; Latin-ASCII', $text))); 
 					$pdf->Add_Label($text);
 				}
 
 			} while ($row_brewer = mysqli_fetch_assoc($brewer));
 
-			if (ob_get_length()) ob_clean();;
+			if (ob_get_length()) ob_clean();
 			$pdf->Output($filename,'D');
 
 		}
@@ -576,8 +860,8 @@ if (isset($_SESSION['loginUsername'])) {
 
 							if ($row_brewer['brewerCountry'] != "United States") $brewer_country = $row_brewer['brewerCountry']; else $brewer_country = "";
 
-							if (!empty($brewer_country)) $last_line = $brewer_country."\nAttn: ".truncate($entries,126);
-							else $last_line = "Attn: ".truncate($entries,166);
+							if (!empty($brewer_country)) $last_line = $brewer_country."\n#: ".truncate($entries,126);
+							else $last_line = "#: ".truncate($entries,166);
 
 							$text = sprintf("\n%s %s\n%s\n%s, %s %s\n%s",
 								$row_brewer['brewerFirstName']." ".$row_brewer['brewerLastName'],
@@ -589,6 +873,7 @@ if (isset($_SESSION['loginUsername'])) {
 								$last_line
 							);
 
+							$text = (iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", transliterator_transliterate('Any-Latin; Latin-ASCII', $text))); 
 							$pdf->Add_Label($text);
 
 						}
@@ -607,13 +892,15 @@ if (isset($_SESSION['loginUsername'])) {
 						$brewer_country
 						);
 
+						$text = (iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", transliterator_transliterate('Any-Latin; Latin-ASCII', $text))); 
 						$pdf->Add_Label($text);
+
 					}
 
 			} while ($row_brewer = mysqli_fetch_assoc($brewer));
 
 			//$pdf->Output();
-			if (ob_get_length()) ob_clean();;
+			if (ob_get_length()) ob_clean();
 			$pdf->Output($filename,'D');
 
 		}
@@ -683,6 +970,7 @@ if (isset($_SESSION['loginUsername'])) {
 
 		$bjcp_rank = explode(",",$row_brewer['brewerJudgeRank']);
 		$rank = bjcp_rank($bjcp_rank[0],2);
+		if (((strpos($rank, "Non-BJCP Judge") !== false)) && (($row_brewer['brewerJudgeMead'] == "Y") || ($row_brewer['brewerJudgeCider'] == "Y"))) $rank = "BJCP Cider or Mead Judge";
 		$mead = "";
 		$pro = "";
 		$cert_cicerone = "";
@@ -719,6 +1007,10 @@ if (isset($_SESSION['loginUsername'])) {
 		elseif ((empty($cicerone)) && (!empty($other))) $other_combined = $other;
 		else $other_combined = "";
 		if (!empty($other_combined)) $other_ranks = implode(", ", $other_combined);
+		$other_ranks = ltrim($other_ranks," ,");
+		$other_ranks = ltrim($other_ranks," , ");
+		$other_ranks = ltrim($other_ranks,", ");
+		$other_ranks = ltrim($other_ranks,",");
 
 		for($i=0; $i<$number_of_labels; $i++) {
 
@@ -741,7 +1033,7 @@ if (isset($_SESSION['loginUsername'])) {
 				);
 			}
 
-			$text = iconv('UTF-8', 'windows-1252//IGNORE', $text);
+			$text = (iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", transliterator_transliterate('Any-Latin; Latin-ASCII', $text))); 
 			$pdf->Add_Label($text);
 
 		}
@@ -754,4 +1046,6 @@ if (isset($_SESSION['loginUsername'])) {
 }
 
 else echo "<p>Not available.</p>";
+
+
 ?>

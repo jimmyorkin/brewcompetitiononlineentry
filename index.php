@@ -11,10 +11,15 @@ require_once ('paths.php');
 require_once (CONFIG.'bootstrap.php');
 require_once (DB.'mods.db.php');
 
-$account_pages = array("list","pay","brewer","user","brew","beerxml","pay","evaluation");
+$account_pages = array("list","pay","brewer","user","brew","pay","evaluation");
+
 if ((!$logged_in) && (in_array($section,$account_pages))) {
-    header(sprintf("Location: %s", $base_url."index.php?section=login&msg=99"));
-    exit;
+
+    $redirect = $base_url."index.php?section=login&msg=99";
+    $redirect = prep_redirect_link($redirect);
+    $redirect_go_to = sprintf("Location: %s", $redirect);
+    header($redirect_go_to);
+    exit();
 }
 
 // ---------------------------------------------------------------------------------
@@ -25,13 +30,23 @@ if ($section == "admin") {
 
     // Redirect if non-admins try to access admin functions
     if (!$logged_in) {
-        header(sprintf("Location: %s", $base_url."index.php?section=login&msg=0"));
-        exit;
+
+        $redirect = $base_url."index.php?section=login&msg=0";
+        $redirect = prep_redirect_link($redirect);
+        $redirect_go_to = sprintf("Location: %s", $redirect);
+        header($redirect_go_to);
+        exit();
+
     }
 
     if (($logged_in) && ($_SESSION['userLevel'] > 1)) {
-        header(sprintf("Location: %s", $base_url."index.php?msg=4"));
-        exit;
+        
+        $redirect = $base_url."index.php?msg=4";
+        $redirect = prep_redirect_link($redirect);
+        $redirect_go_to = sprintf("Location: %s", $redirect);
+        header($redirect_go_to);
+        exit();
+
     }
 
     require_once (LIB.'admin.lib.php');
@@ -57,7 +72,7 @@ if ((TESTING) || (DEBUG)) {
 if (DEBUG) include (DEBUGGING.'query_count_begin.debug.php');
 
 // Hosted installations
-if (HOSTED) check_hosted_gh();
+if (HOSTED) require_once (LIB.'hosted.lib.php');
 
 // Perform version check if NOT going into setup
 if (strpos($section, 'step') === FALSE)  {
@@ -74,11 +89,6 @@ else {
     $container_main = "container";
     $nav_container = "navbar-default";
 }
-
-/* 
- * Load libraries only when needed - for performance
- * Moved to constants.inc.php - 2.1.19
- */
 
 $security_question = array($label_secret_01, $label_secret_05, $label_secret_06, $label_secret_07, $label_secret_08, $label_secret_09, $label_secret_10, $label_secret_11, $label_secret_12, $label_secret_13, $label_secret_14, $label_secret_15, $label_secret_16, $label_secret_17, $label_secret_18, $label_secret_19, $label_secret_20, $label_secret_21, $label_secret_22, $label_secret_23, $label_secret_25, $label_secret_26, $label_secret_27);
 
@@ -108,6 +118,11 @@ if ($section == "past-winners") {
     if (!$archive_winner_display) header(sprintf("Location: %s", $base_url."index.php?msg=8"));
 }
 
+if (($row_system) && (!empty($row_system['update_date'])) && ($row_system['update_date'] >= (time() - 86400))) {
+    $recently_updated = TRUE;
+    $_SESSION['update_summary'] = $row_system['update_summary'];
+    if (strpos($row_system['update_summary'], 'Warning: Errors') !== false) $_SESSION['update_errors'] = 1;
+}
 
 // ---------------------------------------------------------------------------------
 ?>
@@ -126,6 +141,13 @@ if ($section == "past-winners") {
     <!-- Load BCOE&M Custom CSS - Contains Bootstrap overrides and custom classes common to all BCOE&M themes -->
     <link rel="stylesheet" type="text/css" href="<?php echo $base_url."css/common.min.css"; ?>" />
     <link rel="stylesheet" type="text/css" href="<?php echo $theme; ?>" />
+
+    <script type="text/javascript">
+        var username_url = "<?php echo $base_url; ?>ajax/username.ajax.php";
+        var email_url="<?php echo $base_url; ?>ajax/valid_email.ajax.php";
+        var user_agent_msg = "<?php echo $alert_text_086; ?>";
+        var setup = 0;
+    </script>
     
     <!-- Load BCOE&M Custom JS -->
     <script src="<?php echo $base_url; ?>js_includes/bcoem_custom.min.js"></script>
@@ -158,7 +180,36 @@ if ($section == "past-winners") {
 
 <!-- ALERTS -->
 <div class="<?php echo $container_main; ?> bcoem-warning-container">
-    <?php include (SECTIONS.'alerts.sec.php'); ?>
+    <?php
+    
+    if ((!empty($_SESSION['error_output'])) || (!empty($error_output))) {
+        
+        echo "<div class=\"bcoem-admin-element\">";
+        echo "<div class=\"alert alert-danger alert-dismissible hidden-print fade in\">";
+        echo "<p><span class=\"fa fa-lg fa-exclamation-circle\"></span> <strong>MySQL Error(s)</strong></p>";
+        echo "<p>The following errors were logged on the last MySQL server call:</p>";
+        echo "<ul>";
+        
+        if (!empty($error_output)) {
+            foreach ($error_output as $key => $value) {
+                echo "<li>".$value."</li>";
+            }
+        }
+
+        if (!empty($_SESSION['error_output'])) {
+            foreach ($_SESSION['error_output'] as $key => $value) {
+                echo "<li>".$value."</li>";
+            }
+        }
+            
+        echo "</ul>";
+        echo "</div>";
+        echo "</div>";
+    }
+
+    include (SECTIONS.'alerts.sec.php'); 
+
+    ?>
 </div><!-- ./container -->
 <!-- ./ALERTS -->
 
@@ -199,6 +250,7 @@ if ($section == "past-winners") {
         <?php
 
             if ($go == "judging") include (ADMIN.'judging_locations.admin.php');
+            if ($go == "non-judging") include (ADMIN.'non-judging_locations.admin.php');
             if ($go == "judging_preferences") include (ADMIN.'judging_preferences.admin.php');
             if ($go == "judging_tables") include (ADMIN.'judging_tables.admin.php');
             if ($go == "judging_flights") include (ADMIN.'judging_flights.admin.php');
@@ -230,6 +282,7 @@ if ($section == "past-winners") {
                 if ($go == "mods") include (ADMIN.'mods.admin.php');
                 if ($go == "upload") include (ADMIN.'upload.admin.php');
                 if ($go == "change_user_password") include (ADMIN.'change_user_password.admin.php');
+                if ($go == "dates") include (ADMIN.'all_dates.admin.php');
 
             }
 
@@ -286,7 +339,6 @@ if ($section == "past-winners") {
                     if ($section == "brew") include (SECTIONS.'brew.sec.php');
                     if ($section == "pay") include (SECTIONS.'pay.sec.php');
                     if ($section == "user") include (SECTIONS.'user.sec.php');
-                    if ($section == "beerxml") include (SECTIONS.'beerxml.sec.php');
                 }
 
             }
@@ -319,7 +371,7 @@ echo $output_query_count;
 <!-- ./Mods Bottom -->
 <?php } ?>
 <!-- Footer -->
-<footer class="footer hidden-xs hidden-sm hidden-md">
+<footer class="footer hidden-xs">
     <div class="navbar <?php echo $nav_container; ?> navbar-fixed-bottom">
         <div class="<?php echo $container_main; ?> text-center">
             <p class="navbar-text col-md-12 col-sm-12 col-xs-12 text-muted small bcoem-footer"><?php include (SECTIONS.'footer.sec.php'); ?></p>
@@ -330,8 +382,9 @@ echo $output_query_count;
 <?php 
 session_write_close(); 
 if ($logged_in) {
-$session_end_seconds = (time() + ($session_expire_after * 60));
-$session_end = getTimeZoneDateTime($_SESSION['prefsTimeZone'],$session_end_seconds,"999",$_SESSION['prefsTimeFormat'],"short","date-no-gmt");
+$session_end_seconds = (time() + $session_expire_after_seconds);
+$session_end = date('Y-m-d H:i:s',$session_end_seconds);
+if (!empty($error_output)) $_SESSION['error_output'] = $error_output;
 ?>
 <!-- Session Expiring Modal: 2 Minute Warning -->
 <div class="modal fade" id="session-expire-warning" tabindex="-1" role="dialog" aria-labelledby="session-expire-warning-label">

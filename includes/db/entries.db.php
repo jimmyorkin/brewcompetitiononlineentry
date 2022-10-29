@@ -1,6 +1,6 @@
 <?php
 
-$totalRows_entry_count = total_paid_received($go,0);
+$totalRows_entry_count = total_paid_received("",0);
 
 if (NHC) {
 	// Place NHC SQL calls below
@@ -69,7 +69,7 @@ else {
 
 	}
 
-	elseif ((($section == "brew") || ($section == "beerxml")) && ($action == "add")) {
+	elseif (($section == "brew") && ($action == "add")) {
 
 		$query_log = sprintf("SELECT * FROM $brewing_db_table WHERE brewBrewerID = '%s'", $_SESSION['user_id']);
 		$query_log_paid = sprintf("SELECT * FROM $brewing_db_table WHERE brewPaid='1'", $_SESSION['user_id']);
@@ -83,7 +83,7 @@ else {
 
 	}
 
-	elseif ((($section == "brew") || ($section == "beerxml")) && ($action == "edit")) {
+	elseif (($section == "brew") && ($action == "edit")) {
 
 		$query_log = sprintf("SELECT * FROM %s WHERE id = '%s'", $brewing_db_table, $id);
 		$query_log_paid = sprintf("SELECT * FROM %s WHERE brewPaid='1'", $brewing_db_table);
@@ -168,15 +168,35 @@ else {
 
 	elseif ($section == "notes") {
 		
-		$query_log = sprintf("SELECT * FROM %s WHERE brewPossAllergens IS NOT NULL", $brewing_db_table, $bid);
-		$query_log_paid = sprintf("SELECT * FROM %s WHERE brewPossAllergens IS NOT NULL AND brewPaid='1'", $brewing_db_table, $bid);
-		$query_log_confirmed = sprintf("SELECT * FROM %s WHERE brewPossAllergens IS NOT NULL AND brewConfirmed='1'", $brewing_db_table, $bid);
+		if (($go == "allergens") || ($go == "org_notes")) {
+			
+			$query_log = sprintf("SELECT * FROM %s WHERE brewPossAllergens IS NOT NULL", $brewing_db_table);
+			$query_log_paid = sprintf("SELECT * FROM %s WHERE brewPossAllergens IS NOT NULL AND brewPaid='1'", $brewing_db_table);
+			$query_log_confirmed = sprintf("SELECT * FROM %s WHERE brewPossAllergens IS NOT NULL AND brewConfirmed='1'", $brewing_db_table);
 
-		if (SINGLE) {
-			$query_log .= sprintf(" AND comp_id='%s'", $_SESSION['comp_id']);
-			$query_log_paid .= sprintf(" AND comp_id='%s'", $_SESSION['comp_id']);
-			$query_log_confirmed .= sprintf(" AND comp_id='%s'", $_SESSION['comp_id']);
+			if (SINGLE) {
+				$query_log .= sprintf(" AND comp_id='%s'", $_SESSION['comp_id']);
+				$query_log_paid .= sprintf(" AND comp_id='%s'", $_SESSION['comp_id']);
+				$query_log_confirmed .= sprintf(" AND comp_id='%s'", $_SESSION['comp_id']);
+			}
+		
 		}
+
+		if ($go == "admin") {
+
+			$query_log = sprintf("SELECT * FROM %s WHERE brewAdminNotes IS NOT NULL OR brewStaffNotes IS NOT NULL", $brewing_db_table, $bid);
+			$query_log_paid = sprintf("SELECT * FROM %s WHERE (brewAdminNotes IS NOT NULL OR brewStaffNotes IS NOT NULL) AND brewPaid='1'", $brewing_db_table, $bid);
+			$query_log_confirmed = sprintf("SELECT * FROM %s WHERE (brewAdminNotes IS NOT NULL OR brewStaffNotes IS NOT NULL) AND brewConfirmed='1'", $brewing_db_table, $bid);
+
+			if (SINGLE) {
+				$query_log .= sprintf(" AND comp_id='%s'", $_SESSION['comp_id']);
+				$query_log_paid .= sprintf(" AND comp_id='%s'", $_SESSION['comp_id']);
+				$query_log_confirmed .= sprintf(" AND comp_id='%s'", $_SESSION['comp_id']);
+			}
+
+		}
+		
+
 
 	}
 
@@ -196,7 +216,7 @@ else {
 
 	else {
 
-		if ((isset($_SESSION['loginUsername'])) && ($section != "admin")) $query_log = sprintf("SELECT * FROM %s WHERE brewBrewerID = '%s'", $brewing_db_table, $_SESSION['user_id']);
+		if ((isset($_SESSION['loginUsername'])) && (isset($_SESSION['user_id'])) && ($section != "admin")) $query_log = sprintf("SELECT * FROM %s WHERE brewBrewerID = '%s'", $brewing_db_table, $_SESSION['user_id']);
 		else $query_log = sprintf("SELECT * FROM %s", $brewing_db_table);
 		$query_log_paid = sprintf("SELECT * FROM %s WHERE brewReceived='1'", $brewing_db_table);
 		$query_log_confirmed = sprintf("SELECT * FROM %s WHERE brewConfirmed='1'", $brewing_db_table);

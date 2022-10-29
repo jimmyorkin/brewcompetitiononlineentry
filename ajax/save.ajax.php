@@ -1,40 +1,32 @@
 <?php
 ob_start();
-ini_set('display_errors', 1); // Change to 0 for prod.
-ini_set('display_startup_errors', 1); // Change to 0 for prod.
-error_reporting(E_ALL); // Change to error_reporting(0) for prod.
+
 require('../paths.php');
 require(CONFIG.'bootstrap.php');
+
+ini_set('display_errors', 0); // Change to 0 for prod; change to 1 for testing.
+ini_set('display_startup_errors', 0); // Change to 0 for prod; change to 1 for testing.
+error_reporting(0); // Change to error_reporting(0) for prod; change to E_ALL for testing.
+
 
 /**
  * The action variable cooresponds to a table in the DB.
  *
- * The id varable will be used as an identifier - either as the 
+ * @param $id varable will be used as an identifier - either as the 
  * record id in the table or a relational component (bid, eid).
  * 
- * $ridX variables are for other relational vars
+ * @param $ridX variables are for other relational vars.
  */
 
-// For use in ajax URLS
 $rid1 = "default";
-if (isset($_GET['rid1'])) {
-  $rid1 = (get_magic_quotes_gpc()) ? $_GET['rid1'] : addslashes($_GET['rid1']);
-}
-
 $rid2 = "default";
-if (isset($_GET['rid2'])) {
-  $rid2 = (get_magic_quotes_gpc()) ? $_GET['rid2'] : addslashes($_GET['rid2']);
-}
-
 $rid3 = "default";
-if (isset($_GET['rid3'])) {
-  $rid3 = (get_magic_quotes_gpc()) ? $_GET['rid3'] : addslashes($_GET['rid3']);
-}
-
 $rid4 = "default";
-if (isset($_GET['rid4'])) {
-  $rid4 = (get_magic_quotes_gpc()) ? $_GET['rid4'] : addslashes($_GET['rid4']);
-}
+
+if (isset($_GET['rid1'])) $rid1 = sterilize($_GET['rid1']);
+if (isset($_GET['rid2'])) $rid2 = sterilize($_GET['rid2']);
+if (isset($_GET['rid3'])) $rid3 = sterilize($_GET['rid3']);
+if (isset($_GET['rid4'])) $rid4 = sterilize($_GET['rid4']);
 
 $return_json = array();
 $status = 0;
@@ -43,6 +35,7 @@ $sql = "";
 $input = "";
 $post = 0;
 $error_type = 0;
+
 $session_active = FALSE;
 if ((isset($_SESSION['session_set_'.$prefix_session])) && (isset($_SESSION['loginUsername']))) $session_active = TRUE;
 
@@ -51,25 +44,19 @@ if (($session_active) && ($_SESSION['userLevel'] <= 2)) {
 	if ($action == "evaluation") {
 
 		if ($go == "evalPlace") {
-
 			$input = filter_var($_POST['evalPlace'],FILTER_SANITIZE_STRING);
-
 		}
 
-		if (empty($input)) {
-			$sql = sprintf("UPDATE `%s` SET %s=NULL WHERE eid=%s", $prefix.$action, $go, $id);
-		}
+		$update_table = $prefix.$action;
 
+		if (empty($input)) $data = array($go => NULL);
 		else {
-			if ($input == "0") $sql = sprintf("UPDATE `%s` SET %s=NULL WHERE eid='%s'", $prefix.$action, $go, $id);
-			else $sql = sprintf("UPDATE `%s` SET %s='%s' WHERE eid='%s'", $prefix.$action, $go, $input, $id);
+			if ($input == "0") $data = array($go => NULL);			
+			else $data = array($go => $input);
 		}
 
-		mysqli_real_escape_string($connection,$sql);
-		$result = mysqli_query($connection,$sql) or die (mysqli_error($connection));
-
-		// If successful, change $status from fail (0) to success (1)
-		if ($result) $status = 1;
+		$db_conn->where ('eid', $id);
+		if ($db_conn->update ($update_table, $data)) $status = 1;
 		else $error_type = 3; // SQL error
 
 	} // end if ($action == "evaluation")
@@ -78,7 +65,6 @@ if (($session_active) && ($_SESSION['userLevel'] <= 2)) {
 
 if (($session_active) && ($_SESSION['userLevel'] <= 1)) {
 
-	// brewing (entries) DB table
 	if ($action == "brewing") {
 		
 		$eid = $id;
@@ -110,25 +96,37 @@ if (($session_active) && ($_SESSION['userLevel'] <= 1)) {
 			$input = filter_var($_POST['brewReceived'],FILTER_SANITIZE_NUMBER_FLOAT);
 		}
 
+		$update_table = $prefix."brewing";
+
 		if (empty($input)) {
-			if ($rid2 == "text-col") $sql = sprintf("UPDATE `%s` SET %s='' WHERE id=%s", $prefix.$action, $go, $id);
-			else $sql = sprintf("UPDATE `%s` SET %s=NULL WHERE id=%s", $prefix."brewing", $go, $id);
+
+			if ($rid2 == "text-col") {
+				$data = array($go => '');
+			}
+
+			else {
+				$data = array($go => NULL);
+			}
+
 		}
 
 		else {
-			if ($input == "0") $sql = sprintf("UPDATE `%s` SET %s=NULL WHERE id=%s", $prefix.$action, $go, $id);
-			else $sql = sprintf("UPDATE `%s` SET %s='%s' WHERE id=%s", $prefix."brewing", $go, $input, $id);
+
+			if ($input == "0") {
+				$data = array($go => NULL);
+			}
+
+			else {
+				$data = array($go => $input);
+			}
+
 		}
 
-		mysqli_real_escape_string($connection,$sql);
-		$result = mysqli_query($connection,$sql) or die (mysqli_error($connection));
-		
-		// If successful, change $status from fail (0) to success (1)
-		if ($result) $status = 1;
+		$db_conn->where ('id', $id);
+		if ($db_conn->update ($update_table, $data)) $status = 1;
 		else $error_type = 3; // SQL error
 
 	} // END if ($action == "brewing")
-	
 
 	if ($action == "sponsors") {
 
@@ -148,23 +146,20 @@ if (($session_active) && ($_SESSION['userLevel'] <= 1)) {
 			$input = filter_var($_POST['sponsorImage'],FILTER_SANITIZE_STRING);
 		}
 
+		$update_table = $prefix."sponsors";
+
 		if (empty($input)) {
-			if ($rid2 == "text-col") $sql = sprintf("UPDATE `%s` SET %s='' WHERE id=%s", $prefix.$action, $go, $id);
-			else $sql = sprintf("UPDATE `%s` SET %s=NULL WHERE id=%s", $prefix.$action, $go, $id);
+			if ($rid2 == "text-col")  $data = array($go => '');
+			else $data = array($go => NULL);
 		}
 
 		else {
-			if ($input == "0") $sql = sprintf("UPDATE `%s` SET %s=NULL WHERE id=%s", $prefix.$action, $go, $id);
-			else $sql = sprintf("UPDATE `%s` SET %s='%s' WHERE id=%s", $prefix.$action, $go, $input, $id);
+			if ($input == "0") $data = array($go => NULL); 
+			else $data = array($go => $input);
 		}
 
-		// echo $sql;
-
-		mysqli_real_escape_string($connection,$sql);
-		$result = mysqli_query($connection,$sql) or die (mysqli_error($connection));
-		
-		// If successful, change $status from fail (0) to success (1)
-		if ($result) $status = 1;
+		$db_conn->where ('id', $id);
+		if ($db_conn->update ($update_table, $data)) $status = 1;
 		else $error_type = 3; // SQL error
 		
 	} // END if ($action == "sponsors")
@@ -176,9 +171,9 @@ if (($session_active) && ($_SESSION['userLevel'] <= 1)) {
 		$bid = "";
 		$scoreTable = "";
 		$scoreType = "";
-		$scoreEntry = "NULL";
-		$scorePlace = "NULL";
-		$scoreMiniBOS = "NULL";
+		$scoreEntry = NULL;
+		$scorePlace = NULL;
+		$scoreMiniBOS = NULL;
 		
 		if ($rid1 != "default") $bid = $rid1;
 		if ($rid2 != "default") $scoreTable = $rid2;
@@ -196,7 +191,7 @@ if (($session_active) && ($_SESSION['userLevel'] <= 1)) {
 			$input = filter_var($post,FILTER_SANITIZE_NUMBER_FLOAT,FILTER_FLAG_ALLOW_FRACTION);
 
 			// However, if that number is actually zero, make the value null instead for storage in DB
-			if ($input == 0) $input = "NULL";
+			if ($input == 0) $input = NULL;
 			
 			// First, query if there is a record with the eid
 			$query_already_scored = sprintf("SELECT * FROM %s WHERE eid=%s", $prefix.$action, $eid);
@@ -204,13 +199,21 @@ if (($session_active) && ($_SESSION['userLevel'] <= 1)) {
 			$row_already_scored = mysqli_fetch_assoc($already_scored);
 			$totalRows_already_scored = mysqli_num_rows($already_scored);
 
-			// If so, and only one is present, create update query (only update the column specified).
-			if ($totalRows_already_scored == 1) {
+			if ($totalRows_already_scored == 1) {				
+				
 				$process = TRUE;
-				$sql = sprintf("UPDATE %s SET %s=%s WHERE id=%s", $prefix.$action, $go, $input, $row_already_scored['id']);
+
+				$update_table = $prefix.$action;
+				$data = array($go => $input);
+
+				if ($process) {
+					$db_conn->where ('id', $row_already_scored['id']);
+					if ($db_conn->update ($update_table, $data)) $status = 1;
+				}
+				else $error_type = 3; // SQL error
+
 			}
 
-			// If no record, create an insert query
 			else if ($totalRows_already_scored == 0) {
 
 				if (($action == "judging_scores") && ($rid1 != "default") && ($rid2 != "default") && ($rid3 != "default")) $process = TRUE;
@@ -218,60 +221,54 @@ if (($session_active) && ($_SESSION['userLevel'] <= 1)) {
 				if ($go == "scoreEntry") $scoreEntry = $input;	
 				if ($go == "scorePlace") $scorePlace = $input;		
 				if ($go == "scoreMiniBOS") $scoreMiniBOS = $input;
-				
+
+				$update_table = $prefix.$action;
+
 				if ($action == "judging_scores") {
-					$sql = sprintf("INSERT INTO %s (eid, bid, scoreTable, scoreEntry, scorePlace, scoreType, scoreMiniBOS)", $prefix.$action);
-					$sql .= sprintf(" VALUES (%s, %s, %s, %s, %s, %s, %s)", $eid, $bid, $scoreTable, $scoreEntry, $scorePlace, $scoreType, $scoreMiniBOS);
+
+					$data = array(
+						'eid' => $eid,
+						'bid' => $bid,
+						'scoreTable' => $scoreTable,
+						'scoreEntry' => $scoreEntry,
+						'scorePlace' => $scorePlace,
+						'scoreType' => $scoreType,
+						'scoreMiniBOS' => $scoreMiniBOS
+					);
+
+					// $sql = sprintf("INSERT INTO %s (eid, bid, scoreTable, scoreEntry, scorePlace, scoreType, scoreMiniBOS)", $prefix.$action);
+
+					if ($process) {
+						if ($db_conn->insert ($update_table, $data)) $status = 1;
+					}
+
+					else $error_type = 3; // SQL error
+
 				}
 
 				if ($action == "judging_scores_bos") {
-					$sql = sprintf("INSERT INTO %s (eid, bid, scoreEntry, scorePlace, scoreType)", $prefix.$action);
-					$sql .= sprintf(" VALUES (%s, %s, %s, %s, %s)", $eid, $bid, $scoreEntry, $scorePlace, $scoreType);
-				}
-			
-			}
-			
-			// If more than one in the DB, perform some functions
-			else {
 
-				if (($rid1 != "default") && ($rid2 != "default") && ($rid3 != "default")) $process = TRUE;
-
-				/*
-				$retain_arr = array();
-
-				do {
-					
-					$retain_arr[] = array(
-						"eid" => $row_already_scored['eid'],
-						"bid" => $row_already_scored['bid'],
-						"scoreTable" => $row_already_scored['scoreTable'],
-						"scoreEntry" => $row_already_scored['scoreEntry'],
-						"scorePlace" => $row_already_scored['scorePlace'],
-						"scoreMiniBOS" => $row_already_scored['scoreMiniBOS']
+					$data = array(
+						'eid' => $eid,
+						'bid' => $bid,
+						'scoreEntry' => $scoreEntry,
+						'scorePlace' => $scorePlace,
+						'scoreType' => $scoreType
 					);
 
-					$deleteSQL = sprintf("DELETE FROM %s WHERE id='%s'", $prefix."judging_scores", $row_delete_assign['id']);
-					mysqli_real_escape_string($connection,$deleteSQL);
-					$result = mysqli_query($connection,$deleteSQL) or die (mysqli_error($connection));
-				
-				} 
+					if ($process) {
+						if ($db_conn->insert ($update_table, $data)) $status = 1;
+					}
 
-				while ($row_already_scored = mysqli_fetch_assoc($already_scored));
+					else $error_type = 3; // SQL error
 
-				*/
+				}
 
 			}
 
-			// Finally, submit the query if all conditions to process are met
-			if ($process) {
-				mysqli_real_escape_string($connection,$sql);
-				$result = mysqli_query($connection,$sql) or die (mysqli_error($connection));
-				// If successful, change $status from fail (0) to success (1)
-				if ($result) $status = 1;
-			}
-
+			// If more than one in the DB, perform some functions
 			else {
-				$error_type = 3; // SQL error
+				if (($rid1 != "default") && ($rid2 != "default") && ($rid3 != "default")) $process = TRUE;
 			}
 
 		} // END if (is_numeric($post))
@@ -282,11 +279,9 @@ if (($session_active) && ($_SESSION['userLevel'] <= 1)) {
 
 	} // END if ($action == "scores")
 
-} 
-
+}
 
 if (!$session_active) $status = 9; // Session expired, not enabled, etc.
-
 
 $return_json = array(
 	"status" => "$status",
@@ -299,13 +294,11 @@ $return_json = array(
 // Return the json
 echo json_encode($return_json);
 
-
-/* *****************************************
+/**  
  * The following is unfinished. Need more
  * thought into the various scenarios
  * associated with assigning judges and 
  * stewards to tables/flights/rounds.
- * *****************************************
  */
 
 /*
@@ -387,12 +380,9 @@ if ($action == "judging_assignments") {
 		else {
 
 			// Check if ID is assigned to the table, if so, change
-
-
 			// If not, flag
-
-
 			$sql = sprintf("UPDATE `%s` SET %s='HJ' WHERE bid='%s' AND assignTable='%s'", $prefix.$action, $go, $input, $id);
+
 		}
 
 		mysqli_real_escape_string($connection,$sql);
@@ -400,19 +390,15 @@ if ($action == "judging_assignments") {
 
 	} // end if ($go == "assignRoles")
 
-		
-
-	//mysqli_real_escape_string($connection,$sql);
-	//$result = mysqli_query($connection,$sql) or die (mysqli_error($connection));
+	mysqli_real_escape_string($connection,$sql);
+	$result = mysqli_query($connection,$sql) or die (mysqli_error($connection));
 
 	// If successful, change $status from fail (0) to success (1)
-	//if ($result) $status = 1;
-	//else $error_type = 3; // SQL error
+	if ($result) $status = 1;
+	else $error_type = 3; // SQL error
 
 }
 
 */
-
-
 
 ?>

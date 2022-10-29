@@ -7,10 +7,17 @@
 
 use PHPMailer\PHPMailer\PHPMailer;
 require(LIB.'email.lib.php');
+require (CLASSES.'htmlpurifier/HTMLPurifier.standalone.php');
+$config_html_purifier = HTMLPurifier_Config::createDefault();
+$purifier = new HTMLPurifier($config_html_purifier);
 
 $captcha_success = FALSE;
 
 if (isset($_SERVER['HTTP_REFERER'])) {
+
+	$errors = FALSE;
+	$error_output = array();
+	$_SESSION['error_output'] = "";
 
 	if ($action == "email") {
 
@@ -23,8 +30,6 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 
 			$verify_response = file_get_contents('https://www.google.com/recaptcha/api/siteverify?secret='.$private_captcha_key.'&response='.$_POST['g-recaptcha-response']);
 			$response_data = json_decode($verify_response);
-
-			// echo $response_data->hostname."<br>"; echo $_SERVER['SERVER_NAME']; exit;
 
 			if (($_SERVER['SERVER_NAME'] == $response_data->hostname) && ($response_data->success)) $captcha_success = TRUE;
 
@@ -39,7 +44,10 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 			setcookie("from_name", sterilize(ucwords($_POST['from_name'])), 0, "/");
 			setcookie("subject", sterilize(ucwords($_POST['subject'])), 0, "/");
 			setcookie("message", sterilize($_POST['message']), 0, "/");
-			$redirect_go_to = sprintf("Location: %s", $base_url."index.php?section=contact&action=email&msg=2");
+			
+			$redirect = $base_url."index.php?section=contact&action=email&msg=2";
+			$redirect = prep_redirect_link($redirect);
+			$redirect_go_to = sprintf("Location: %s", $redirect);
 
 		}
 
@@ -48,21 +56,31 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 			$query_contact = sprintf("SELECT * FROM $contacts_db_table WHERE id='%s'", $_POST['to']);
 			$contact = mysqli_query($connection,$query_contact) or die (mysqli_error($connection));
 			$row_contact = mysqli_fetch_assoc($contact);
-			//echo $query_contact;
 
-			// Gather the variables from the form
-			$to_email = $row_contact['contactEmail'];
 			$to_name = $row_contact['contactFirstName']." ".$row_contact['contactLastName'];
-			$from_email = strtolower(filter_var($_POST['from_email'], FILTER_SANITIZE_EMAIL));
-			$from_name = sterilize(ucwords($_POST['from_name']));
-			$subject = sterilize(ucwords($_POST['subject']));
-			$message_post = sterilize($_POST['message']);
-
-			$to_email = mb_convert_encoding($to_email, "UTF-8");
 			$to_name = mb_convert_encoding($to_name, "UTF-8");
+
+			$to_email = $row_contact['contactEmail'];
+			$to_email = mb_convert_encoding($to_email, "UTF-8");
+			$to_email_formatted .= $to_name." <".$to_email.">";
+
+			$from_email = strtolower(filter_var($_POST['from_email'], FILTER_SANITIZE_EMAIL));
 			$from_email = mb_convert_encoding($from_email, "UTF-8");
+
+			$from_name = sterilize(ucwords($_POST['from_name']));
 			$from_name = mb_convert_encoding($from_name, "UTF-8");
+			
+			$subject = sterilize(ucwords($_POST['subject']));
 			$subject = mb_convert_encoding($subject, "UTF-8");
+
+			$message_post = sterilize($_POST['message']);
+	
+			$url = str_replace("www.","",$_SERVER['SERVER_NAME']);
+			
+			$from_competition_email = (!isset($mail_default_from) || trim($mail_default_from) === '') ? "noreply@".$url : $mail_default_from;
+			$from_competition_email = mb_convert_encoding($from_competition_email, "UTF-8");
+			
+			$comp_name = mb_convert_encoding($_SESSION['contestName'], "UTF-8");
 
 			// Build the message
 			$message = "<html>" . "\r\n";
@@ -73,18 +91,11 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 			$message .= "</body>" . "\r\n";
 			$message .= "</html>";
 
-			$url = str_replace("www.","",$_SERVER['SERVER_NAME']);
-			$from_competition_email = (!isset($mail_default_from) || trim($mail_default_from) === '') ? "noreply@".$url : $mail_default_from;
-			$from_competition_email = mb_convert_encoding($from_competition_email, "UTF-8");
-			$comp_name = mb_convert_encoding($_SESSION['contestName'], "UTF-8");
-
-			$headers  = "MIME-Version: 1.0" . "\r\n";
-			$headers .= "Content-type: text/html; charset=utf-8" . "\r\n";
-			$headers .= "To: ".$to_name." <".$to_email.">" . "\r\n";
+			$headers  = "MIME-Version: 1.0"."\r\n";
+			$headers .= "Content-type: text/html; charset=utf-8"."\r\n";
 			$headers .= "From: ".$comp_name." Server <".$from_competition_email.">" . "\r\n"; 
-			// needed to change due to more stringent rules and mail send incompatibility with Gmail.
-			$headers .= "Reply-To: ".$from_name." <".$from_email.">" . "\r\n";
-			if ($_SESSION['prefsEmailCC'] == 0) $headers .= "Bcc: ".$from_name." <".$from_email.">" . "\r\n";
+			$headers .= "Reply-To: ".$from_name." <".$from_email.">"."\r\n";
+			if ($_SESSION['prefsEmailCC'] == 0) $headers .= "Bcc: ".$from_name." <".$from_email.">"."\r\n";
 
 			/*
 			// Debug
@@ -111,10 +122,12 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 				$mail->Body = $message;
 				sendPHPMailerMessage($mail);
 			} else {
-				mail($to_email, $subject, $message, $headers);
+				mail($to_email_formatted, $subject, $message, $headers);
 			}
 
-			$redirect_go_to = sprintf("Location: %s", $base_url."index.php?section=contact&action=email&id=".$row_contact['id']."&msg=1");
+			$redirect = $base_url."index.php?section=contact&action=email&id=".$row_contact['id']."&msg=1";
+			$redirect = prep_redirect_link($redirect);
+			$redirect_go_to = sprintf("Location: %s", $redirect);
 
 		}
 
@@ -122,53 +135,66 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 
 	elseif ((isset($_SESSION['loginUsername'])) && (isset($_SESSION['userLevel']))) {
 
+		$contactFirstName = sterilize($_POST['contactFirstName']);
+		$contactFirstName = standardize_name($purifier->purify($contactFirstName));
+		$contactLastName = sterilize(ucwords($_POST['contactLastName']));
+		$contactLastName = standardize_name($purifier->purify($contactLastName));
+		$contactPosition = sterilize(ucwords($_POST['contactPosition']));
+		$contactPosition = $purifier->purify($contactPosition);
+		$contactEmail = strtolower(filter_var($_POST['contactEmail'], FILTER_SANITIZE_EMAIL));
+		$contactEmail = $purifier->purify($contactEmail);
+
 		if ($action == "add") {
-			$insertSQL = sprintf("INSERT INTO $contacts_db_table (
-			contactFirstName,
-			contactLastName,
-			contactPosition,
-			contactEmail
-			)
-			VALUES
-			(%s, %s, %s, %s)",
-							   GetSQLValueString(sterilize(ucwords($_POST['contactFirstName'])), "text"),
-							   GetSQLValueString(sterilize(ucwords($_POST['contactLastName'])), "text"),
-							   GetSQLValueString(sterilize(ucwords($_POST['contactPosition'])), "text"),
-							   GetSQLValueString(strtolower(filter_var($_POST['contactEmail'], FILTER_SANITIZE_EMAIL)), "text"));
-			//echo $insertSQL;
-			mysqli_real_escape_string($connection,$insertSQL);
-			$result = mysqli_query($connection,$insertSQL) or die (mysqli_error($connection));
-			$pattern = array('\'', '"');
-			$insertGoTo = str_replace($pattern, "", $insertGoTo);
-			$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
+
+			$update_table = $prefix."contacts";
+			$data = array(
+				'contactFirstName' => $contactFirstName,
+				'contactLastName' => $contactLastName,
+				'contactPosition' => $contactPosition,
+				'contactEmail' => $contactEmail
+			);
+			$result = $db_conn->insert ($update_table, $data);
+			if (!$result) {
+				$error_output[] = $db_conn->getLastError();
+				$insertGoTo = $_POST['relocate']."&msg=3";
+			}
+
+			if (!empty($error_output)) $_SESSION['error_output'] = $error_output;
+
+			$insertGoTo = prep_redirect_link($insertGoTo);
+			$redirect_go_to = sprintf("Location: %s", $insertGoTo);
 
 		}
 
 		if ($action == "edit") {
-			$updateSQL = sprintf("UPDATE $contacts_db_table SET
-			contactFirstName=%s,
-			contactLastName=%s,
-			contactPosition=%s,
-			contactEmail=%s
-			WHERE id=%s",
-							   GetSQLValueString(sterilize(ucwords($_POST['contactFirstName'])), "text"),
-							   GetSQLValueString(sterilize(ucwords($_POST['contactLastName'])), "text"),
-							   GetSQLValueString(sterilize(ucwords($_POST['contactPosition'])), "text"),
-							   GetSQLValueString(strtolower(filter_var($_POST['contactEmail'], FILTER_SANITIZE_EMAIL)), "text"),
-							   GetSQLValueString($id, "int"));
 
-			mysqli_real_escape_string($connection,$updateSQL);
-			$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
-			$pattern = array('\'', '"');
-			$updateGoTo = str_replace($pattern, "", $updateGoTo);
-			$redirect_go_to = sprintf("Location: %s", stripslashes($updateGoTo));
+			$update_table = $prefix."contacts";
+			$data = array(
+				'contactFirstName' => $contactFirstName,
+				'contactLastName' => $contactLastName,
+				'contactPosition' => $contactPosition,
+				'contactEmail' => $contactEmail
+			);			
+			$db_conn->where ('id', $id);
+			$result = $db_conn->update ($update_table, $data);
+			if (!$result) {
+				$error_output[] = $db_conn->getLastError();
+				$updateGoTo = $_POST['relocate']."&msg=3";
+			}
+			
+			if (!empty($error_output)) $_SESSION['error_output'] = $error_output;
+
+			$updateGoTo = prep_redirect_link($updateGoTo);
+			$redirect_go_to = sprintf("Location: %s", $updateGoTo);
 
 		}
 
-
 	}
+
 } else {
-	$redirect_go_to = sprintf("Location: %s", $base_url."index.php?msg=98");
+	$redirect = $base_url."index.php?msg=98";
+	$redirect = prep_redirect_link($redirect);
+	$redirect_go_to = sprintf("Location: %s", $redirect);
 }
 
 

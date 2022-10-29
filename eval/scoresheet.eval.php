@@ -36,6 +36,12 @@ $evalPosition = "";
 if (isset($_SESSION['jPrefsScoreDispMax'])) $score_range = $_SESSION['jPrefsScoreDispMax'];
 else $score_range = 7;
 
+/**
+ * BJCP 2015 and BJCP 2021 exceptions.
+ * BJCP 2021 will be integrated when the BJCP website is updated
+ * with the 2021 guidelines. See coding below.
+ */
+
 $bjcp2015_exceptions = array(
   "27A1" => "//bjcp.org/style/2015/27/27A/historical-beer-gose/",
   "27A2" => "//bjcp.org/style/2015/27/27A/historical-beer-piwo-grodziskie/",
@@ -52,13 +58,37 @@ $bjcp2015_exceptions = array(
   "21B4" => "//bjcp.org/style/2015/21/21B/specialty-ipa-red-ipa/",
   "21B5" => "//bjcp.org/style/2015/21/21B/specialty-ipa-rye-ipa/",
   "21B6" => "//bjcp.org/style/2015/21/21B/specialty-ipa-white-ipa/",
-  "21B7" => "//dev.bjcp.org/beer-styles/21b-specialty-ipa-new-england-ipa/",
-  "17A1" => "//dev.bjcp.org/beer-styles/17a-british-strong-ale-burton-ale/",
-  "PRX1" => "//dev.bjcp.org/beer-styles/x1-dorada-pampeana/",
-  "PRX2" => "//dev.bjcp.org/beer-styles/x2-ipa-argenta/",
-  "PRX3" => "//dev.bjcp.org/beer-styles/x3-italian-grape-ale/",
-  "PRX4" => "//dev.bjcp.org/beer-styles/x4-catharina-sour/",
-  "PRX5" => "//dev.bjcp.org/beer-styles/x5-new-zealand-pilsner/"
+  "21B7" => "//bjcp.org/beer-styles/21b-specialty-ipa-new-england-ipa/",
+  "17A1" => "//bjcp.org/beer-styles/17a-british-strong-ale-burton-ale/",
+  "PRX1" => "//bjcp.org/beer-styles/x1-dorada-pampeana/",
+  "PRX2" => "//bjcp.org/beer-styles/x2-ipa-argenta/",
+  "PRX3" => "//bjcp.org/beer-styles/x3-italian-grape-ale/",
+  "PRX4" => "//bjcp.org/beer-styles/x4-catharina-sour/",
+  "PRX5" => "//bjcp.org/beer-styles/x5-new-zealand-pilsner/"
+);
+
+$bjcp2021_exceptions = array(
+  "17A1" => "//bjcp.org/beer-styles/17a-british-strong-ale-burton-ale/",
+  "21B1" => "//bjcp.org/style/2021/21/21B/specialty-ipa-belgian-ipa/",
+  "21B2" => "//bjcp.org/style/2021/21/21B/specialty-ipa-black-ipa/",
+  "21B3" => "//bjcp.org/style/2021/21/21B/specialty-ipa-brown-ipa/",
+  "21B4" => "//bjcp.org/style/2021/21/21B/specialty-ipa-red-ipa/",
+  "21B5" => "//bjcp.org/style/2021/21/21B/specialty-ipa-rye-ipa/",
+  "21B6" => "//bjcp.org/style/2021/21/21B/specialty-ipa-white-ipa/",
+  "27A1" => "//bjcp.org/style/2021/27/27A/historical-beer-kellerbier/",
+  "27A2" => "//bjcp.org/style/2021/27/27A/historical-beer-kentucky-common/",
+  "27A3" => "//bjcp.org/style/2021/27/27A/historical-beer-lichtenhainer/",
+  "27A4" => "//bjcp.org/style/2021/27/27A/historical-beer-london-brown-ale/",
+  "27A5" => "//bjcp.org/style/2021/27/27A/historical-beer-piwo-grodziskie/",
+  "27A6" => "//bjcp.org/style/2021/27/27A/historical-beer-pre-prohibition-lager/",
+  "27A7" => "//bjcp.org/style/2021/27/27A/historical-beer-pre-prohibition-porter/",
+  "27A8" => "//bjcp.org/style/2021/27/27A/historical-beer-roggenbier/",
+  "27A9" => "//bjcp.org/style/2021/27/27A/historical-beer-sahti/",
+  "LSX1" => "//bjcp.org/beer-styles/x1-dorada-pampeana/",
+  "LSX2" => "//bjcp.org/beer-styles/x2-ipa-argenta/",
+  "LSX3" => "//bjcp.org/beer-styles/x3-italian-grape-ale/",
+  "LSX4" => "//bjcp.org/beer-styles/x4-catharina-sour/",
+  "LSX5" => "//bjcp.org/beer-styles/x5-new-zealand-pilsner/"
 );
 
 /**
@@ -116,9 +146,10 @@ if ($action == "add") {
   $submit_button_text = $label_submit_evaluation;
 
   if (isset($_POST['entry_number'])) {
+
+    $id = ltrim(sterilize($_POST['entry_number']),"0");
     
     if ($_SESSION['prefsDisplaySpecial'] == "E") {
-      $id = ltrim(sterilize($_POST['entry_number']),"0");
       $query_entry_info = sprintf("SELECT * FROM %s WHERE id='%s'",$prefix."brewing",$id);
     }
     
@@ -201,7 +232,7 @@ if (isset($_POST['entry_number'])) {
   $flight_info = mysqli_query($connection,$query_flight_info) or die (mysqli_error($connection));
   $row_flight_info = mysqli_fetch_assoc($flight_info);
 
-  $filter = $row_flight_info['flightTable'];
+  if ($row_flight_info) $filter = $row_flight_info['flightTable'];
 
 }
 
@@ -257,28 +288,54 @@ if ($entry_found) {
   $entry_info_html .= "</div>";
 
   $entry_info_html .= "<div class=\"row bcoem-admin-element\">";
-  $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$label_style."</strong></div>";
+  $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$_SESSION['style_set_short_name']." ".$label_style."</strong></div>";
   $entry_info_html .= "<div class=\"col col-lg-9 col-md-8 col-sm-8 col-xs-12\">";
+
+  // Style Links
+  $style_link = "";
+  $style_concat = ltrim($row_style['brewStyleGroup'],"0").strtoupper($row_style['brewStyleNum']);
 
   if (!empty($row_style['brewStyleLink'])) {
     
     if ($_SESSION['prefsStyleSet'] == "BJCP2015") {
 
-      $style_concat = ltrim($row_style['brewStyleGroup'],"0").strtoupper($row_style['brewStyleNum']);
-      if (array_key_exists($style_concat, $bjcp2015_exceptions)) $bjcp2015_link = $bjcp2015_exceptions[$style_concat];
-      else $bjcp2015_link = "//bjcp.org/style/2015/".ltrim($row_style['brewStyleGroup'],"0")."/".$style_concat."/";
-      $entry_info_html .= "<a href=\"".$bjcp2015_link."\" target=\"_blank\">";
-    
+      if (array_key_exists($style_concat, $bjcp2015_exceptions)) $style_link = $bjcp2015_exceptions[$style_concat];
+      else $style_link = "//bjcp.org/style/2015/".ltrim($row_style['brewStyleGroup'],"0")."/".$style_concat."/";
+      
     }
     
-    else $entry_info_html .= "<a href=\"".$row_style['brewStyleLink']."\" target=\"_blank\">";
-    $entry_info_html .= $style_num." ".$row_style['brewStyle'];
-    $entry_info_html .= " <i class=\"small fa fa-external-link\"></i></a>";
+    else $style_link = $row_style['brewStyleLink'];
+
+  }
   
+  elseif ($_SESSION['prefsStyleSet'] == "BJCP2021") {
+
+    // Exceptions
+    if (array_key_exists($style_concat, $bjcp2021_exceptions)) $style_link = $bjcp2021_exceptions[$style_concat];
+
+    // 2021 update was beer only; find numbered styles
+    elseif (is_numeric(ltrim($row_style['brewStyleGroup'],"0"))) $style_link = "//bjcp.org/style/2021/".ltrim($row_style['brewStyleGroup'],"0")."/".$style_concat."/";
+
+    // If mead or cider, use 2015 link
+    else $style_link = "//bjcp.org/style/2015/".ltrim($row_style['brewStyleGroup'],"0")."/".$style_concat."/";
+
+  }
+
+  if (empty($style_link)) {
+
+    $entry_info_html .= $style_num." ".$row_style['brewStyle'];
+    if (($_SESSION['prefsStyleSet'] == "BJCP2021") || ($_SESSION['prefsStyleSet'] == "BJCP2015")) $entry_info_html .= "<a style=\"margin-left:10px;\" href=\"https://www.bjcp.org/bjcp-style-guidelines\" target=\"_blank\"><i class=\"small fa fa-external-link\"></i></a>";
+    if ($_SESSION['prefsStyleSet'] == "AABC") $entry_info_html .= "<a style=\"margin-left:10px;\" href=\"http://www.aabc.org.au/docs/AABC2022CategoriesAndStyles.pdf\" target=\"_blank\"><i class=\"small fa fa-external-link\"></i></a>";
+    if ($_SESSION['prefsStyleSet'] == "BA") $entry_info_html .= "<a style=\"margin-left:10px;\" href=\"https://www.brewersassociation.org/edu/brewers-association-beer-style-guidelines/\" target=\"_blank\"><i class=\"small fa fa-external-link\"></i></a>";
+
   }
 
   else {
+
+    $entry_info_html .= "<a href=\"".$style_link."\" target=\"_blank\">";
     $entry_info_html .= $style_num." ".$row_style['brewStyle'];
+    $entry_info_html .= "<i style=\"margin-left:10px;\" class=\"small fa fa-external-link\"></i></a>";
+
   }
 
   $entry_info_html .= "</div>";
@@ -385,10 +442,14 @@ if ($entry_found) {
   
   // Sticky score
   $sticky_score_tally = "<div id=\"sticky-score\" class=\"pull-right\">";
+  $sticky_score_tally .= "<section style=\"width: 100%\">";
+  $sticky_score_tally .= "<p style=\"font-size: 1.5em\">";
+  $sticky_score_tally .= "<span id=\"scoring-guide-badge\" class=\"label label-default sticky-glow\">".$label_score.": <span id=\"judge-score\">".$eval_score."</span> <span id=\"scoring-guide\"></span></span>";
+  $sticky_score_tally .= "<a style=\"padding-top: 5px; font-size: .75em\"\" id=\"show-hide-status-btn\" class=\"pull-right\" data-toggle=\"collapse\" href=\"#scoring-guide-status\" aria-controls=\"scoring-guide-status\"><span id=\"toggle-icon\" class=\"fa fa-chevron-circle-up\"></span></a>";
+  $sticky_score_tally .= "</p>";
+  $sticky_score_tally .= "</section>";
   
-  $sticky_score_tally .= "<section style=\"width: 100%\"><h3><span id=\"scoring-guide-badge\" class=\"label label-default sticky-glow\">".$label_score.": <span id=\"judge-score\">".$eval_score."</span> <span id=\"scoring-guide\"></span></span></h3></section>";
-  
-  $sticky_score_tally .= "<section style=\"margin-top: -5px; position: absolute; width: 100%; background-color: rgba(220,220,220,0.80);\" id=\"scoring-guide-status\" class=\"well sticky-glow\">";
+  $sticky_score_tally .= "<section position: absolute; width: 100%; background-color: rgba(220,220,220,0.80);\" id=\"scoring-guide-status\" class=\"well sticky-glow collapse in\">";
   
   $sticky_score_tally .= "<p><span id=\"elapsed-time-p\"><i class=\"fa fa-clock\"></i> <strong>".$label_elapsed_time.": <span id=\"elapsed-time\"></span></strong></span><br><small id=\"session-end-eval-p\">".$label_auto_log_out." <span id=\"session-end-eval\"></span></small>";
   $sticky_score_tally .= "</p>";
@@ -406,7 +467,6 @@ if ($entry_found) {
     if (!empty($other_judge_consensus_scores)) $sticky_score_tally .= "<br><small>".$other_judge_consensus_scores."</small>";
     $sticky_score_tally .= "</p>";
   }
-
   $sticky_score_tally .= "</section>";
   $sticky_score_tally .= "</div>";
 
@@ -434,9 +494,28 @@ else {
 
 // Sub-nav Buttons
 if ($eval_source == 0) $eval_nav_buttons .= "<div style=\"margin: 0 5px 15px 0;\" class=\"btn-group hidden-print\" role=\"group\"><a class=\"btn btn-block btn-default\" href=\"".$base_url."index.php?section=evaluation&amp;go=default&amp;filter=default&amp;view=admin\"><span class=\"fa fa-chevron-circle-left\"></span> ".$label_admin.": ".$label_evaluations."</a></div>";
-$eval_nav_buttons .= "<div style=\"margin-bottom: 15px;\" class=\"btn-group hidden-print\" role=\"group\"><a class=\"btn btn-block btn-default\" href=\"".build_public_url("evaluation","default","default","default",$sef,$base_url)."\"><span class=\"fa fa-chevron-circle-left\"></span> ".$label_judging_dashboard."</a></div>";
+$eval_nav_buttons .= "<div style=\"margin-bottom: 15px;\" class=\"btn-group hidden-print\" role=\"group\"><button class=\"btn btn-block btn-default\"  data-toggle=\"modal\" data-target=\"#unsaved-modal\"><span class=\"fa fa-chevron-circle-left\"></span> ".$label_judging_dashboard."</button></div>";
+//$eval_nav_buttons .= "<div style=\"margin-bottom: 15px;\" class=\"btn-group hidden-print\" role=\"group\"><a class=\"btn btn-block btn-default\" href=\"".build_public_url("evaluation","default","default","default",$sef,$base_url)."\"><span class=\"fa fa-chevron-circle-left\"></span> ".$label_judging_dashboard."</a></div>";
 if ($eval_prevent_edit) $header_elements .= sprintf("<p>%s</p>",$header_text_104);
 ?>
+<!-- Unsaved Data Modal -->
+<div id="unsaved-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="unsaved-modal-label">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="unsaved-modal-label">Caution: Possible Data Loss</h4>
+      </div>
+      <div class="modal-body">
+        <?php echo sprintf("<p>%s</p><p>%s</p><p>%s</p>",$evaluation_info_073,$evaluation_info_074,$evaluation_info_075); ?>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" data-dismiss="modal"><?php echo $label_close; ?></button>
+        <a class="btn btn-primary" href="<?php echo build_public_url("evaluation","default","default","default",$sef,$base_url); ?>"><?php echo $label_judging_dashboard; ?></a>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
 <!-- Load Bootstrap Slider -->
 <!-- https://github.com/seiyria/bootstrap-slider -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/bootstrap-slider.min.js"></script>
@@ -465,15 +544,18 @@ var score_range_ok_text = "<?php echo $evaluation_info_047; ?>";
 var score_range_ok_output = "<span class=\"text-success\"><strong>" + score_range_ok + "</strong><br><small><strong>" + score_range_ok_text + "</strong></small></span>";
 </script>
 <script src="<?php echo $base_url;?>js_includes/eval_checks.min.js"></script>
-<?php if ($action == "edit") { ?>
 <script>
 $(document).ready(function() {
+    <?php if ($action == "edit") { ?>
     displayCalc(<?php echo $eval_score; ?>);
     checkScoreRange(<?php echo $eval_score; ?>,judgeScores,score_range,0);
     checkConsensus(consensusScores);
+    <?php }?>
+    $('#show-hide-status-btn').click(function(){
+      $('#toggle-icon').toggleClass('fa-chevron-circle-up fa-chevron-circle-down');
+    });
 });
 </script>
-<?php }?>
 <style type="text/css">
 
 .scoring-guide-bottom-text {

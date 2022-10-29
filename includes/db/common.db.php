@@ -2,10 +2,9 @@
 // General vars
 $today = time();
 $url = parse_url($_SERVER['PHP_SELF']);
-
 mysqli_select_db($connection,$database);
 
-if (check_setup($prefix."system",$database)) $query_version1 = sprintf("SELECT * FROM %s WHERE id='1'", $prefix."system");
+if (check_setup($prefix."`system`",$database)) $query_version1 = sprintf("SELECT * FROM %s WHERE id='1'", $prefix."`system`");
 else  $query_version1 = sprintf("SELECT * FROM %s WHERE id='1'", $prefix."bcoem_sys");
 $version1 = mysqli_query($connection,$query_version1) or die (mysqli_error($connection));
 $row_version1 = mysqli_fetch_assoc($version1);
@@ -20,9 +19,9 @@ if (((!empty($_SESSION['session_set_'.$prefix_session])) && ($_SESSION['session_
 	session_unset();
 	session_destroy();
 	session_write_close();
-	session_regenerate_id(true);
 	session_name($prefix_session);
 	session_start();
+	session_regenerate_id(true);
 	$_SESSION['session_set_'.$prefix_session] = $prefix_session;
 
 }
@@ -45,11 +44,16 @@ if ((!isset($_SESSION['contest_info_general'.$prefix_session])) || (empty($_SESS
 		$contest_info = mysqli_query($connection,$query_contest_info) or die (mysqli_error($connection));
 		$row_contest_info = mysqli_fetch_assoc($contest_info);
 
-	    foreach ($row_contest_info as $key => $value) {
-			if ($key != "id") $_SESSION[$key] = $value;
+		if ($row_contest_info) {
+
+			foreach ($row_contest_info as $key => $value) {
+				if ($key != "id") $_SESSION[$key] = $value;
+			}
+
+			$_SESSION['comp_id'] = $row_contest_info['id'];
+
 		}
 
-		$_SESSION['comp_id'] = $row_contest_info['id'];
 		$_SESSION['contest_info_general'.$prefix_session] = $prefix_session;
 	}
 }
@@ -64,8 +68,10 @@ if ((!isset($_SESSION['prefs'.$prefix_session])) || (empty($_SESSION['prefs'.$pr
 		$row_prefs = mysqli_fetch_assoc($prefs);
 		$totalRows_prefs = mysqli_num_rows($prefs);
 
-		foreach ($row_prefs as $key => $value) {
-			if ($key != "id") $_SESSION[$key] = $value;
+		if ($totalRows_prefs > 0) {
+			foreach ($row_prefs as $key => $value) {
+				if ($key != "id") $_SESSION[$key] = $value;
+			}	
 		}
 
 		if (SINGLE) $query_judging_prefs = sprintf("SELECT * FROM %s WHERE id='%s'", $prefix."judging_preferences",$_SESSION['comp_id']);
@@ -110,7 +116,7 @@ if ((!isset($_SESSION['prefs'.$prefix_session])) || (empty($_SESSION['prefs'.$pr
 		 * As of April 2018, BreweryDB is not issuing any further API keys
 		 */
 
-		if ($_SESSION['prefsStyleSet'] == "BA") {
+		if ((isset($_SESSION['prefsStyleSet'])) && ($_SESSION['prefsStyleSet'] == "BA")) {
 
 			include(INCLUDES.'ba_constants.inc.php');
 
@@ -250,30 +256,43 @@ if ((!isset($_SESSION['prefs'.$prefix_session])) || (empty($_SESSION['prefs'.$pr
 if ((isset($_SESSION['loginUsername'])) && ((!isset($_SESSION['user_info'.$prefix_session])) || (empty($_SESSION['user_info'.$prefix_session]))))  {
 
 	if (strpos($section, "step") === FALSE) {
-		$query_user = sprintf("SELECT * FROM %s WHERE user_name = '%s'", $prefix."users", $_SESSION['loginUsername']);
-		$user = mysqli_query($connection,$query_user) or die (mysqli_error($connection));
-		$row_user = mysqli_fetch_assoc($user);
-		$totalRows_user = mysqli_num_rows($user);
 
-	    foreach ($row_user as $key => $value) {
-			if ($key != "id") $_SESSION[$key] = $value;
+		if ($section != "setup") {
+
+			$query_user = sprintf("SELECT * FROM %s WHERE user_name = '%s'", $prefix."users", $_SESSION['loginUsername']);
+			$user = mysqli_query($connection,$query_user) or die (mysqli_error($connection));
+			$row_user = mysqli_fetch_assoc($user);
+			$totalRows_user = mysqli_num_rows($user);
+
+			if ($row_user) {
+
+				foreach ($row_user as $key => $value) {
+					if ($key != "id") $_SESSION[$key] = $value;
+				}
+				
+			}
+
+		    $_SESSION['user_id'] = $row_user['id'];
+
+			$query_name = sprintf("SELECT * FROM %s WHERE uid='%s'", $prefix."brewer", $row_user['id']);
+			$brewer_name = mysqli_query($connection,$query_name) or die (mysqli_error($connection));
+			$row_name = mysqli_fetch_assoc($brewer_name);
+			
+			if ($row_name) {
+
+				$name_columns = array_keys($row_name);
+
+			    foreach ($row_name as $key => $value) {
+					if ($key != "id") $_SESSION[$key] = $value;
+				}
+
+			}
+
+		    $_SESSION['brewerID'] = $row_name['id'];
+			$_SESSION['user_info'.$prefix_session] = $prefix_session;
+
 		}
-
-	    $_SESSION['user_id'] = $row_user['id'];
-
-		$query_name = sprintf("SELECT * FROM %s WHERE uid='%s'", $prefix."brewer", $row_user['id']);
-		$name = mysqli_query($connection,$query_name) or die (mysqli_error($connection));
-		$row_name = mysqli_fetch_assoc($name);
-		$name_columns = array_keys($row_name);
-
-		
-
-	    foreach ($row_name as $key => $value) {
-			if ($key != "id") $_SESSION[$key] = $value;
-		}
-
-	    $_SESSION['brewerID'] = $row_name['id'];
-		$_SESSION['user_info'.$prefix_session] = $prefix_session;
+			
 	}
 
 }

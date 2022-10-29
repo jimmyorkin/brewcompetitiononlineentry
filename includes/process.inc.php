@@ -1,10 +1,4 @@
 <?php
-
-/*
-Checked Single
-2016-06-06
-*/
-
 /*
  * Module:      process.inc.php
  * Description: This module does all the heavy lifting for any DB updates; new entries,
@@ -15,9 +9,9 @@ ob_start();
 error_reporting(E_ALL ^ E_NOTICE);
 ini_set('display_errors', '1');
 
-require('../paths.php');
-require(INCLUDES.'url_variables.inc.php');
-require(INCLUDES.'styles.inc.php');
+require ('../paths.php');
+require (INCLUDES.'url_variables.inc.php');
+require (INCLUDES.'styles.inc.php');
 include (INCLUDES.'scrubber.inc.php');
 include (LIB.'common.lib.php');
 include (LIB.'update.lib.php');
@@ -36,7 +30,7 @@ $timezone_raw = "0";
 $redirect_go_to = "";
 
 // Track queries if debugging
-if (DEBUG) include(DEBUGGING.'query_count_begin.debug.php');
+if (DEBUG) include (DEBUGGING.'query_count_begin.debug.php');
 
 // Check if setup is running, if so, check whether prefs have been established
 // If so, get time zone setup by admin
@@ -156,7 +150,6 @@ if (((isset($_SERVER['HTTP_REFERER'])) && ($referrer['host'] == $_SERVER['SERVER
 	// --------------------------- Various Actions ------------------------------- //
 
 	if ($action == "delete") include (PROCESS.'process_delete.inc.php');
-	elseif ($action == "beerxml") include (PROCESS.'process_beerxml.inc.php');
 	elseif ($action == "update_judging_flights") include (PROCESS.'process_judging_flight_check.inc.php');
 	elseif ($action == "delete_scoresheets") {
 
@@ -192,7 +185,7 @@ if (((isset($_SERVER['HTTP_REFERER'])) && ($referrer['host'] == $_SERVER['SERVER
 
 	elseif ($action == "check_discount") {
 
-		$query_contest_info1 = sprintf("SELECT contestEntryFeePassword FROM %s WHERE id=1",$prefix."contest_info");
+		$query_contest_info1 = sprintf("SELECT contestEntryFeePassword FROM %s WHERE id='1'",$prefix."contest_info");
 		if (SINGLE) $query_contest_info1 .= sprintf(" WHERE comp_id='%s'",$_SESSION['comp_id']);
 		$contest_info1 = mysqli_query($connection,$query_contest_info1) or die (mysqli_error($connection));
 		$row_contest_info1 = mysqli_fetch_assoc($contest_info1);
@@ -209,14 +202,31 @@ if (((isset($_SERVER['HTTP_REFERER'])) && ($referrer['host'] == $_SERVER['SERVER
 
 	elseif ($action == "convert_bjcp") {
 
-		bjcp_convert();
+		if ($_SESSION['prefsStyleSet'] == "BJCP2008") {
+
+			include (LIB.'convert.lib.php');
+			include (INCLUDES.'convert/convert_bjcp_2015.inc.php');
+
+			$updateSQL = sprintf("UPDATE %s SET prefsStyleSet='%s' WHERE id='%s'",$prefix."preferences","BJCP2015","1");
+			mysqli_real_escape_string($connection,$updateSQL);
+			$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+
+		}
+
+		if ($_SESSION['prefsStyleSet'] == "BJCP2015") {
+
+			include (LIB.'convert.lib.php');
+			include (INCLUDES.'convert/convert_bjcp_2021.inc.php');
+
+			$updateSQL = sprintf("UPDATE %s SET prefsStyleSet='%s' WHERE id='%s'",$prefix."preferences","BJCP2021","1");
+			mysqli_real_escape_string($connection,$updateSQL);
+			$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+
+		}
+		
 		session_name($prefix_session);
 		session_start();
 		unset($_SESSION['prefs'.$prefix_session]);
-
-		$updateSQL = sprintf("UPDATE %s SET prefsStyleSet='%s' WHERE id='%s'",$prefix."preferences","BJCP2015","1");
-		mysqli_real_escape_string($connection,$updateSQL);
-		$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
 
 		$redirect_go_to = sprintf("Location: %s", $base_url."index.php?section=admin&go=entries&msg=25");
 
@@ -265,6 +275,7 @@ if (((isset($_SERVER['HTTP_REFERER'])) && ($referrer['host'] == $_SERVER['SERVER
 
 	elseif (($action == "email") && ($dbTable == "default")) include (PROCESS.'process_email.inc.php');
 	elseif (($action == "paypal") && ($dbTable == "default")) include (PROCESS.'process_paypal.inc.php');
+	elseif (($action == "dates") && ($dbTable == "default")) include (PROCESS.'process_dates.inc.php');
 	else {
 
 		if ($dbTable == $prefix."brewing") include (PROCESS.'process_brewing.inc.php');

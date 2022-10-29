@@ -8,8 +8,6 @@
  *
  */
 
-include (DB.'judging_locations.db.php');
-
 // Set Vars
 $output_datatables_head = "";
 $output_datatables_body = "";
@@ -153,9 +151,9 @@ if ($section != "step5") {
 
 			do {
 				$form_organizer_select .= "<option value=\"".$row_brewers['uid']."\"";
-				if (($row_brewers['uid'] == $row_organizer['uid'])) $form_organizer_select .= " SELECTED";
+				if (($totalRows_organizer > 0) && (($row_brewers['uid'] == $row_organizer['uid']))) $form_organizer_select .= " SELECTED";
 				$form_organizer_select .= ">".$row_brewers['brewerLastName'].", ".$row_brewers['brewerFirstName'];
-				if (($row_brewers['uid'] == $row_organizer['uid'])) $form_organizer_select .= " (Selected Competition Organizer)";
+				if (($totalRows_organizer > 0) && (($row_brewers['uid'] == $row_organizer['uid']))) $form_organizer_select .= " (Selected Competition Organizer)";
 				$form_organizer_select .= "</option>";
 			} while ($row_brewers = mysqli_fetch_assoc($brewers));
 
@@ -167,7 +165,7 @@ if ($section != "step5") {
 		elseif ($action == "edit") $form_submit_button .= "Edit Judging Session";
 		else $form_submit_button .= "Submit";
 
-		$form_submit_button_help .= "Click ";
+		$form_submit_button_help .= "Select ";
 		if ($action == "update") $form_submit_button_help .= "Assign to ".$row_judging['judgingLocName'];
 		elseif ($action == "assign") $form_submit_button_help .= "Assign as ".brewer_assignment($filter,"3",$id,"default",$filter);
 		else $form_submit_button_help .= "Submit";
@@ -179,7 +177,7 @@ if ($section != "step5") {
 
 		if ($filter == "judges") 		$output_datatables_aoColumns = "{ \"asSorting\": [  ] }, null, null, null, null, null, null";
 		elseif ($filter == "stewards") 	$output_datatables_aoColumns = "{ \"asSorting\": [  ] }, null, null, null, null";
-		elseif ($filter == "staff")		$output_datatables_aoColumns = "{ \"asSorting\": [  ] }, null, null";
+		elseif ($filter == "staff")		$output_datatables_aoColumns = "{ \"asSorting\": [  ] }, null, null, null";
 		elseif ($filter == "bos") 		$output_datatables_aoColumns = "{ \"asSorting\": [  ] }, null, null, null, null, null";
 
 
@@ -195,6 +193,9 @@ if ($section != "step5") {
 		if (($filter == "judges") || ($filter == "stewards")) {
 			$output_datatables_head .= "<th class=\"hidden-xs hidden-sm\">Preferences</th>";
 			$output_datatables_head .= "<th class=\"hidden-xs hidden-sm\" width=\"30%\">Has Entries In...</th>";
+		}
+		if (($filter == "staff")) {
+			$output_datatables_head .= "<th class=\"hidden-xs hidden-sm\">Preferences</th>";
 		}
 		$output_datatables_head .= "</tr>";
 
@@ -261,24 +262,45 @@ if ($section != "step5") {
 						}
 				}
 
-				if (($filter == "judges") || ($filter == "stewards")) {
-					if ($filter == "judges") $exploder = $row_brewer['brewerJudgeLocation'];
+				if (($filter == "judges") || ($filter == "stewards") || ($filter == "staff")) {
+					
+					if (($filter == "judges") || ($filter == "staff")) $exploder = $row_brewer['brewerJudgeLocation'];
 					if ($filter == "stewards") $exploder = $row_brewer['brewerStewardLocation'];
 					$a = explode(",",$exploder);
 					$output = "";
-					if ($exploder != "") {
+					
+					if (!empty($exploder)) {
+						
 						sort($a);
+						$c = array();
+						
 						foreach ($a as $value) {
-							if ($value != "") {
+							if (!empty($value)) {
 								$b = substr($value, 2);
-								$output .= judging_location_avail($b,$value);
-								}
+								if ($filter == "staff") $c[] = judging_location_avail($b,$value,1);
+								else $c[] = judging_location_avail($b,$value);
 							}
 						}
-					$output = rtrim($output,"<br>");
+					
+						if (!empty($c)) {
+
+							sort($c);
+							foreach ($c as $value) {
+								if (!empty($value)) $output .= $value;
+							}
+							
+							$output = rtrim($output,"<br>");
+						}
+
+					}					
+						
+					if (empty($output)) {
+						if ($filter == "staff") $output_location = "None specified.";
+						else $output_location .= "<span class=\"fa fa-lg fa-ban text-danger\"></span> <a href=\"".$base_url."index.php?section=brewer&amp;go=admin&amp;action=edit&amp;filter=".$row_brewer['uid']."&amp;id=".$row_brewer['uid']."\" data-toggle=\"tooltip\" title=\"Enter ".$row_brewer['brewerFirstName']." ".$row_brewer['brewerLastName']."&rsquo;s location preferences\">None specified</a>.";
+					}
+					else $output_location = $output;
+
 				}
-				if (empty($output)) $output_location = "<span class=\"fa fa-lg fa-ban text-danger\"></span> <a href=\"".$base_url."index.php?section=brewer&amp;go=admin&amp;action=edit&amp;filter=".$row_brewer['uid']."&amp;id=".$row_brewer['uid']."\" data-toggle=\"tooltip\" title=\"Enter ".$row_brewer['brewerFirstName']." ".$row_brewer['brewerLastName']."&rsquo;s location preferences\">None specified</a>.";
-				else $output_location = $output;
 
 				if (($filter == "bos") && (!empty($bos_judge_eligible))) $output_datatables_body .= "<tr class=\"bg-danger text-danger\">";
 				elseif (($filter == "bos") && (empty($bos_judge_eligible))) {
@@ -289,7 +311,7 @@ if ($section != "step5") {
 				$output_datatables_body .= "<td>";
 				$output_datatables_body .= "<input type=\"hidden\" name=\"uid[]\" value=\"".$row_brewer['uid']."\" />";
 				$output_datatables_body .= "<div class=\"checkbox\"><label><input name=\"".$staff_row_field.$row_brewer['uid']."\" type=\"checkbox\" value=\"1\" ".$checked;
-				if (($filter == "staff") && ($row_organizer['uid'] == $row_brewer['uid'])) $output_datatables_body .= " DISABLED";
+				if ((isset($totalRows_organizer)) && ($totalRows_organizer > 0) && (($filter == "staff") && ($row_organizer['uid'] == $row_brewer['uid']))) $output_datatables_body .= " DISABLED";
 				if (($filter == "stewards") && (strpos($brewer_assignment,'Judge') !== false)) $output_datatables_body .= " DISABLED";
 				if (($filter == "judges") && (strpos($brewer_assignment,'Steward') !== false)) $output_datatables_body .= " DISABLED";
 				$output_datatables_body .= " /></label></div>";
@@ -312,18 +334,32 @@ if ($section != "step5") {
 					$bjcp_rank = explode(",",$row_brewer['brewerJudgeRank']);
 					$display_rank = bjcp_rank($bjcp_rank[0],1);
 
+					if (((strpos($display_rank, "Level 0:") !== false)) && (($row_brewer['brewerJudgeMead'] == "Y") || ($row_brewer['brewerJudgeCider'] == "Y"))) $display_rank = "Level 3: Certified Cider or Mead Judge";
+
+					if ((isset($row_brewer['brewerJudgeMead'])) && ($row_brewer['brewerJudgeMead'] == "Y")) {
+						$display_rank .= "<br /><em>Certified Mead Judge</em>";
+					}
+					
+					if ((isset($row_brewer['brewerJudgeCider'])) && ($row_brewer['brewerJudgeCider'] == "Y")) {
+						$display_rank .= "<br /><em>Certified Cider Judge</em>";
+					}
+
 					$output_datatables_body .= "<td class=\"hidden-xs hidden-sm\">".strtoupper($row_brewer['brewerJudgeID'])."</td>";
 					$output_datatables_body .= "<td>".$display_rank;
-					if ((isset($row_brewer['brewerJudgeMead'])) && ($row_brewer['brewerJudgeMead'] == "Y")) $output_datatables_body .= "<br /><em>Certified Mead Judge</em>";
-					if ((isset($row_brewer['brewerJudgeCider'])) && ($row_brewer['brewerJudgeCider'] == "Y")) $output_datatables_body .= "<br /><em>Certified Cider Judge</em>";
+					
 					if (!empty($bjcp_rank[1])) {
 						$output_datatables_body .= "<em>".designations($row_brewer['brewerJudgeRank'],$bjcp_rank[0])."</em>";
 					}
+					
 					$output_datatables_body .= "</td>";
+				
+				}
+
+				if (($filter == "judges") || ($filter == "stewards") || ($filter == "staff")) {
+					$output_datatables_body .= "<td class=\"hidden-xs hidden-sm\">".$output_location."</td>";
 				}
 
 				if (($filter == "judges") || ($filter == "stewards")) {
-					$output_datatables_body .= "<td class=\"hidden-xs hidden-sm\">".$output_location."</td>";
 					$output_datatables_body .= "<td class=\"hidden-xs hidden-sm\">".judge_entries($row_brewer['uid'],1)."</td>";
 				}
 
@@ -344,15 +380,16 @@ if ((($action == "add") || ($action == "edit")) || ($section == "step5")) {
 
 	if ($section == "step5") $action = "add"; else $action = $action;
 	if ($go == "default") $go = "setup"; else $go = $go;
+	
 	if ($section == "step5") $form_submit_url .= build_form_action($base_url,$section,$go,$action,$filter,"1",$judging_locations_db_table,TRUE);
-	else $form_submit_url .= build_form_action($base_url,$section,$go,$action,$filter,$row_judging['id'],$judging_locations_db_table,TRUE);
+	else {
+		if ($action == "add") $form_submit_url .= build_form_action($base_url,$section,$go,$action,$filter,"1",$judging_locations_db_table,TRUE);
+		if ($action == "edit") $form_submit_url .= build_form_action($base_url,$section,$go,$action,$filter,$row_judging['id'],$judging_locations_db_table,TRUE);
+	}
+
 	if ($action == "add") $form_submit_button .= "Add Judging Session";
-		elseif ($action == "edit") $form_submit_button .= "Edit Judging Session";
-		else $form_submit_button .= "Submit";
-	//$form_submit_button .= "<input type=\"submit\" class=\"button\" value='";
-	//if ($action == "edit") $form_submit_button .= "Update";
-	//else $form_submit_button .= "Submit";
-	//$form_submit_button .= "'>";
+	elseif ($action == "edit") $form_submit_button .= "Edit Judging Session";
+	else $form_submit_button .= "Submit";
 
 	$judging_date = "";
 	$judging_end_date = "";
@@ -369,15 +406,7 @@ if ((($action == "add") || ($action == "edit")) || ($section == "step5")) {
 // ----------------------------------------- Presentation ------------------------------------------
 
 
-// Display Top Of Page Elements (Subtitle, Primary Page Info, Nav, and Secondary Page Info)
-//echo $subtitle;
-//echo $primary_page_info;
-//if ($section != "step5") echo $goto_nav;
-//echo $secondary_nav;
-//echo $secondary_page_info;
-
 // Display HTML/JS elements and compiled PHP elements
-//if (!empty($output_no_records)) echo $output_no_records;
 ?>
 <?php if (!empty($form_submit_url)) echo $form_submit_url; ?>
 <?php if ($section != "step5") { ?><p class="lead"><?php echo $_SESSION['contestName'].$subtitle; ?></p><?php } ?>
@@ -397,17 +426,18 @@ if ((($action == "add") || ($action == "edit")) || ($section == "step5")) {
     <a class="btn btn-danger" href="<?php echo $base_url.$judge_loc_url_no; ?>"><span class="fa fa-times"></span> No</a>
 </div><!-- ./button group -->
 <?php } // end if (($filter == "default") && ($msg == "9")) ?>
+
 <?php if ($section != "step5") { ?>
 <div class="bcoem-admin-element hidden-print">
 	<!-- Page Navigation Elements -->
-
-
+	
 	<?php if (($action == "add") || ($action == "edit")) { ?>
 	<!-- Postion 1: View All Button -->
 	<div class="btn-group bcoem-admin-element" role="group" aria-label="...">
         <a class="btn btn-default" href="<?php echo $base_url; ?>index.php?section=admin&amp;go=judging"><span class="fa fa-arrow-circle-left"></span> All Judging Sessions</a>
     </div><!-- ./button group -->
 	<?php } ?>
+	
 	<?php if (($action == "default") || ($action == "edit")) { ?>
 	<div class="btn-group bcoem-admin-element" role="group" aria-label="...">
         <a class="btn btn-default" href="<?php echo $base_url; ?>index.php?section=admin&amp;go=judging&amp;action=add"><span class="fa fa-plus-circle"></span> Add a Judging Session</a>
@@ -425,6 +455,10 @@ if ((($action == "add") || ($action == "edit")) || ($section == "step5")) {
     <!-- All Participants Button -->
 	<div class="btn-group" role="group" aria-label="...">
         <a class="btn btn-default" href="<?php echo $base_url; ?>index.php?section=admin&amp;go=participants"><span class="fa fa-arrow-circle-left"></span> All Participants</a>
+    </div><!-- ./button group -->
+
+    <div class="btn-group" role="group" aria-label="...">
+        <a class="btn btn-default" href="<?php echo $base_url; ?>index.php?section=admin&amp;go=judging_tables"><span class="fa fa-arrow-circle-left"></span> All Tables</a>
     </div><!-- ./button group -->
 
 	<!-- View Participants Dropdown -->
@@ -447,7 +481,6 @@ if ((($action == "add") || ($action == "edit")) || ($section == "step5")) {
     <?php } ?>
 
 	<?php if (($section == "admin") && (($action == "update") || ($action == "assign"))) { ?>
-
 	<!-- Assign/Unassign Judges/Stewards Dropdown -->
 	<div class="btn-group" role="group">
 		<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -470,6 +503,16 @@ if ((($action == "add") || ($action == "edit")) || ($section == "step5")) {
 			<li class="small"><a href="<?php echo $base_url; ?>index.php?section=admin&amp;action=assign&amp;go=judging_tables">Judges/Stewards to Tables</a><li>
 		</ul>
 	</div><!-- ./button group -->
+
+	<?php if ($filter == "bos") { ?>
+	<div class="btn-group" role="group" aria-label="...">
+    	<?php if ($view == "ranked") { ?>
+    	<a class="btn btn-primary" href="<?php echo $base_url; ?>index.php?section=admin&amp;action=assign&amp;go=judging&amp;filter=bos"><span class="fa fa-filter"></span> Filter: All Judges</a>
+    	<?php } else { ?>
+        <a class="btn btn-primary" href="<?php echo $base_url; ?>index.php?section=admin&amp;action=assign&amp;go=judging&amp;filter=bos&amp;view=ranked"><span class="fa fa-filter"></span> Filter: Ranked Judges Only</a>
+    	<?php } ?>
+    </div><!-- ./button group -->
+	<?php } ?>
 
 	<?php if ($filter == "staff") { ?>
     <div class="btn-group" role="group" aria-label="...">
@@ -708,12 +751,12 @@ if (($output_add_edit) && ($msg != 9)) {
         <div class="radio">
             <!-- Input Here -->
             <label>
-                <input type="radio" name="judgingLocType" value="0" id="judgingLocType_0"  <?php if (($section == "step5") || ($action == "add")) echo "CHECKED"; if (($section != "step5") && ($row_judging['judgingLocType'] == "0")) echo "CHECKED";  ?> /> Traditional <small>(typically a single day in a central location)</small>
+                <input type="radio" name="judgingLocType" value="0" id="judgingLocType_0"  <?php if (($section == "step5") || ($action == "add")) echo "CHECKED"; if ((isset($row_judging['judgingLocType'])) && ($section != "step5") && ($row_judging['judgingLocType'] == "0")) echo "CHECKED";  ?> /> Traditional <small>(typically a single day in a central location)</small>
             </label>
         </div>
         <div class="radio">
             <label>
-                <input type="radio" name="judgingLocType" value="1" id="judgingLocType_1" <?php if (($section != "step5") && ($row_judging['judgingLocType'] == "1")) echo "CHECKED"; ?>/> Distributed <small>(multi-day and/or multi-location)</small>
+                <input type="radio" name="judgingLocType" value="1" id="judgingLocType_1" <?php if ((isset($row_judging['judgingLocType'])) && ($section != "step5") && ($row_judging['judgingLocType'] == "1")) echo "CHECKED"; ?>/> Distributed <small>(multi-day and/or multi-location)</small>
             </label>
         </div>
         <span class="help-block">Indicate whether judge teams in this session will be evaluating entries at a single, designated location, typically collectively, or over a series of days in various locations. For example, choose <em>Distributed</em> if judges will be evaluating entries virtually - synchronously or asynchronously - or if locations will be ad-hoc, such as in a judge team member home.</span>

@@ -82,7 +82,7 @@ if (($judging_past == 0) && ($registration_open == 2) && ($entry_window_open == 
 
 	$header1_20 .= "<h2>".$default_page_text_010;
 	if ($section == "past_winners") $header1_20 .= ": ".$trimmed;
-	if ($filter == "default") $header1_20 .= sprintf(" <a class=\"hide-loader\" href=\"%soutput/export.output.php?section=results&amp;go=judging_scores&amp;action=default&amp;filter=none&amp;view=pdf\" data-toggle=\"tooltip\" title=\"%s\"><span class=\"fa fa-file-pdf-o hidden-print\"></span></a> <a class=\"hide-loader\" href=\"%soutput/export.output.php?section=results&amp;go=judging_scores&amp;action=default&amp;filter=none&amp;view=html\" data-toggle=\"tooltip\" title=\"%s\"><span class=\"fa fa-file-code-o hidden-print\"></span></a>",$base_url,$default_page_text_020,$base_url,$default_page_text_021);
+	if ($filter == "default") $header1_20 .= sprintf(" <a class=\"hide-loader\" href=\"%soutput/export.output.php?section=results&amp;go=judging_scores&amp;action=default&amp;filter=default&amp;view=pdf\" data-toggle=\"tooltip\" title=\"%s\"><span class=\"fa fa-file-pdf-o hidden-print\"></span></a> <a class=\"hide-loader\" href=\"%soutput/export.output.php?section=results&amp;go=judging_scores&amp;action=default&amp;filter=default&amp;view=html\" data-toggle=\"tooltip\" title=\"%s\"><span class=\"fa fa-file-code-o hidden-print\"></span></a>",$base_url,$default_page_text_020,$base_url,$default_page_text_021);
 	$header1_20 .= "</h2>";
 
 	$page_info .= sprintf("<h2>%s</h2><p>%s %s.</p>",$default_page_text_004,$default_page_text_005,getTimeZoneDateTime($_SESSION['prefsTimeZone'], $_SESSION['prefsWinnerDelay'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "long", "date-time"));
@@ -187,7 +187,7 @@ if (($judging_past == 0) && ($registration_open == 2) && ($entry_window_open == 
 				echo $header1_10;
 				echo $page_info10;
 				include (SECTIONS.'bos.sec.php');
-				}
+			}
 
 			if (($row_scored_entries['count'] > 0) && (($row_limits['prefsShowBestBrewer'] != 0) || ($row_limits['prefsShowBestClub'] != 0))) include (SECTIONS.'bestbrewer.sec.php');
 

@@ -1,5 +1,5 @@
 <?php
-	
+
 $entries_updated[] = "";
 
 //echo "Post=", print_r($_POST);
@@ -40,19 +40,13 @@ foreach ($_POST['id'] as $id) {
 				
 				// Get Table Number to match against entry form
 				// First get id of style from brewing and style tables
-				$query_styleid_in_DB = sprintf("SELECT a.id FROM %s a, %s b WHERE brewStyleGroup = brewCategorySort and brewStyleNum = brewSubCategory and brewStyleVersion = 'BJCP2015' AND b.id = %u", $prefix."styles", $prefix."brewing", $_POST['eid'.$id]);
+				// Cheating here by hardcoding brewStyleVersion
+				$query_styleid_in_DB = sprintf("SELECT a.id FROM %s a, %s b WHERE brewStyleGroup = brewCategorySort and brewStyleNum = brewSubCategory and brewStyleVersion = 'BJCP2021' AND b.id = %u", $prefix."styles", $prefix."brewing", $_POST['eid'.$id]);
 
 				$styleid_in_DB = mysqli_query($connection,$query_styleid_in_DB) or die (mysqli_error($connection));
 				$row_styleid_in_DB = mysqli_fetch_assoc($styleid_in_DB);
 				
-				if ($row_styleid_in_DB['id'] == 99)
-				  {
-				    $likeString = "'99%'";
-				  }
-				else
-				  {
-				    $likeString = "'%" . strval($row_styleid_in_DB['id']) . "%'";
-				  }
+		    $likeString = "'%" . strval($row_styleid_in_DB['id']) . "%'";
 				
 		    // The get the table number from the table table
 				$query_table = sprintf("SELECT tableNumber FROM %s WHERE tableStyles LIKE %s", $prefix."judging_tables", $likeString);

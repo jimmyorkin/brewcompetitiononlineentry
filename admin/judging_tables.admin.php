@@ -165,113 +165,122 @@ if (($action == "default") && ($filter == "default")) {
 
     do {
 
-        $loc_total = get_table_info(1,"count_total","default","default",$row_judging['id']);
-        $all_loc_total[] = $loc_total;
+        $loc_total = 0;
 
-        $sidebar_assigned_entries_by_location .= "<div class=\"bcoem-sidebar-panel\">";
-        $sidebar_assigned_entries_by_location .= "<strong class=\"text-info\">";
-        $sidebar_assigned_entries_by_location .= $row_judging['judgingLocName'];
-        $sidebar_assigned_entries_by_location .= "</strong>";
-        $sidebar_assigned_entries_by_location .= "<span class=\"pull-right\">";
-        $sidebar_assigned_entries_by_location .= $loc_total;
-        $sidebar_assigned_entries_by_location .= "</span>";
-        $sidebar_assigned_entries_by_location .= "</div>";
+        if ($row_judging['judgingLocType'] < 2) {
+            if ($row_judging) $loc_total = get_table_info(1,"count_total","default","default",$row_judging['id']);
+            $all_loc_total[] = $loc_total;
+
+            $sidebar_assigned_entries_by_location .= "<div class=\"bcoem-sidebar-panel\">";
+            $sidebar_assigned_entries_by_location .= "<strong class=\"text-info\">";
+            if ($row_judging) $sidebar_assigned_entries_by_location .= $row_judging['judgingLocName'];
+            $sidebar_assigned_entries_by_location .= "</strong>";
+            $sidebar_assigned_entries_by_location .= "<span class=\"pull-right\">";
+            $sidebar_assigned_entries_by_location .= $loc_total;
+            $sidebar_assigned_entries_by_location .= "</span>";
+            $sidebar_assigned_entries_by_location .= "</div>";  
+        }
+        
 
     } while ($row_judging = mysqli_fetch_assoc($judging));
 
-    do {
+    if ($totalRows_tables > 0) {
 
-        $a = array(get_table_info("1","list",$row_tables['id'],$dbTable,"default"));
-        $styles = display_array_content($a,1);
-        $received = get_table_info("1","count_total",$row_tables['id'],$dbTable,"default");
-        if ($_SESSION['jPrefsTablePlanning'] == 0) {
-            $scored =  get_table_info("1","score_total",$row_tables['id'],$dbTable,"default");
-            //get_table_info($input,$method,$id,$dbTable,$param)
-            if (($received > $scored) && ($dbTable == "default")) $scored = $scored." <a class=\"hidden-print\" href=\"".$base_url."index.php?section=admin&amp;go=judging_scores&amp;action=edit&amp;id=".$row_tables['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Not all scores have been entered for this table. Click to add/edit scores.\"><span class=\"fa fa-lg fa-exclamation-circle text-danger\"></span></a>";
-            else $scored = $scored;
-        }
+        do {
 
-        else $scored = "<i class=\"text-danger fa fas fa-lg fa-ban\"></i> <small><em>Planning Mode</em></small>";
-
-        $assigned_judges = assigned_judges($row_tables['id'],$dbTable,$judging_assignments_db_table);
-            if ($dbTable == "default") $assigned_judges .= "<button class=\"btn-link\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Delete all judge assignments for this table.\" onclick=\"purge_data('".$base_url."','purge','judge-assignments','table-admin','delete-judges-".$row_tables['id']."');\"><i class=\"text-danger fas fa-lg fa-minus-circle\"></i></button><div><span class=\"hidden\" id=\"delete-judges-".$row_tables['id']."-status\"></span><span class=\"hidden\" id=\"delete-judges-".$row_tables['id']."-status-msg\"></span></div>";
-        
-        $assigned_stewards = assigned_stewards($row_tables['id'],$dbTable,$judging_assignments_db_table);
-            if ($dbTable == "default") $assigned_stewards .= "<button class=\"btn-link\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Delete all steward assignments for this table.\" onclick=\"purge_data('".$base_url."','purge','steward-assignments','table-admin','delete-stewards-".$row_tables['id']."');\"><i class=\"text-danger fas fa-lg fa-minus-circle\"></i></button><div><span class=\"hidden\" id=\"delete-stewards-".$row_tables['id']."-status\"></span><span class=\"hidden\" id=\"delete-stewards-".$row_tables['id']."-status-msg\"></span></div>";
-
-        if ($dbTable == "default") {
-            if (score_count($row_tables['id'],1,$dbTable)) $scoreAction = "edit";
-            else $scoreAction = "add";
-        }
-
-        $manage_tables_default_tbody .= "<tr>";
-        $manage_tables_default_tbody .= "<td class=\"hidden-xs hidden-sm\">".$row_tables['tableNumber']."</td>";
-        $manage_tables_default_tbody .= "<td>".$row_tables['tableName']."</td>";
-        $manage_tables_default_tbody .= "<td class=\"hidden-xs hidden-sm\">".rtrim($styles, ",&nbsp;")."</td>";
-        $manage_tables_default_tbody .= "<td>".$received."</td>";
-        $manage_tables_default_tbody .= "<td class=\"hidden-xs hidden-sm\">".$scored."</td>";
-        $manage_tables_default_tbody .= "<td>".$assigned_judges."</td>";
-        $manage_tables_default_tbody .= "<td>".$assigned_stewards."</td>";
-        if (($totalRows_judging > 1) && ($dbTable == "default")) $manage_tables_default_tbody .= "<td class=\"hidden-xs hidden-sm\">".table_location($row_tables['id'],$_SESSION['prefsDateFormat'],$_SESSION['prefsTimeZone'],$_SESSION['prefsTimeFormat'],"default")."</td>";
-        
-        if ($dbTable == "default") {
-            $manage_tables_default_tbody .= "<td nowrap class=\"hidden-print\">";
-
-            // Build edit link
-            $manage_tables_default_tbody .= "<a href=\"".$base_url."index.php?section=admin&amp;go=".$go;
-            $manage_tables_default_tbody .= "&amp;action=edit&amp;id=".$row_tables['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Edit Table ".$row_tables['tableNumber'].": ".$row_tables['tableName']."\">";
-            $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-pencil\"></span>";
-            $manage_tables_default_tbody .= "</a> ";
-
+            $a = array(get_table_info("1","list",$row_tables['id'],$dbTable,"default"));
+            $styles = display_array_content($a,1);
+            $received = get_table_info("1","count_total",$row_tables['id'],$dbTable,"default");
             if ($_SESSION['jPrefsTablePlanning'] == 0) {
-                // Build print pullsheet link
-                $manage_tables_default_tbody .= "<a id=\"modal_window_link\" class=\"hide-loader\" href=\"".$base_url."output/print.output.php?section=pullsheets&amp;go=judging_tables&amp;id=".$row_tables['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Print the pullsheet for Table ".$row_tables['tableNumber'].": ".$row_tables['tableName']."\">";
-                $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-print\"></span>";
-                $manage_tables_default_tbody .= "</a> ";
-
+                $scored =  get_table_info("1","score_total",$row_tables['id'],$dbTable,"default");
+                //get_table_info($input,$method,$id,$dbTable,$param)
+                if (($received > $scored) && ($dbTable == "default")) $scored = $scored." <a class=\"hidden-print\" href=\"".$base_url."index.php?section=admin&amp;go=judging_scores&amp;action=edit&amp;id=".$row_tables['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Not all scores have been entered for this table. Select to add/edit scores.\"><span class=\"fa fa-lg fa-exclamation-circle text-danger\"></span></a>";
+                else $scored = $scored;
             }
 
-            else $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-print text-muted\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Printing pullsheest is disabled in Tables Planning Mode\"></span> ";
+            else $scored = "<i class=\"text-danger fa fas fa-lg fa-ban\"></i> <small><em>Planning Mode</em></small>";
 
-            if ($_SESSION['jPrefsTablePlanning'] == 0) {
-                // Build print pullsheet link
-                $manage_tables_default_tbody .= "<a id=\"modal_window_link\" class=\"hide-loader\" href=\"".$base_url."output/print.output.php?section=pullsheets&amp;go=all_entry_info&amp;id=".$row_tables['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Print the Entries with Additional Info Report for Table ".$row_tables['tableNumber'].": ".$row_tables['tableName']."\">";
-                $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-plus-square\"></span>";
-                $manage_tables_default_tbody .= "</a> ";
+            $assigned_judges = assigned_judges($row_tables['id'],$dbTable,$judging_assignments_db_table);
+                if ($dbTable == "default") $assigned_judges .= "<button class=\"btn-link\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Delete all judge assignments for this table.\" onclick=\"purge_data('".$base_url."','purge','judge-assignments','table-admin','delete-judges-".$row_tables['id']."');\"><i class=\"text-danger fas fa-lg fa-minus-circle\"></i></button><div><span class=\"hidden\" id=\"delete-judges-".$row_tables['id']."-status\"></span><span class=\"hidden\" id=\"delete-judges-".$row_tables['id']."-status-msg\"></span></div>";
+            
+            $assigned_stewards = assigned_stewards($row_tables['id'],$dbTable,$judging_assignments_db_table);
+                if ($dbTable == "default") $assigned_stewards .= "<button class=\"btn-link\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Delete all steward assignments for this table.\" onclick=\"purge_data('".$base_url."','purge','steward-assignments','table-admin','delete-stewards-".$row_tables['id']."');\"><i class=\"text-danger fas fa-lg fa-minus-circle\"></i></button><div><span class=\"hidden\" id=\"delete-stewards-".$row_tables['id']."-status\"></span><span class=\"hidden\" id=\"delete-stewards-".$row_tables['id']."-status-msg\"></span></div>";
+
+            if ($dbTable == "default") {
+                if (score_count($row_tables['id'],1,$dbTable)) $scoreAction = "edit";
+                else $scoreAction = "add";
             }
 
-            else $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-plus-square text-muted\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Printing the Entries with Additional Info report is disabled in Tables Planning Mode\"></span> ";
+            $manage_tables_default_tbody .= "<tr>";
+            $manage_tables_default_tbody .= "<td>".$row_tables['tableNumber']."</td>";
+            $manage_tables_default_tbody .= "<td>".$row_tables['tableName']."</td>";
+            $manage_tables_default_tbody .= "<td>".rtrim($styles, ",&nbsp;")."</td>";
+            $manage_tables_default_tbody .= "<td>".$received."</td>";
+            $manage_tables_default_tbody .= "<td class=\"hidden-xs hidden-sm\">".$scored."</td>";
+            $manage_tables_default_tbody .= "<td class=\"hidden-xs hidden-sm\">".$assigned_judges."</td>";
+            $manage_tables_default_tbody .= "<td class=\"hidden-xs hidden-sm\">".$assigned_stewards."</td>";
+            if (($totalRows_judging > 1) && ($dbTable == "default")) $manage_tables_default_tbody .= "<td class=\"hidden-xs hidden-sm\">".table_location($row_tables['id'],$_SESSION['prefsDateFormat'],$_SESSION['prefsTimeZone'],$_SESSION['prefsTimeFormat'],"default")."</td>";
+            
+            if ($dbTable == "default") {
+                $manage_tables_default_tbody .= "<td nowrap class=\"hidden-print\">";
 
-            // Build flight link
-            if (($_SESSION['jPrefsQueued'] == "N") && (flight_count($row_tables['id'],1))) {
-                $manage_tables_default_tbody .= "<a href=\"".$base_url."index.php?section=admin&amp;go=judging_flights&amp;filter=define&amp;action=edit&amp;id=".$row_tables['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Add/edit flights for Table ".$row_tables['tableNumber'].": ".$row_tables['tableName']."\">";
-                $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-send\"></span>";
+                // Build edit link
+                $manage_tables_default_tbody .= "<a href=\"".$base_url."index.php?section=admin&amp;go=".$go;
+                $manage_tables_default_tbody .= "&amp;action=edit&amp;id=".$row_tables['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Edit Table ".$row_tables['tableNumber'].": ".$row_tables['tableName']."\">";
+                $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-pencil\"></span>";
                 $manage_tables_default_tbody .= "</a> ";
+
+                if ($_SESSION['jPrefsTablePlanning'] == 0) {
+                    // Build print pullsheet link
+                    $manage_tables_default_tbody .= "<a id=\"modal_window_link\" class=\"hide-loader\" href=\"".$base_url."output/print.output.php?section=pullsheets&amp;go=judging_tables&amp;id=".$row_tables['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Print the pullsheet for Table ".$row_tables['tableNumber'].": ".$row_tables['tableName']."\">";
+                    $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-print\"></span>";
+                    $manage_tables_default_tbody .= "</a> ";
+
+                }
+
+                else $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-print text-muted\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Printing pullsheest is disabled in Tables Planning Mode\"></span> ";
+
+                if ($_SESSION['jPrefsTablePlanning'] == 0) {
+                    // Build print pullsheet link
+                    $manage_tables_default_tbody .= "<a id=\"modal_window_link\" class=\"hide-loader\" href=\"".$base_url."output/print.output.php?section=pullsheets&amp;go=all_entry_info&amp;id=".$row_tables['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Print the Entries with Additional Info Report for Table ".$row_tables['tableNumber'].": ".$row_tables['tableName']."\">";
+                    $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-plus-square\"></span>";
+                    $manage_tables_default_tbody .= "</a> ";
+                }
+
+                else $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-plus-square text-muted\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Printing the Entries with Additional Info report is disabled in Tables Planning Mode\"></span> ";
+
+                // Build flight link
+                if (($_SESSION['jPrefsQueued'] == "N") && (flight_count($row_tables['id'],1))) {
+                    $manage_tables_default_tbody .= "<a href=\"".$base_url."index.php?section=admin&amp;go=judging_flights&amp;filter=define&amp;action=edit&amp;id=".$row_tables['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Add/edit flights for Table ".$row_tables['tableNumber'].": ".$row_tables['tableName']."\">";
+                    $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-send\"></span>";
+                    $manage_tables_default_tbody .= "</a> ";
+                }
+
+
+                if ($_SESSION['jPrefsTablePlanning'] == 0) {
+                    //Build add scores link
+                    $manage_tables_default_tbody .= "<a href=\"".$base_url."index.php?section=admin&amp;go=judging_scores&amp;action=".$scoreAction."&amp;id=".$row_tables['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Add/edit scores for Table ".$row_tables['tableNumber'].": ".$row_tables['tableName']."\">";
+                    $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-trophy\"></span>";
+                    $manage_tables_default_tbody .= "</a> ";
+                }
+
+                else $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-trophy text-muted\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Add/edit scores disabled in Tables Planning Mode\"></span> ";
+
+                // Build delete link
+                $manage_tables_default_tbody .= "<a class=\"hide-loader\" href=\"".$base_url;
+                $manage_tables_default_tbody .= "includes/process.inc.php?section=".$section."&amp;go=".$go."&amp;filter=".$filter."&amp;dbTable=".$judging_tables_db_table."&amp;action=delete&amp;id=".$row_tables['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Delete Table ".$row_tables['tableNumber'].": ".$row_tables['tableName']."\" data-confirm=\"Are you sure you want to delete Table ".$row_tables['tableNumber'].": ".$row_tables['tableName']."? ALL associated FLIGHTS and SCORES will be deleted as well. This cannot be undone.\">";
+                $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-trash-o\"></span>";
+                $manage_tables_default_tbody .= "</a> ";
+                $manage_tables_default_tbody .= "</td>";
             }
 
+            $manage_tables_default_tbody .= "";
+            $manage_tables_default_tbody .= "";
+            $manage_tables_default_tbody .= "</tr>";
 
-            if ($_SESSION['jPrefsTablePlanning'] == 0) {
-                //Build add scores link
-                $manage_tables_default_tbody .= "<a href=\"".$base_url."index.php?section=admin&amp;go=judging_scores&amp;action=".$scoreAction."&amp;id=".$row_tables['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Add/edit scores for Table ".$row_tables['tableNumber'].": ".$row_tables['tableName']."\">";
-                $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-trophy\"></span>";
-                $manage_tables_default_tbody .= "</a> ";
-            }
+        } while ($row_tables = mysqli_fetch_assoc($tables));
 
-            else $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-trophy text-muted\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Add/edit scores disabled in Tables Planning Mode\"></span> ";
-
-            // Build delete link
-            $manage_tables_default_tbody .= "<a class=\"hide-loader\" href=\"".$base_url;
-            $manage_tables_default_tbody .= "includes/process.inc.php?section=".$section."&amp;go=".$go."&amp;filter=".$filter."&amp;dbTable=".$judging_tables_db_table."&amp;action=delete&amp;id=".$row_tables['id']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"Delete Table ".$row_tables['tableNumber'].": ".$row_tables['tableName']."\" data-confirm=\"Are you sure you want to delete Table ".$row_tables['tableNumber'].": ".$row_tables['tableName']."? ALL associated FLIGHTS and SCORES will be deleted as well. This cannot be undone.\">";
-            $manage_tables_default_tbody .= "<span class=\"fa fa-lg fa-trash-o\"></span>";
-            $manage_tables_default_tbody .= "</a> ";
-            $manage_tables_default_tbody .= "</td>";
-        }
-
-        $manage_tables_default_tbody .= "";
-        $manage_tables_default_tbody .= "";
-        $manage_tables_default_tbody .= "</tr>";
-
-    } while ($row_tables = mysqli_fetch_assoc($tables));
+    }
 
     do {
 
@@ -360,9 +369,12 @@ if (($action == "add") || ($action == "edit")) {
             $disabled_table_location = "";
 
             if (($action == "edit") && ($row_tables_edit['tableLocation'] == $row_judging['id'])) $selected_table_location = " SELECTED";
-            $table_locations_available .= "<option value=\"".$row_judging['id']."\"".$selected_table_location.">";
-            $table_locations_available .= $row_judging['judgingLocName']." (".getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_judging['judgingDate'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "short", "date-time-no-gmt").")";
-            $table_locations_available .= "</option>\n";
+            if ($row_judging['judgingLocType'] < 2) {
+                $table_locations_available .= "<option value=\"".$row_judging['id']."\"".$selected_table_location.">";
+                $table_locations_available .= $row_judging['judgingLocName']." (".getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_judging['judgingDate'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "short", "date-time-no-gmt").")";
+                $table_locations_available .= "</option>\n";
+            }
+            
 
         } while ($row_judging = mysqli_fetch_assoc($judging));
 
@@ -563,6 +575,11 @@ function enable_competition_mode() {
 }
 
 $(document).ready(function(){
+
+    // If judges and/or stewards have been un-assigned, trigger modal.
+    <?php if ((isset($_SESSION['judge_unassign_flag'])) && ($_SESSION['judge_unassign_flag'] == 1)) { ?>
+        $('#unassigned-modal').modal('show');
+    <?php $_SESSION['judge_unassign_flag'] = 0; } ?>
     
     <?php if ($_SESSION['jPrefsTablePlanning'] == 0) { ?>
 
@@ -627,13 +644,14 @@ $(document).ready(function(){
                 <h4 class="modal-title">Please Confirm</h4>
             </div>
             <div class="modal-body">
-                <p>Are you sure you want to switch to Tables Competition Mode? This should only be done after all entries have been sorted and those present are marked as received in the system.</p>
+                <p>Are you sure you want to switch to Tables Competition Mode? This should only be done after <strong>all</strong> entries have been sorted and those present are <strong>marked as received in the system</strong>.</p>
                 <p>Before you do, take note that in Tables Competition Mode:</p>
                 <ul>
                     <li>Table entry counts will only reflect entries marked as received.</li>
                     <li>Non-received entries' flight designations will be reset to 1 (default) should any be marked as received after switching to Competition Mode. Flight positions and associated rounds should be reviewed prior to judging.</li>
                     <li>If there are no entries marked as received for a particular sub-style, the sub-style will be removed from the table's styles list.</li>
                     <li>If there are no entries marked as received for all sub-styles defined for a table, that table will be deleted.</li>
+                    <li>Judges and stewards that now have entries at a table where they are assigned will be un-assigned from that table as a failsafe.</li>
                 </ul>
             </div>
             <div class="modal-footer">
@@ -681,10 +699,28 @@ $(document).ready(function(){
     </div>
 </div>
 
+<!-- Unassigned Judges/Stewards Modal -->
+<div class="modal fade" id="unassigned-modal" tabindex="-1" role="dialog" aria-labelledby="unassigned-modal-label" data-backdrop="static">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 style="margin-bottom:0;" class="modal-title" id="unassigned-modal-label">Caution! Judges and/or Stewards Were Un-Assigned</h4>
+      </div>
+      <div class="modal-body">
+        <p>Upon switching to Tables Competition Mode, one or more judges/stewards were un-assigned from tables due to entry style conflicts. This can happen if the participant added or edited an entry's style that is designated at a table where they are assigned as a judge or steward.</p>
+        <p>Review the list below for any changes in judge or steward counts and make adjustments accordingly.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-success" data-dismiss="modal">I Understand</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
 <?php } ?>
 <p class="lead"><?php echo $_SESSION['contestName'].$title;  ?></p>
 <?php if ($dbTable == "default") { ?>
-<div id="mode-alert" class="alert <?php echo $mode_alert_color; ?>"><?php echo $sub_lead_text; ?></div>
+<div id="mode-alert" class="alert <?php echo $mode_alert_color; ?> hidden-print"><?php echo $sub_lead_text; ?></div>
 <?php if ($action == "default") { ?>
 <!-- Planning Mode Button -->
 <div id="tables-planning-mode" class="bcoem-admin-element hidden-print">
@@ -740,7 +776,7 @@ $(document).ready(function(){
         <span class="caret"></span>
         </button>
         <ul class="dropdown-menu">
-            <li class="small"><a class="hide-loader" href="javascript:window.print()">Tables List</a></li>
+            <li class="small"><a href="#" class="hide-loader" onclick="window.print()">Tables List</a></li>
     		<li class="small"><a id="modal_window_link" class="hide-loader" href="<?php echo $base_url; ?>output/print.output.php?section=pullsheets&amp;go=judging_tables&amp;id=default">Pullsheets by Table</a></li>
             <li class="small"><a id="modal_window_link" class="hide-loader" href="<?php echo $base_url; ?>output/print.output.php?section=assignments&amp;go=judging_assignments&amp;filter=judges&amp;view=name" title="Print Judge Assignments by Name">Judge Assignments By Last Name</a></li>
 			<li class="small"><a id="modal_window_link" class="hide-loader" href="<?php echo $base_url; ?>output//print.output.php?section=assignments&amp;go=judging_assignments&amp;filter=judges&amp;view=table" title="Print Judge Assignments by Table">Judge Assignments By Table</a></li>
@@ -983,7 +1019,10 @@ $(document).ready(function() {
                 echo $sidebar_assigned_entries_by_location;
 				if ($sidebar_all_sessions) { ?>
                 <div class="bcoem-sidebar-panel">
-                	<strong class="text-info">All Sessions</strong>
+                    <hr>
+                </div>
+                <div class="bcoem-sidebar-panel">
+                	<strong class="text-info">All Judging Sessions</strong>
                     <span class="pull-right"><?php echo array_sum($all_loc_total); if ($_SESSION['jPrefsTablePlanning'] == 0) { ?> of <a href="<?php echo $base_url; ?>/index.php?section=admin&amp;go=entries" data-toggle="tooltip" data-placement="top" title="View all entries."><?php echo $row_entry_count['count']; ?></a><?php } ?></span>
                 </div>
                 <?php } ?>
@@ -1122,13 +1161,13 @@ if ($totalRows_tables > 0) { ?>
 <table class="table table-responsive table-bordered table-striped" id="judgingTables">
 	<thead>
     <tr>
-    	<th class="hidden-xs hidden-sm">#</th>
+    	<th>#</th>
         <th>Name</th>
-        <th class="hidden-xs hidden-sm">Style(s)</th>
-        <th><?php if ($_SESSION['jPrefsTablePlanning'] == 0) echo "<span class=\"hidden-sm hidden-xs\"><em>Rec'd</em> </span>" ; ?>E<span class="hidden-xs hidden-sm">ntries</span></th>
+        <th>Style(s)</th>
+        <th><?php if ($_SESSION['jPrefsTablePlanning'] == 0) echo "<span class=\"hidden-sm hidden-xs\"><em>Rec'd</em> </span>" ; ?>Entries</th>
         <th class="hidden-xs hidden-sm"><em>Scored</em> Entries</th>
-        <th>J<span class="hidden-xs hidden-sm">udge Assignments</span></th>
-        <th>S<span class="hidden-xs hidden-sm">teward Assignments</span></th>
+        <th class="hidden-xs hidden-sm">Judge Assignments</th>
+        <th class="hidden-xs hidden-sm">Steward Assignments</th>
         <?php if (($totalRows_judging > 1) && ($dbTable == "default"))  { ?>
         <th class="hidden-xs hidden-sm">Location</th>
         <?php } ?>

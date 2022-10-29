@@ -8,8 +8,7 @@ if (NHC) $base_url = "../";
 include (LIB.'output.lib.php');
 
 // Best of Show check
-
-function bos_place($entry_id,$prefix,$connection) {
+function bos_place_output($entry_id,$prefix,$connection) {
     $query_bos = sprintf("SELECT a.scorePlace FROM %s a, %s b, %s c WHERE a.eid = %s AND c.uid = b.brewBrewerID", $prefix."judging_scores_bos", $prefix."brewing", $prefix."brewer", $entry_id);
     $bos = mysqli_query($connection,$query_bos) or die (mysqli_error($connection));
     $row_bos = mysqli_fetch_assoc($bos);
@@ -25,18 +24,29 @@ function bos_place($entry_id,$prefix,$connection) {
 }
 
 // Get custom winning category info
-do { $sbi_categories[] = $row_sbi['id']."|".$row_sbi['sbi_name']; } while ($row_sbi = mysqli_fetch_assoc($sbi));
+if ($row_sbi) {
+	
+	do { 
+		$sbi_categories[] = $row_sbi['id']."|".$row_sbi['sbi_name']; 
+	} while ($row_sbi = mysqli_fetch_assoc($sbi));
 
-foreach ($sbi_categories as $special_best_cat) {
 
-	$explodies = explode ("|", $special_best_cat);
+	foreach ($sbi_categories as $special_best_cat) {
 
-	$query_sbd = sprintf("SELECT * FROM %s WHERE sid='%s' ORDER BY sbd_place ASC",$prefix."special_best_data",$explodies[0]);
-	$sbd = mysqli_query($connection,$query_sbd) or die (mysqli_error($connection));
-	$row_sbd = mysqli_fetch_assoc($sbd);
-	$totalRows_sbd = mysqli_num_rows($sbd);
+		$explodies = explode ("|", $special_best_cat);
 
-	do { $special_best_cat_winners[] = $explodies[1]."|".$row_sbd['eid']."|".$row_sbd['sbd_place']; } while ($row_sbd = mysqli_fetch_assoc($sbd));
+		$query_sbd = sprintf("SELECT * FROM %s WHERE sid='%s' ORDER BY sbd_place ASC",$prefix."special_best_data",$explodies[0]);
+		$sbd = mysqli_query($connection,$query_sbd) or die (mysqli_error($connection));
+		$row_sbd = mysqli_fetch_assoc($sbd);
+		$totalRows_sbd = mysqli_num_rows($sbd);
+
+		if ($row_sbd) {
+			do { 
+				$special_best_cat_winners[] = $explodies[1]."|".$row_sbd['eid']."|".$row_sbd['sbd_place']; 
+			} while ($row_sbd = mysqli_fetch_assoc($sbd));
+		}
+
+	}
 
 }
 
@@ -90,7 +100,7 @@ do {
     </thead>
     <tbody>
 		<?php do {
-            $bos_place = bos_place($row_log['id'],$prefix,$connection);
+            $bos_place = bos_place_output($row_log['id'],$prefix,$connection);
             ?>
 		<tr>
 			<td><?php echo sprintf("%06s",$row_log['id']); ?></td>

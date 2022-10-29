@@ -1,5 +1,5 @@
 <?php
-/*
+/**
  * Module:      process_brewing.inc.php
  * Description: This module does all the heavy lifting for adding entries to the DB
  */
@@ -13,6 +13,9 @@ foreach ($_POST as $key => $value) {
 error_log("action=$action");
 */
 
+$errors = FALSE;
+$error_output = array();
+$_SESSION['error_output'] = "";
 
 if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) && (isset($_SESSION['userLevel'])))) {
 
@@ -43,11 +46,9 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 			if ($row_brews['count'] >= $row_limits['prefsUserEntryLimit']) {
 				$insertGoTo = $base_url."index.php?section=list&msg=8";
-				$pattern = array('\'', '"');
-				$insertGoTo = str_replace($pattern, "", $insertGoTo);
-				$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
-				header($redirect_go_to);
-				exit;
+				$insertGoTo = prep_redirect_link($insertGoTo);
+				$redirect_go_to = sprintf("Location: %s", $insertGoTo);
+				exit();
 			}
 
 	}
@@ -63,11 +64,9 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 	if (($subcat_limit) && ($row_user['userLevel'] == 2)) {
 		$insertGoTo = $base_url."index.php?section=list&msg=9";
-		$pattern = array('\'', '"');
-		$insertGoTo = str_replace($pattern, "", $insertGoTo);
-		$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
-		header($redirect_go_to);
-		exit;
+		$insertGoTo = prep_redirect_link($insertGoTo);
+		$redirect_go_to = sprintf("Location: %s", $insertGoTo);
+		exit();
 	}
 	
 	// $_POST['brewStyle'] is the new style
@@ -121,10 +120,11 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		// Set up vars
 		$brewComments = "";
 		$brewCoBrewer = "";
-		$styleBreak = $_POST['brewStyle'];
+		$styleBreak = filter_var($_POST['brewStyle'],FILTER_SANITIZE_STRING);
 		$styleName = "";
 		$brewName = standardize_name($purifier->purify($_POST['brewName']));
 		$brewName = filter_var($brewName,FILTER_SANITIZE_STRING);
+		$brewName = capitalize($brewName);
 		$brewInfo = "";
 		$brewInfoOptional = "";
 		$index = ""; // Defined with Style
@@ -235,13 +235,13 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		}
 
 		// Specialized/Optional info
-		if (!empty($_POST['brewInfoOptional'])) {
+		if ((!empty($_POST['brewInfoOptional'])) && (in_array($styleBreak,$optional_info_styles))) {
 			$brewInfoOptional = $purifier->purify($_POST['brewInfoOptional']);
 			$brewInfoOptional = filter_var($brewInfoOptional,FILTER_SANITIZE_STRING);			
 		}
 
 		// For BJCP 2015, process addtional info
-		if ($_SESSION['prefsStyleSet'] == "BJCP2015") {
+		if (($_SESSION['prefsStyleSet'] == "BJCP2015") || ($_SESSION['prefsStyleSet'] == "BJCP2021")) {
 
 			// IPA strength for 21B styles
 			if (strlen(strstr($index,"21-B")) > 0) {
@@ -263,11 +263,9 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 		}
 
-		// if (!empty($brewInfo)) echo $brewInfo; else echo "Brew info empty"; exit;
-
 		if ($style[0] > 34) $styleID = $styleID; else $styleID = $style[1];
 
-		// check if style requires strength, carbonation, and/or sweetness
+		// check if style requires strength, carbonation, sweetness and/or requried info
 		$query_str_carb_sweet = sprintf("SELECT * FROM %s WHERE brewStyleGroup='%s' AND brewStyleNum='%s'", $styles_db_table,$style[0],$style[1]);
 		$str_carb_sweet = mysqli_query($connection,$query_str_carb_sweet) or die (mysqli_error($connection));
 		$row_str_carb_sweet = mysqli_fetch_assoc($str_carb_sweet);
@@ -275,9 +273,13 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 		if ($totalRows_str_carb_sweet > 0) {
 
-			if ((isset($_POST['brewMead1'])) && ($row_str_carb_sweet['brewStyleCarb'] == 1)) $brewMead1 .= filter_var($_POST['brewMead1'],FILTER_SANITIZE_STRING); // Carbonation
-			if ((isset($_POST['brewMead2'])) && ($row_str_carb_sweet['brewStyleSweet'] == 1))  $brewMead2 .= filter_var($_POST['brewMead2'],FILTER_SANITIZE_STRING); // Sweetness
-			if ((isset($_POST['brewMead3'])) && ($row_str_carb_sweet['brewStyleStrength'] == 1))  $brewMead3 .= filter_var($_POST['brewMead3'],FILTER_SANITIZE_STRING); // Strength
+			if ((isset($_POST['brewMead1'])) && ($row_str_carb_sweet['brewStyleCarb'] == 1)) $brewMead1 = filter_var($_POST['brewMead1'],FILTER_SANITIZE_STRING); // Carbonation
+
+			if ((isset($_POST['brewMead2-mead'])) && ($row_str_carb_sweet['brewStyleSweet'] == 1) && (strpos($style[0], "M") !== false)) $brewMead2 = filter_var($_POST['brewMead2-mead'],FILTER_SANITIZE_STRING); // Mead Sweetness
+			
+			if ((isset($_POST['brewMead2-cider'])) && ($row_str_carb_sweet['brewStyleSweet'] == 1) && (strpos($style[0], "C") !== false)) $brewMead2 = filter_var($_POST['brewMead2-cider'],FILTER_SANITIZE_STRING); // Cider Sweetness
+			
+			if ((isset($_POST['brewMead3'])) && ($row_str_carb_sweet['brewStyleStrength'] == 1)) $brewMead3 = filter_var($_POST['brewMead3'],FILTER_SANITIZE_STRING); // Strength
 
 		}
 
@@ -291,7 +293,9 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		*/
 
 		// The following are only enabled when preferences dictate that the recipe fields be shown.
-		// DEPRECATE for version 3.0.0
+		// DEPRECATE for version 2.5.0
+
+		/*
 		if ($_SESSION['prefsHideRecipe'] == "N") {
 
 			$brewExtract = "";
@@ -373,11 +377,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 			$brewMashStepTime = rtrim($brewMashStepTime,",");
 
 		}
-	
-		$brewInfo = filter_var($brewInfo,FILTER_SANITIZE_STRING);
-		$brewInfoOptional = filter_var($brewInfoOptional,FILTER_SANITIZE_STRING);
-		$brewStaffNotes = filter_var($brewStaffNotes,FILTER_SANITIZE_STRING);
-		$brewAdminNotes = filter_var($brewAdminNotes,FILTER_SANITIZE_STRING);
+		*/
 
 	}
 
@@ -397,9 +397,9 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 		else {
 
-			$brewBrewerID = $_POST['brewBrewerID'];
-			$brewBrewerLastName = $_POST['brewBrewerLastName'];
-			$brewBrewerFirstName = $_POST['brewBrewerFirstName'];
+			$brewBrewerID = filter_var($_POST['brewBrewerID'],FILTER_SANITIZE_STRING);
+			$brewBrewerLastName = filter_var($_POST['brewBrewerLastName'],FILTER_SANITIZE_STRING);
+			$brewBrewerFirstName = filter_var($_POST['brewBrewerFirstName'],FILTER_SANITIZE_STRING);
 
 		}
 
@@ -423,236 +423,38 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 		}
 
-		$insertSQL = "INSERT INTO $brewing_db_table (";
-		if ($_SESSION['prefsHideRecipe'] == "N") {
-			$insertSQL .= "
-			$brewExtract,
-			$brewExtractWeight,
-			$brewExtractUse,
-			$brewGrain,
-			$brewGrainWeight,
-			$brewGrainUse,
-			$brewAddition,
-			$brewAdditionAmt,
-			$brewAdditionUse,
-			$brewHops,
-			$brewHopsWeight,
-			$brewHopsIBU,
-			$brewHopsUse,
-			$brewHopsTime,
-			$brewHopsType,
-			$brewHopsForm,
-			$brewMashStepName,
-			$brewMashStepTemp,
-			$brewMashStepTime,
-			";
+		$update_table = $prefix."brewing";
+		$data = array(
+			'brewName' => $brewName,
+			'brewStyle' => $styleName,
+			'brewCategory' => $styleTrim,
+			'brewCategorySort' => $styleFix,
+			'brewSubCategory' => $style[1],
+			'brewInfo' => $brewInfo,
+			'brewMead1' => $brewMead1,
+			'brewMead2' => $brewMead2,
+			'brewMead3' => $brewMead3,
+			'brewComments' => $brewComments,
+			'brewBrewerID' => $brewBrewerID,
+			'brewBrewerFirstName' => $brewBrewerFirstName,
+			'brewBrewerLastName' => $brewBrewerLastName,
+			'brewPaid' => $brewPaid,
+			'brewInfoOptional' => $brewInfoOptional,
+			'brewAdminNotes' => $brewAdminNotes,
+			'brewStaffNotes' => $brewStaffNotes,
+			'brewPossAllergens' => $brewPossAllergens,
+			'brewReceived' => $brewReceived,
+			'brewCoBrewer' => $brewCoBrewer,
+			'brewJudgingNumber' => $brewJudgingNumber,
+			'brewUpdated' => $db_conn->now(),
+			'brewConfirmed' => filter_var($_POST['brewConfirmed'],FILTER_SANITIZE_STRING),
+			'brewBoxNum' => $brewBoxNum
+		);
+		$result = $db_conn->insert ($update_table, $data);
+		if (!$result) {
+			$error_output[] = $db_conn->getLastError();
+			$errors = TRUE;
 		}
-			$insertSQL .= "
-			brewName,
-			brewStyle,
-			brewCategory,
-			brewCategorySort,
-			brewSubCategory,
-			";
-
-		if ($_SESSION['prefsHideRecipe'] == "N") {
-			$insertSQL .= "
-			brewBottleDate,
-			brewDate,
-			brewYield,
-			brewWinnerCat,
-			";
-		}
-			$insertSQL .= "
-			brewInfo,
-			brewMead1,
-
-			brewMead2,
-			brewMead3,
-			";
-		if ($_SESSION['prefsHideRecipe'] == "N") {
-			$insertSQL .= "
-			brewYeast,
-			brewYeastMan,
-			brewYeastForm,
-
-			brewYeastType,
-			brewYeastAmount,
-			brewYeastStarter,
-			brewYeastNutrients,
-			brewOG,
-
-			brewFG,
-			brewPrimary,
-			brewPrimaryTemp,
-			brewSecondary,
-			brewSecondaryTemp,
-
-			brewOther,
-			brewOtherTemp,
-			";
-		}
-			$insertSQL .= "brewComments,";
-
-		if ($_SESSION['prefsHideRecipe'] == "N") {
-			$insertSQL .= "
-			brewFinings,
-			brewWaterNotes,
-			";
-		}
-			$insertSQL .= "brewBrewerID,";
-
-		if ($_SESSION['prefsHideRecipe'] == "N") {
-			$insertSQL .= "
-			brewCarbonationMethod,
-			brewCarbonationVol,
-			brewCarbonationNotes,
-			brewBoilHours,
-
-			brewBoilMins,
-			";
-		}
-
-			$insertSQL .= "
-			brewBrewerFirstName,
-			brewBrewerLastName,
-			brewCoBrewer,
-
-			brewJudgingNumber,
-			brewUpdated,
-			brewConfirmed,
-			brewPaid,
-			brewReceived,
-			brewInfoOptional,
-			brewBoxNum,
-			brewAdminNotes,
-			brewStaffNotes,
-			brewPossAllergens
-			) VALUES (";
-
-			if ($_SESSION['prefsHideRecipe'] == "N") {
-				for($i=1; $i<=5; $i++) { $insertSQL .= GetSQLValueString(filter_var($_POST['brewExtract'.$i],FILTER_SANITIZE_STRING),"text").","; }
-				for($i=1; $i<=5; $i++) { $insertSQL .= GetSQLValueString(filter_var($_POST['brewExtract'.$i.'Weight'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").","; }
-				for($i=1; $i<=5; $i++) {
-					if (isset($_POST['brewExtract'.$i.'Use'])) $brewExtractUse = filter_var($_POST['brewGrain'.$i.'Use'],FILTER_SANITIZE_STRING); else $brewExtractUse = "";
-					$insertSQL .= GetSQLValueString($brewExtractUse,"text").",";
-				}
-
-				for($i=1; $i<=20; $i++) { $insertSQL .= GetSQLValueString(filter_var($_POST['brewGrain'.$i],FILTER_SANITIZE_STRING),"text").","; }
-				for($i=1; $i<=20; $i++) { $insertSQL .= GetSQLValueString(filter_var($_POST['brewGrain'.$i.'Weight'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").","; }
-				for($i=1; $i<=20; $i++) {
-					if (isset($_POST['brewGrain'.$i.'Use'])) $brewGrainUse = filter_var($_POST['brewGrain'.$i.'Use'],FILTER_SANITIZE_STRING); else $brewGrainUse = "";
-					$insertSQL .= GetSQLValueString($brewGrainUse,"text").",";
-				}
-				for($i=1; $i<=20; $i++) { $insertSQL .= GetSQLValueString(filter_var($_POST['brewAddition'.$i],FILTER_SANITIZE_STRING),"text").","; }
-				for($i=1; $i<=20; $i++) {
-					if (isset($_POST['brewAddition'.$i.'Amt'])) $brewAdditionAmt = filter_var($_POST['brewAddition'.$i.'Amt'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION); else $brewAdditionAmt = "";
-					$insertSQL .= GetSQLValueString($brewAdditionAmt,"text").",";
-					}
-				for($i=1; $i<=20; $i++) {
-					if (isset($_POST['brewAddition'.$i.'Use'])) $brewAdditionUse = filter_var($_POST['brewAddition'.$i.'Use'],FILTER_SANITIZE_STRING); else $brewAdditionUse = "";
-					$insertSQL .= GetSQLValueString($brewAdditionUse,"text").",";
-				}
-				for($i=1; $i<=20; $i++) { $insertSQL .= GetSQLValueString(filter_var($_POST['brewHops'.$i],FILTER_SANITIZE_STRING),"text").","; }
-				for($i=1; $i<=20; $i++) { $insertSQL .= GetSQLValueString(filter_var($_POST['brewHops'.$i.'Weight'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").","; }
-				for($i=1; $i<=20; $i++) { $insertSQL .= GetSQLValueString(filter_var($_POST['brewHops'.$i.'IBU'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").","; }
-				for($i=1; $i<=20; $i++) {
-					if (isset($_POST['brewHops'.$i.'Use'])) $brewHopsUse = filter_var($_POST['brewHops'.$i.'Use'],FILTER_SANITIZE_STRING); else $brewHopsUse = "";
-					$insertSQL .= GetSQLValueString($brewHopsUse,"text").",";
-				}
-				for($i=1; $i<=20; $i++) { $insertSQL .= GetSQLValueString(filter_var($_POST['brewHops'.$i.'Time'],FILTER_SANITIZE_STRING),"text").",";}
-				for($i=1; $i<=20; $i++) {
-					if (isset($_POST['brewHops'.$i.'Type'])) $brewHopsType = filter_var($_POST['brewHops'.$i.'Type'],FILTER_SANITIZE_STRING); else $brewHopsType = "";
-					$insertSQL .= GetSQLValueString($brewHopsType,"text").",";
-				}
-				for($i=1; $i<=20; $i++) {
-					if (isset($_POST['brewHops'.$i.'Form'])) $brewHopsForm = filter_var($_POST['brewHops'.$i.'Form'],FILTER_SANITIZE_STRING); else $brewHopsForm = "";
-					$insertSQL .= GetSQLValueString($brewHopsForm,"text").",";
-					}
-				for($i=1; $i<=10; $i++) { $insertSQL .= GetSQLValueString(filter_var($_POST['brewMashStep'.$i.'Name'],FILTER_SANITIZE_STRING),"text").","; }
-				for($i=1; $i<=10; $i++) { $insertSQL .= GetSQLValueString(filter_var($_POST['brewMashStep'.$i.'Temp'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").","; }
-				for($i=1; $i<=10; $i++) { $insertSQL .= GetSQLValueString(filter_var($_POST['brewMashStep'.$i.'Time'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").","; }
-			}
-
-			$insertSQL .= GetSQLValueString($brewName,"text").", ";
-			$insertSQL .= GetSQLValueString($styleName,"text").", ";
-			$insertSQL .= GetSQLValueString($styleTrim,"text").", ";
-			$insertSQL .= GetSQLValueString($styleFix,"text").", ";
-			$insertSQL .= GetSQLValueString($style[1],"text").", ";
-
-			if ($_SESSION['prefsHideRecipe'] == "N") {
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewBottleDate'],FILTER_SANITIZE_STRING),"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewDate'],FILTER_SANITIZE_STRING),"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewYield'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$insertSQL .= GetSQLValueString(round(filter_var($_POST['brewWinnerCat'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),0),"text").", "; // WinnerCat being used for SRM
-			}
-
-			$insertSQL .= GetSQLValueString($brewInfo,"text").", ";
-			$insertSQL .= GetSQLValueString($brewMead1,"text").", ";
-			$insertSQL .= GetSQLValueString($brewMead2,"text").", ";
-			$insertSQL .= GetSQLValueString($brewMead3,"text").", ";
-
-			if ($_SESSION['prefsHideRecipe'] == "N") {
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewYeast'],FILTER_SANITIZE_STRING),"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewYeastMan'],FILTER_SANITIZE_STRING),"text").", ";
-				if (isset($_POST['brewYeastForm'])) $brewYeastForm = filter_var($_POST['brewYeastForm'],FILTER_SANITIZE_STRING); else $brewYeastForm = "";
-				$insertSQL .= GetSQLValueString($brewYeastForm,"text").", ";
-				if (isset($_POST['brewYeastType'])) $brewYeastType = filter_var($_POST['brewYeastType'],FILTER_SANITIZE_STRING); else $brewYeastType = "";
-				$insertSQL .= GetSQLValueString($brewYeastType,"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewYeastAmount'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				if (isset($_POST['brewYeastStarter'])) $brewYeastStarter = filter_var($_POST['brewYeastStarter'],FILTER_SANITIZE_STRING); else $brewYeastStarter = "";
-				$insertSQL .= GetSQLValueString($brewYeastStarter,"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewYeastNutrients'],FILTER_SANITIZE_STRING),"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewOG'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewFG'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewPrimary'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewPrimaryTemp'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewSecondary'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewSecondaryTemp'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewOther'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewOtherTemp'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-			}
-
-			$insertSQL .= GetSQLValueString(strip_newline(filter_var($brewComments,FILTER_SANITIZE_STRING)),"text").", ";
-
-			if ($_SESSION['prefsHideRecipe'] == "N") {
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewFinings'],FILTER_SANITIZE_STRING),"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewWaterNotes'],FILTER_SANITIZE_STRING),"text").", ";
-			}
-
-			$insertSQL .= GetSQLValueString($brewBrewerID,"text").", ";
-
-			if ($_SESSION['prefsHideRecipe'] == "N") {
-				if (isset($_POST['brewCarbonationMethod'])) $brewCarbonationMethod = filter_var($_POST['brewCarbonationMethod'],FILTER_SANITIZE_STRING); else $brewCarbonationMethod = "";
-				$insertSQL .= GetSQLValueString($brewCarbonationMethod,"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewCarbonationVol'],FILTER_SANITIZE_STRING),"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewCarbonationNotes'],FILTER_SANITIZE_STRING),"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewBoilHours'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$insertSQL .= GetSQLValueString(filter_var($_POST['brewBoilMins'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-			}
-
-			$insertSQL .= GetSQLValueString($brewBrewerFirstName,"text").", ";
-			$insertSQL .= GetSQLValueString($brewBrewerLastName,"text").", ";
-			$insertSQL .= GetSQLValueString($brewCoBrewer,"text").", ";
-
-			$insertSQL .= GetSQLValueString(strtolower($brewJudgingNumber),"text").", ";
-			$insertSQL .= "NOW( ), ";
-			if ($_POST['brewStyle'] == "0-A") $insertSQL .= GetSQLValueString("0","text").", ";
-			else $insertSQL .= GetSQLValueString(filter_var($_POST['brewConfirmed'],FILTER_SANITIZE_STRING),"text").", ";
-			$insertSQL .= GetSQLValueString($brewPaid,"text").", ";
-			$insertSQL .= GetSQLValueString($brewReceived,"text").", ";
-			$insertSQL .= GetSQLValueString($brewInfoOptional,"text").", ";
-			$insertSQL .= GetSQLValueString($brewBoxNum,"text").", ";
-			$insertSQL .= GetSQLValueString($brewAdminNotes,"text").", ";
-			$insertSQL .= GetSQLValueString($brewStaffNotes,"text").", ";
-			$insertSQL .= GetSQLValueString($brewPossAllergens,"text");
-			$insertSQL .= ")";
-
-		// echo $insertSQL; exit;
-		mysqli_real_escape_string($connection,$insertSQL);
-		$result = mysqli_query($connection,$insertSQL) or die (mysqli_error($connection));
 
 		if ($id == "default") {
 
@@ -682,9 +484,16 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		if (check_special_ingredients($styleBreak,$_SESSION['prefsStyleSet'])) {
 
 			if (empty($brewInfo)) {
-				$updateSQL = sprintf("UPDATE $brewing_db_table SET brewConfirmed='0' WHERE id=%s", GetSQLValueString($id, "int"));
-				mysqli_real_escape_string($connection,$updateSQL);
-				$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+
+				$update_table = $prefix."brewing";
+				$data = array('brewConfirmed' => '0');
+				$db_conn->where ('id', $id);
+				$result = $db_conn->insert ($update_table, $data);
+				if (!$result) {
+					$error_output[] = $db_conn->getLastError();
+					$errors = TRUE;
+				}
+
 			}
 
 			if ($section == "admin") {
@@ -703,9 +512,16 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		if (check_carb($styleBreak,$_SESSION['prefsStyleSet'])) {
 
 			if (empty($brewMead1)) {
-				$updateSQL = sprintf("UPDATE $brewing_db_table SET brewConfirmed='0' WHERE id=%s", GetSQLValueString($id, "int"));
-				mysqli_real_escape_string($connection,$updateSQL);
-				$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+
+				$update_table = $prefix."brewing";
+				$data = array('brewConfirmed' => '0');
+				$db_conn->where ('id', $id);
+				$result = $db_conn->insert ($update_table, $data);
+				if (!$result) {
+					$error_output[] = $db_conn->getLastError();
+					$errors = TRUE;
+				}
+
 			}
 
 			if ($section == "admin") {
@@ -724,9 +540,16 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		 if (check_sweetness($styleBreak,$_SESSION['prefsStyleSet'])) {
 
 			if (empty($brewMead2)) {
-				$updateSQL = sprintf("UPDATE $brewing_db_table SET brewConfirmed='0' WHERE id=%s", GetSQLValueString($id, "int"));
-				mysqli_real_escape_string($connection,$updateSQL);
-				$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+
+				$update_table = $prefix."brewing";
+				$data = array('brewConfirmed' => '0');
+				$db_conn->where ('id', $id);
+				$result = $db_conn->insert ($update_table, $data);
+				if (!$result) {
+					$error_output[] = $db_conn->getLastError();
+					$errors = TRUE;
+				}
+
 			}
 
 			if ($section == "admin") {
@@ -745,9 +568,16 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		if (check_mead_strength($styleBreak,$_SESSION['prefsStyleSet'])) {
 
 			if (empty($brewMead3)) {
-				$updateSQL = sprintf("UPDATE $brewing_db_table SET brewConfirmed='0' WHERE id=%s", GetSQLValueString($id, "int"));
-				mysqli_real_escape_string($connection,$updateSQL);
-				$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+
+				$update_table = $prefix."brewing";
+				$data = array('brewConfirmed' => '0');
+				$db_conn->where ('id', $id);
+				$result = $db_conn->insert ($update_table, $data);
+				if (!$result) {
+					$error_output[] = $db_conn->getLastError();
+					$errors = TRUE;
+				}
+
 			}
 
 			if ($section == "admin") {
@@ -764,9 +594,16 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		if ((check_carb($styleBreak,$_SESSION['prefsStyleSet'])) && (check_sweetness($styleBreak,$_SESSION['prefsStyleSet'])) && (check_mead_strength($styleBreak,$_SESSION['prefsStyleSet']))) {
 
 			if ((empty($brewMead1)) || (empty($brewMead2)) || (empty($brewMead3))) {
-				$updateSQL = sprintf("UPDATE $brewing_db_table SET brewConfirmed='0' WHERE id=%s", GetSQLValueString($id, "int"));
-				mysqli_real_escape_string($connection,$updateSQL);
-				$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+				
+				$update_table = $prefix."brewing";
+				$data = array('brewConfirmed' => '0');
+				$db_conn->where ('id', $id);
+				$result = $db_conn->insert ($update_table, $data);
+				if (!$result) {
+					$error_output[] = $db_conn->getLastError();
+					$errors = TRUE;
+				}
+
 			}
 
 			if ($section == "admin") {
@@ -781,9 +618,12 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 		 }
 
-		// Finally, relocate
-		$pattern = array('\'', '"');
-		$insertGoTo = str_replace($pattern, "", $insertGoTo);
+		if ($errors) {
+			if ($section == "admin") $insertGoTo = $base_url."index.php?section=admin&msg=3";
+			else $insertGoTo = $base_url."index.php?section=list&msg=3";
+		}
+		$insertGoTo = prep_redirect_link($insertGoTo);
+		$redirect_go_to = sprintf("Location: %s", $insertGoTo);
 
 		/*
 		// DEBUG
@@ -795,19 +635,16 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		exit;
 		*/
 
-		$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
-
 	} // end if ($action == "add")
 
 	if ($action == "edit") {
 
 		if ($row_user['userLevel'] <= 1) {
 
-			$name = filter_var($_POST['brewBrewerID'],FILTER_SANITIZE_STRING);
-
-			$query_brewer = sprintf("SELECT * FROM $brewer_db_table WHERE uid = '%s'", $name);
+			$query_brewer = sprintf("SELECT * FROM $brewer_db_table WHERE uid = '%s'", filter_var($_POST['brewBrewerID'],FILTER_SANITIZE_STRING));
 			$brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
 			$row_brewer = mysqli_fetch_assoc($brewer);
+			
 			$brewBrewerID = $row_brewer['uid'];
 			$brewBrewerLastName = $row_brewer['brewerLastName'];
 			$brewBrewerFirstName = $row_brewer['brewerFirstName'];
@@ -836,109 +673,62 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		if ((strpos($_SESSION['prefsStyleSet'],"BA") !== false) && ($style[0] > 28)) $query_style_name = sprintf("SELECT * FROM %s WHERE brewStyleOwn='custom' AND brewStyleGroup='%s' AND brewStyleNum='%s'",$styles_db_table,$styleFix,$style[1]);
 
 		// Get style name from broken parts
-		else $query_style_name = sprintf("SELECT * FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleGroup='%s' AND brewStyleNum='%s'",$styles_db_table,$_SESSION['prefsStyleSet'],$styleFix,$style[1]);
+		else $query_style_name = sprintf("SELECT * FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleGroup='%s' AND brewStyleNum='%s'", $styles_db_table, $_SESSION['prefsStyleSet'], $styleFix, $style[1]);
 		$style_name = mysqli_query($connection,$query_style_name) or die (mysqli_error($connection));
 		$row_style_name = mysqli_fetch_assoc($style_name);
 		$check = $row_style_name['brewStyleOwn'];
 
 		$brewJudgingNumber = strtolower($_POST['brewJudgingNumber']);
 
-		$updateSQL = "UPDATE $brewing_db_table SET ";
-			if ($_SESSION['prefsHideRecipe'] == "N") {
-
-				for($i=1; $i<=5; $i++) {
-					if (isset($_POST['brewExtract'.$i])) $updateSQL .= "brewExtract".$i."=".GetSQLValueString(filter_var($_POST['brewExtract'.$i],FILTER_SANITIZE_STRING),"text").",";
-					if (isset($_POST['brewExtract'.$i.'Weight'])) $updateSQL .= "brewExtract".$i."Weight=".GetSQLValueString(filter_var($_POST['brewExtract'.$i.'Weight'],FILTER_SANITIZE_STRING),"text").",";
-					if (isset($_POST['brewExtract'.$i.'Use'])) $updateSQL .= "brewExtract".$i."Use=".GetSQLValueString(filter_var($_POST['brewExtract'.$i.'Weight'],FILTER_SANITIZE_STRING),"text").",";
-				}
-
-				for($i=1; $i<=20; $i++) {
-					if (isset($_POST['brewGrain'.$i])) $updateSQL .= "brewGrain".$i."=".GetSQLValueString(filter_var($_POST['brewGrain'.$i],FILTER_SANITIZE_STRING),"text").",";
-					if (isset($_POST['brewGrain'.$i.'Weight'])) $updateSQL .= "brewGrain".$i."Weight=".GetSQLValueString(filter_var($_POST['brewGrain'.$i.'Weight'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").",";
-					if (isset($_POST['brewGrain'.$i.'Use'])) $updateSQL .= "brewGrain".$i."Use=".GetSQLValueString($_POST['brewGrain'.$i.'Use'],"text").",";
-					if (isset($_POST['brewAddition'.$i])) $updateSQL .= "brewAddition".$i."=".GetSQLValueString(filter_var($_POST['brewAddition'.$i],FILTER_SANITIZE_STRING),"text").",";
-					if (isset($_POST['brewAddition'.$i.'Amt'])) $updateSQL .= "brewAddition".$i."Amt=".GetSQLValueString(filter_var($_POST['brewAddition'.$i.'Amt'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").",";
-					if (isset($_POST['brewAddition'.$i.'Use'])) $updateSQL .= "brewAddition".$i."Use=".GetSQLValueString(filter_var($_POST['brewAddition'.$i.'Use'],FILTER_SANITIZE_STRING),"text").",";
-					if (isset($_POST['brewHops'.$i])) $updateSQL .= "brewHops".$i."=".GetSQLValueString(filter_var($_POST['brewHops'.$i],FILTER_SANITIZE_STRING),"text").",";
-					if (isset($_POST['brewHops'.$i.'Weight'])) $updateSQL .= "brewHops".$i."Weight=".GetSQLValueString(filter_var($_POST['brewHops'.$i.'Weight'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").",";
-					if (isset($_POST['brewHops'.$i.'IBU'])) $updateSQL .= "brewHops".$i."IBU=".GetSQLValueString(filter_var($_POST['brewHops'.$i.'IBU'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").",";
-					if (isset($_POST['brewHops'.$i.'Use'])) $updateSQL .= "brewHops".$i."Use=".GetSQLValueString(filter_var($_POST['brewHops'.$i.'Use'],FILTER_SANITIZE_STRING),"text").",";
-					if (isset($_POST['brewHops'.$i.'Time'])) $updateSQL .= "brewHops".$i."Time=".GetSQLValueString(filter_var($_POST['brewHops'.$i.'Time'],FILTER_SANITIZE_STRING),"text").",";
-					if (isset($_POST['brewHops'.$i.'Type'])) $updateSQL .= "brewHops".$i."Type=".GetSQLValueString(filter_var($_POST['brewHops'.$i.'Type'],FILTER_SANITIZE_STRING),"text").",";
-					if (isset($_POST['brewHops'.$i.'Form'])) $updateSQL .= "brewHops".$i."Form=".GetSQLValueString(filter_var($_POST['brewHops'.$i.'Form'],FILTER_SANITIZE_STRING),"text").",";
-					if (isset($_POST['brewMashStep'.$i.'Name'])) $updateSQL .= "brewMashStep".$i."Name=".GetSQLValueString(filter_var($_POST['brewMashStep'.$i.'Name'],FILTER_SANITIZE_STRING),"text").",";
-					if (isset($_POST['brewMashStep'.$i.'Temp'])) $updateSQL .= "brewMashStep".$i."Temp=".GetSQLValueString(filter_var($_POST['brewMashStep'.$i.'Temp'],FILTER_SANITIZE_STRING),"text").",";
-					if (isset($_POST['brewMashStep'.$i.'Time'])) $updateSQL .= "brewMashStep".$i."Time=".GetSQLValueString(filter_var($_POST['brewMashStep'.$i.'Time'],FILTER_SANITIZE_STRING),"text").",";
-				}
-
-				$updateSQL .= "brewBottleDate=".GetSQLValueString(filter_var($_POST['brewBottleDate'],FILTER_SANITIZE_STRING),"text").", ";
-				$updateSQL .= "brewDate=".GetSQLValueString(filter_var($_POST['brewDate'],FILTER_SANITIZE_STRING),"text").", ";
-				$updateSQL .= "brewYield=".GetSQLValueString(filter_var($_POST['brewYield'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$updateSQL .= "brewWinnerCat=".GetSQLValueString(round(filter_var($_POST['brewWinnerCat'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),0),"text").", "; // WinnerCat being used for SRM
-				$updateSQL .= "brewYeast=".GetSQLValueString(filter_var($_POST['brewYeast'],FILTER_SANITIZE_STRING),"text").", ";
-				$updateSQL .= "brewYeastMan=".GetSQLValueString(filter_var($_POST['brewYeastMan'],FILTER_SANITIZE_STRING),"text").", ";
-				if (isset($_POST['brewYeastForm'])) $updateSQL .= "brewYeastForm=".GetSQLValueString(filter_var($_POST['brewYeastForm'],FILTER_SANITIZE_STRING),"text").", ";
-				if (isset($_POST['brewYeastType'])) $updateSQL .= "brewYeastType=".GetSQLValueString(filter_var($_POST['brewYeastType'],FILTER_SANITIZE_STRING),"text").", ";
-				$updateSQL .= "brewYeastAmount=". GetSQLValueString(filter_var($_POST['brewYeastAmount'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				if (isset($_POST['brewYeastStarter'])) $updateSQL .= "brewYeastStarter=". GetSQLValueString(filter_var($_POST['brewYeastStarter'],FILTER_SANITIZE_STRING),"text").", ";
-				$updateSQL .= "brewYeastNutrients=". GetSQLValueString(filter_var($_POST['brewYeastNutrients'],FILTER_SANITIZE_STRING),"text").", ";
-				$updateSQL .= "brewOG=". GetSQLValueString(filter_var($_POST['brewOG'],FILTER_SANITIZE_STRING),"text").", ";
-				$updateSQL .= "brewFG=".GetSQLValueString(filter_var($_POST['brewFG'],FILTER_SANITIZE_STRING),"text").", ";
-				$updateSQL .= "brewPrimary=".GetSQLValueString(filter_var($_POST['brewPrimary'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$updateSQL .= "brewPrimaryTemp=".GetSQLValueString(filter_var($_POST['brewPrimaryTemp'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$updateSQL .= "brewSecondary=".GetSQLValueString(filter_var($_POST['brewSecondary'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$updateSQL .= "brewSecondaryTemp=".GetSQLValueString(filter_var($_POST['brewSecondaryTemp'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$updateSQL .= "brewOther=".GetSQLValueString(filter_var($_POST['brewOther'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$updateSQL .= "brewOtherTemp=". GetSQLValueString(filter_var($_POST['brewOtherTemp'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$updateSQL .= "brewFinings=".GetSQLValueString(filter_var($_POST['brewFinings'],FILTER_SANITIZE_STRING),"text").", ";
-				$updateSQL .= "brewWaterNotes=". GetSQLValueString(filter_var($_POST['brewWaterNotes'],FILTER_SANITIZE_STRING),"text").", ";
-				if (isset($_POST['brewCarbonationMethod'])) $updateSQL .= "brewCarbonationMethod=".GetSQLValueString(filter_var($_POST['brewCarbonationMethod'],FILTER_SANITIZE_STRING),"text").", ";
-				$updateSQL .= "brewCarbonationVol=". GetSQLValueString(filter_var($_POST['brewCarbonationVol'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$updateSQL .= "brewCarbonationNotes=". GetSQLValueString(filter_var($_POST['brewCarbonationNotes'],FILTER_SANITIZE_STRING),"text").", ";
-				$updateSQL .= "brewBoilHours=". GetSQLValueString(filter_var($_POST['brewBoilHours'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-				$updateSQL .= "brewBoilMins=".GetSQLValueString(filter_var($_POST['brewBoilMins'],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-			}
-
-			$updateSQL .= "brewName=".GetSQLValueString(capitalize($brewName),"text").", ";
-			$updateSQL .= "brewStyle=".GetSQLValueString($styleName,"text").", ";
-			$updateSQL .= "brewCategory=".GetSQLValueString($styleTrim,"text").", ";
-			$updateSQL .= "brewCategorySort=".GetSQLValueString($styleFix,"text").", ";
-			$updateSQL .= "brewSubCategory=".GetSQLValueString($style[1],"text").", ";
-			$updateSQL .= "brewInfo=".GetSQLValueString($brewInfo,"text").", ";
-			$updateSQL .= "brewMead1=".GetSQLValueString($brewMead1,"text").", ";
-			$updateSQL .= "brewMead2=".GetSQLValueString($brewMead2,"text").", ";
-			$updateSQL .= "brewMead3=".GetSQLValueString($brewMead3,"text").", ";
-			$updateSQL .= "brewComments=". GetSQLValueString(filter_var($brewComments,FILTER_SANITIZE_STRING),"text").", ";
-			$updateSQL .= "brewBrewerID=".GetSQLValueString($brewBrewerID,"text").", ";
-			$updateSQL .= "brewBrewerFirstName=". GetSQLValueString($brewBrewerFirstName,"text").", ";
-			$updateSQL .= "brewBrewerLastName=".GetSQLValueString($brewBrewerLastName,"text").", ";
-			$updateSQL .= "brewCoBrewer=".GetSQLValueString($brewCoBrewer,"text").", ";
-			$updateSQL .= "brewUpdated="."NOW( ), ";
-			$updateSQL .= "brewJudgingNumber=".GetSQLValueString(filter_var($brewJudgingNumber,FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION),"text").", ";
-			$updateSQL .= "brewPaid=".GetSQLValueString($brewPaid,"text").", ";
-			$updateSQL .= "brewConfirmed=".GetSQLValueString(filter_var($_POST['brewConfirmed'],FILTER_SANITIZE_STRING),"text").", ";
-			$updateSQL .= "brewInfoOptional=".GetSQLValueString($brewInfoOptional,"text").", ";
-			$updateSQL .= "brewAdminNotes=".GetSQLValueString($brewAdminNotes,"text").", ";
-			$updateSQL .= "brewStaffNotes=".GetSQLValueString($brewStaffNotes,"text").", ";
-			$updateSQL .= "brewBoxNum=".GetSQLValueString($brewBoxNum,"text").", ";
-			$updateSQL .= "brewReceived=".GetSQLValueString($brewReceived,"text").", ";
-			$updateSQL .= "brewPossAllergens=".GetSQLValueString($brewPossAllergens,"text");
-			$updateSQL .= " WHERE id ='".$id."'";
-
-		// echo $updateSQL; exit();
-		mysqli_real_escape_string($connection,$updateSQL);
-		$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+		$update_table = $prefix."brewing";
+		$data = array(
+			'brewName' => $brewName,
+			'brewStyle' => $styleName,
+			'brewCategory' => $styleTrim,
+			'brewCategorySort' => $styleFix,
+			'brewSubCategory' => $style[1],
+			'brewInfo' => $brewInfo,
+			'brewMead1' => $brewMead1,
+			'brewMead2' => $brewMead2,
+			'brewMead3' => $brewMead3,
+			'brewComments' => $brewComments,
+			'brewBrewerID' => $brewBrewerID,
+			'brewBrewerFirstName' => $brewBrewerFirstName,
+			'brewBrewerLastName' => $brewBrewerLastName,
+			'brewPaid' => $brewPaid,
+			'brewInfoOptional' => $brewInfoOptional,
+			'brewAdminNotes' => $brewAdminNotes,
+			'brewStaffNotes' => $brewStaffNotes,
+			'brewPossAllergens' => $brewPossAllergens,
+			'brewReceived' => $brewReceived,
+			'brewCoBrewer' => $brewCoBrewer,
+			'brewJudgingNumber' => $brewJudgingNumber,
+			'brewUpdated' => $db_conn->now(),
+			'brewConfirmed' => filter_var($_POST['brewConfirmed'],FILTER_SANITIZE_STRING),
+			'brewBoxNum' => $brewBoxNum
+		);
+		$db_conn->where ('id', $id);
+		$result = $db_conn->update ($update_table, $data);
+		if (!$result) {
+			$error_output[] = $db_conn->getLastError();
+			$errors = TRUE;
+		}
 
 		// Build updade url
 		if ((check_special_ingredients($styleBreak,$_SESSION['prefsStyleSet'])) && ($_POST['brewInfo'] == "")) $updateGoTo = $base_url."index.php?section=brew&go=entries&filter=$filter&action=edit&id=$id&msg=4";
 		elseif ($section == "admin") $updateGoTo = $base_url."index.php?section=admin&go=entries&msg=2";
 		else $updateGoTo = $base_url."index.php?section=list&msg=2";
 
-		if (($_POST['brewStyle'] == "0-A")) {
+		if ($_POST['brewStyle'] == "0-A") {
 
-			$updateSQL = sprintf("UPDATE $brewing_db_table SET brewConfirmed='0' WHERE id=%s", GetSQLValueString($id, "text"));
-			mysqli_real_escape_string($connection,$updateSQL);
-			$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+			$update_table = $prefix."brewing";
+			$data = array('brewConfirmed' => '0');
+			$db_conn->where ('id', $id);
+			$result = $db_conn->insert ($update_table, $data);
+			if (!$result) {
+				$error_output[] = $db_conn->getLastError();
+				$errors = TRUE;
+			}
 
 			$updateGoTo = $base_url."index.php?section=brew&action=edit&id=".$id."&filter=".$filter."&view=0-A&msg=4";
 
@@ -948,9 +738,16 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		if (check_special_ingredients($styleBreak,$_SESSION['prefsStyleSet'])) {
 
 			if (empty($brewInfo)) {
-				$updateSQL1 = sprintf("UPDATE $brewing_db_table SET brewConfirmed='0' WHERE id=%s", GetSQLValueString($id, "text"));
-				mysqli_real_escape_string($connection,$updateSQL1);
-				//$result = mysqli_query($connection,$updateSQL1) or die (mysqli_error($connection));
+				
+				$update_table = $prefix."brewing";
+				$data = array('brewConfirmed' => '0');
+				$db_conn->where ('id', $id);
+				$result = $db_conn->insert ($update_table, $data);
+				if (!$result) {
+					$error_output[] = $db_conn->getLastError();
+					$errors = TRUE;
+				}
+
 			}
 
 			if ($section == "admin") {
@@ -969,9 +766,16 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		 if (check_carb($styleBreak,$_SESSION['prefsStyleSet'])) {
 
 			if (empty($brewMead1)) {
-				$updateSQL2 = sprintf("UPDATE $brewing_db_table SET brewConfirmed='0' WHERE id=%s", GetSQLValueString($id, "text"));
-				mysqli_real_escape_string($connection,$updateSQL2);
-				//$result = mysqli_query($connection,$updateSQL2) or die (mysqli_error($connection));
+				
+				$update_table = $prefix."brewing";
+				$data = array('brewConfirmed' => '0');
+				$db_conn->where ('id', $id);
+				$result = $db_conn->insert ($update_table, $data);
+				if (!$result) {
+					$error_output[] = $db_conn->getLastError();
+					$errors = TRUE;
+				}
+
 			}
 
 			if ($section == "admin") {
@@ -989,9 +793,16 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		 if (check_sweetness($styleBreak,$_SESSION['prefsStyleSet'])) {
 
 			if (empty($brewMead2)) {
-				$updateSQL3 = sprintf("UPDATE $brewing_db_table SET brewConfirmed='0' WHERE id=%s", GetSQLValueString($id, "text"));
-				mysqli_real_escape_string($connection,$updateSQL3);
-				$result = mysqli_query($connection,$updateSQL3) or die (mysqli_error($connection));
+				
+				$update_table = $prefix."brewing";
+				$data = array('brewConfirmed' => '0');
+				$db_conn->where ('id', $id);
+				$result = $db_conn->insert ($update_table, $data);
+				if (!$result) {
+					$error_output[] = $db_conn->getLastError();
+					$errors = TRUE;
+				}
+
 			}
 
 			if ($section == "admin") {
@@ -1006,13 +817,19 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 		 }
 
-
 		 if (check_mead_strength($styleBreak,$_SESSION['prefsStyleSet'])) {
 
 			if (empty($brewMead3))  {
-				$updateSQL4 = sprintf("UPDATE $brewing_db_table SET brewConfirmed='0' WHERE id=%s", GetSQLValueString($id, "text"));
-				mysqli_real_escape_string($connection,$updateSQL4);
-				$result = mysqli_query($connection,$updateSQL4) or die (mysqli_error($connection));
+				
+				$update_table = $prefix."brewing";
+				$data = array('brewConfirmed' => '0');
+				$db_conn->where ('id', $id);
+				$result = $db_conn->insert ($update_table, $data);
+				if (!$result) {
+					$error_output[] = $db_conn->getLastError();
+					$errors = TRUE;
+				}
+
 			}
 
 			if ($section == "admin") {
@@ -1026,9 +843,14 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 			}
 		}
 
-		$pattern = array('\'', '"');
-		$updateGoTo = str_replace($pattern, "", $updateGoTo);
-		$redirect_go_to = sprintf("Location: %s", stripslashes($updateGoTo));
+		if (!empty($error_output)) $_SESSION['error_output'] = $error_output;
+
+		if ($errors) {
+			if ($section == "admin") $updateGoTo = $base_url."index.php?section=admin&msg=3";
+			else $updateGoTo = $base_url."index.php?section=list&msg=3";
+		}
+		$updateGoTo = prep_redirect_link($updateGoTo);
+		$redirect_go_to = sprintf("Location: %s", $updateGoTo);
 
 		/*
 		// DEBUG
@@ -1084,85 +906,133 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 			if ((isset($_POST['brewPaid'.$id])) && ($_POST['brewPaid'.$id] == 1)) $brewPaid = 1;
 			if ((isset($_POST['brewReceived'.$id])) && ($_POST['brewReceived'.$id] == 1)) $brewReceived = 1;
 
-			$updateSQL = sprintf("UPDATE %s SET brewPaid='%s', brewReceived='%s', brewBoxNum='%s', brewJudgingNumber='%s', brewAdminNotes='%s', brewStaffNotes='%s' WHERE id='%s'",$brewing_db_table, $brewPaid, $brewReceived, $brewBoxNum, strtolower($brewJudgingNumber), $brewAdminNotes, $brewStaffNotes, $id);
-			mysqli_real_escape_string($connection,$updateSQL);
-			$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+			$update_table = $prefix."brewing";
+			$data = array(
+				'brewPaid' => $brewPaid,
+				'brewReceived' => $brewReceived,
+				'brewBoxNum' => $brewBoxNum,
+				'brewJudgingNumber' => strtolower($brewJudgingNumber),
+				'brewAdminNotes' => $brewAdminNotes,
+				'brewStaffNotes' => $brewStaffNotes
+			);			
+			$db_conn->where ('id', $id);
+			$result = $db_conn->update ($update_table, $data);
+			if (!$result) {
+				$error_output[] = $db_conn->getLastError();
+				$errors = TRUE;
+			}
 
 		}
 
-		$massUpdateGoTo = $base_url."index.php?section=admin&go=entries&msg=9";
-		$pattern = array('\'', '"');
-		$massUpdateGoTo = str_replace($pattern, "", $massUpdateGoTo);
-		$redirect_go_to = sprintf("Location: %s", stripslashes($massUpdateGoTo));
+		if (!empty($error_output)) $_SESSION['error_output'] = $error_output;
+
+		if ($errors) $redirect = $base_url."index.php?section=admin&go=entries&msg=3";
+		else $redirect = $base_url."index.php?section=admin&go=entries&msg=9";
+		$redirect = prep_redirect_link($redirect);
+		$redirect_go_to = sprintf("Location: %s", $redirect);
 
 	} // end if ($action == "update")
 
 	if ($action == "paid") {
 
-		$updateSQL = "UPDATE $brewing_db_table SET brewPaid='1'";
-		mysqli_real_escape_string($connection,$updateSQL);
-		$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+		$update_table = $prefix."brewing";
+		$data = array('brewPaid' => '1');
+		$result = $db_conn->update ($update_table, $data);
+		if (!$result) {
+			$error_output[] = $db_conn->getLastError();
+			$errors = TRUE;
+		}
 
-		$massUpdateGoTo = $base_url."index.php?section=admin&go=entries&msg=20";
-		$pattern = array('\'', '"');
-		$massUpdateGoTo = str_replace($pattern, "", $massUpdateGoTo);
-		$redirect_go_to = sprintf("Location: %s", stripslashes($massUpdateGoTo));
+		if (!empty($error_output)) $_SESSION['error_output'] = $error_output;
+
+		if ($errors) $redirect = $base_url."index.php?section=admin&go=entries&msg=3";
+		else $redirect = $base_url."index.php?section=admin&go=entries&msg=20";
+		$redirect = prep_redirect_link($redirect);
+		$redirect_go_to = sprintf("Location: %s", $redirect);
 
 	}
 
 	if ($action == "unpaid") {
 
-		$updateSQL = "UPDATE $brewing_db_table SET brewPaid='0'";
-		mysqli_real_escape_string($connection,$updateSQL);
-		$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+		$update_table = $prefix."brewing";
+		$data = array('brewPaid' => '0');
+		$result = $db_conn->update ($update_table, $data);
+		if (!$result) {
+			$error_output[] = $db_conn->getLastError();
+			$errors = TRUE;
+		}
 
-		$massUpdateGoTo = $base_url."index.php?section=admin&go=entries&msg=34";
-		$pattern = array('\'', '"');
-		$massUpdateGoTo = str_replace($pattern, "", $massUpdateGoTo);
-		$redirect_go_to = sprintf("Location: %s", stripslashes($massUpdateGoTo));
+		if (!empty($error_output)) $_SESSION['error_output'] = $error_output;
+
+		if ($errors) $redirect = $base_url."index.php?section=admin&go=entries&msg=3";
+		else $redirect = $base_url."index.php?section=admin&go=entries&msg=34";
+		$redirect = prep_redirect_link($redirect);
+		$redirect_go_to = sprintf("Location: %s", $redirect);
 
 	}
 
 	if ($action == "received") {
 
-		$updateSQL = "UPDATE $brewing_db_table SET brewReceived='1'";
-		mysqli_real_escape_string($connection,$updateSQL);
-		$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+		$update_table = $prefix."brewing";
+		$data = array('brewReceived' => '1');
+		$result = $db_conn->update ($update_table, $data);
+		if (!$result) {
+			$error_output[] = $db_conn->getLastError();
+			$errors = TRUE;
+		}
 
-		$massUpdateGoTo = $base_url."index.php?section=admin&go=entries&msg=21";
-		$pattern = array('\'', '"');
-		$massUpdateGoTo = str_replace($pattern, "", $massUpdateGoTo);
-		$redirect_go_to = sprintf("Location: %s", stripslashes($massUpdateGoTo));
+		if (!empty($error_output)) $_SESSION['error_output'] = $error_output;
+
+		if ($errors) $redirect = $base_url."index.php?section=admin&go=entries&msg=3";
+		else $redirect = $base_url."index.php?section=admin&go=entries&msg=21";
+		$redirect = prep_redirect_link($redirect);
+		$redirect_go_to = sprintf("Location: %s", $redirect);
 
 	}
 
 	if ($action == "not-received") {
 
-		$updateSQL = "UPDATE $brewing_db_table SET brewReceived='0'";
-		mysqli_real_escape_string($connection,$updateSQL);
-		$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+		$update_table = $prefix."brewing";
+		$data = array('brewReceived' => '0');
+		$result = $db_conn->update ($update_table, $data);
+		if (!$result) {
+			$error_output[] = $db_conn->getLastError();
+			$errors = TRUE;
+		}
 
-		$massUpdateGoTo = $base_url."index.php?section=admin&go=entries&msg=35";
-		$pattern = array('\'', '"');
-		$massUpdateGoTo = str_replace($pattern, "", $massUpdateGoTo);
-		$redirect_go_to = sprintf("Location: %s", stripslashes($massUpdateGoTo));
+		if (!empty($error_output)) $_SESSION['error_output'] = $error_output;
+
+		if ($errors) $redirect = $base_url."index.php?section=admin&go=entries&msg=3";
+		else $redirect = $base_url."index.php?section=admin&go=entries&msg=35";
+		$redirect = prep_redirect_link($redirect);
+		$redirect_go_to = sprintf("Location: %s", $redirect);
 
 	}
 
 	if ($action == "confirmed") {
 
-		$updateSQL = "UPDATE $brewing_db_table SET brewConfirmed='1'";
-		mysqli_real_escape_string($connection,$updateSQL);
-		$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+		$update_table = $prefix."brewing";
+		$data = array('brewConfirmed' => '1');
+		$result = $db_conn->update ($update_table, $data);
+		if (!$result) {
+			$error_output[] = $db_conn->getLastError();
+			$errors = TRUE;
+		}
 
-		$massUpdateGoTo = $base_url."index.php?section=admin&go=entries&msg=22";
-		$pattern = array('\'', '"');
-		$massUpdateGoTo = str_replace($pattern, "", $massUpdateGoTo);
-		$redirect_go_to = sprintf("Location: %s", stripslashes($massUpdateGoTo));
+		if (!empty($error_output)) $_SESSION['error_output'] = $error_output;
+
+		if ($errors) $redirect = $base_url."index.php?section=admin&go=entries&msg=3";
+		else $redirect = $base_url."index.php?section=admin&go=entries&msg=22";
+		$redirect = prep_redirect_link($redirect);
+		$redirect_go_to = sprintf("Location: %s", $redirect);
 
 	}
 
 } else {
-	$redirect_go_to = sprintf("Location: %s", $base_url."index.php?msg=98");
+
+	$redirect = $base_url."index.php?msg=98";
+	$redirect = prep_redirect_link($redirect);
+	$redirect_go_to = sprintf("Location: %s", $redirect);
+
 }
 ?>

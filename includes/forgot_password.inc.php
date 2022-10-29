@@ -33,9 +33,23 @@ if (($action == "email") && ($id != "default")) {
 	$first_name = ucwords(strtolower($row_brewer['brewerFirstName']));
 	$last_name = ucwords(strtolower($row_brewer['brewerLastName']));
 	
+	$url = str_replace("www.","",$_SERVER['SERVER_NAME']);
+	
+	$contestName = ucwords($_SESSION['contestName']);
+	$from_name = mb_convert_encoding($contestName, "UTF-8");
+	
 	$to_name = $first_name." ".$last_name;
+	$to_name = mb_convert_encoding($to_name, "UTF-8");
+
 	$to_email = $row_forgot['user_name'];
+	$to_email = mb_convert_encoding($to_email, "UTF-8");
+	$to_email_formatted = $to_name." <".$to_email.">";
+
 	$subject = sprintf("%s: %s",$_SESSION['contestName'],$label_id_verification_request);
+	$subject = mb_convert_encoding($subject, "UTF-8");
+	
+	$from_email = (!isset($mail_default_from) || trim($mail_default_from) === '') ? "noreply@".$url : $mail_default_from;
+	$from_email = mb_convert_encoding($from_email, "UTF-8");
 	
 	$message = "<html>" . "\r\n";
 	$message .= "<body>" . "\r\n";
@@ -48,47 +62,29 @@ if (($action == "email") && ($id != "default")) {
 	$message .= sprintf("<p><em>*%s</em></p>",$pwd_email_reset_text_002);
 	$message .= sprintf("<p>%s %s</p>",ucwords($_SESSION['contestName']),$label_server);
 	$message .= sprintf("<p><small>%s</small></p>", $paypal_response_text_003);
+	if ((DEBUG || TESTING) && ($mail_use_smtp)) $message .= "<p><small>Sent using phpMailer.</small></p>";
 	$message .= "</body>" . "\r\n";
 	$message .= "</html>";
 	
-	$url = str_replace("www.","",$_SERVER['SERVER_NAME']);
-	
-	$contestName = ucwords($_SESSION['contestName']);
-	$from_email = (!isset($mail_default_from) || trim($mail_default_from) === '') ? "noreply@".$url : $mail_default_from;
-
-	$to_email = mb_convert_encoding($to_email, "UTF-8");
-	$to_name = mb_convert_encoding($to_name, "UTF-8");
-	$from_email = mb_convert_encoding($from_email, "UTF-8");
-	$from_name = mb_convert_encoding($contestName, "UTF-8");
-	$subject = mb_convert_encoding($subject, "UTF-8");
-	
-	$headers  = "MIME-Version: 1.0" . "\r\n";
-	$headers .= "Content-type: text/html; charset=utf-8" . "\r\n";
-	$headers .= "To: ".$to_name. " <".$to_email.">, " . "\r\n";
-	$headers .= "From: ".$from_name." Server <".$from_email. ">\r\n";
-	
-	$emails = $to_email;
+	$headers  = "MIME-Version: 1.0"."\r\n";
+	$headers .= "Content-type: text/html; charset=utf-8"."\r\n";
+	$headers .= "From: ".$from_name." Server <".$from_email.">"."\r\n";
 
 	if ($mail_use_smtp) {
 		$mail = new PHPMailer(true);
 		$mail->CharSet = 'UTF-8';
-		$mail->Encoding = 'base64';$mail->addAddress($to_email, $to_name);
+		$mail->Encoding = 'base64';
+		$mail->addAddress($to_email, $to_name);
 		$mail->setFrom($from_email, $from_name);
 		$mail->Subject = $subject;
 		$mail->Body = $message;
 		sendPHPMailerMessage($mail);
 	} else {
-		mail($emails, $subject, $message, $headers);
+		mail($to_email_formatted, $subject, $message, $headers);
 	}
 	
-	/*
-	echo $headers."<br>";
-	echo $subject."<br>";
-	echo $message;
-	exit;
-	*/
-	
 	header(sprintf("Location: %s", $base_url."index.php?section=login&action=forgot&go=verify&msg=5&username=".$to_email));
+	exit();
 }
 
 if ($action == "forgot") {
@@ -102,11 +98,15 @@ if ($action == "forgot") {
 			
 	if ($totalRows_forgot == 0) { 
 		header(sprintf("Location: %s", $base_url."index.php?section=login&action=forgot&msg=1"));
-		exit; 
+		exit(); 
 	}
 
+	$stored_hash = $row_forgot['userQuestionAnswer'];
+	$check = 0;
+	$check = $hasher->CheckPassword(sterilize($_POST['userQuestionAnswer']), $stored_hash);
+
 	//if answer is correct
-	if (strtolower(sterilize($_POST['userQuestionAnswer'])) == strtolower(sterilize($row_forgot['userQuestionAnswer']))) { 
+	if ($check == 1) { 
 		
 		$query_brewer = sprintf("SELECT brewerLastName,brewerFirstName FROM %s WHERE uid = '%s'", $brewer_db_table, $row_forgot['id']);
 		$brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
@@ -127,10 +127,25 @@ if ($action == "forgot") {
 		$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
 		
 		$reset_url = $base_url."index.php?section=login&go=password&action=reset-password&token=".$token;
-		
+
+		$url = str_replace("www.","",$_SERVER['SERVER_NAME']);
+
+		$contestName = ucwords($_SESSION['contestName']);
+
 		$to_name = $first_name." ".$last_name;
+		$to_name = mb_convert_encoding($to_name, "UTF-8");
+
 		$to_email = $row_forgot['user_name'];
+		$to_email = mb_convert_encoding($to_email, "UTF-8");
+		$to_email_formatted = $to_name." <".$to_email.">";
+		
+		$from_email = (!isset($mail_default_from) || trim($mail_default_from) === '') ? "noreply@".$url : $mail_default_from;
+		$from_email = mb_convert_encoding($from_email, "UTF-8");
+		$from_name = mb_convert_encoding($contestName, "UTF-8");
+
 		$subject = sprintf("%s: %s",$_SESSION['contestName'],$label_password_reset);
+		$subject = mb_convert_encoding($subject, "UTF-8");
+		
 		$message = "<html>" . "\r\n";
 		$message .= "<body>" . "\r\n";
 		$message .= sprintf("<p>%s,</p>",$first_name);
@@ -139,26 +154,14 @@ if ($action == "forgot") {
 		$message .= sprintf("<p><a href=\"%s\">%s</a></p>", $reset_url, $reset_url);
 		$message .= ucwords($_SESSION['contestName'])." ".$label_server;
 		$message .= "<p><small>".$paypal_response_text_003."</small></p>";
+		if ((DEBUG || TESTING) && ($mail_use_smtp)) $message .= "<p><small>Sent using phpMailer.</small></p>";
 		$message .= "</body>" . "\r\n";
 		$message .= "</html>";
-
-		$url = str_replace("www.","",$_SERVER['SERVER_NAME']);
-
-		$contestName = ucwords($_SESSION['contestName']);
-		$from_email = (!isset($mail_default_from) || trim($mail_default_from) === '') ? "noreply@".$url : $mail_default_from;
-
-		$to_email = mb_convert_encoding($to_email, "UTF-8");
-		$to_name = mb_convert_encoding($to_name, "UTF-8");
-		$from_email = mb_convert_encoding($from_email, "UTF-8");
-		$from_name = mb_convert_encoding($contestName, "UTF-8");
-		$subject = mb_convert_encoding($subject, "UTF-8");
 	
-		$headers  = "MIME-Version: 1.0" . "\r\n";
-		$headers .= "Content-type: text/html; charset=utf-8" . "\r\n";
-		$headers .= "To: ".$to_name. " <".$to_email.">, " . "\r\n";
-		$headers .= "From: ".$from_name." Server <".$from_email. ">\r\n";
-
-		$emails = $to_email;
+		$headers  = "MIME-Version: 1.0"."\r\n";
+		$headers .= "Content-type: text/html; charset=utf-8"."\r\n";
+		$headers .= "From: ".$from_name." Server <".$from_email.">"."\r\n";
+		$headers .= "Reply-To: ".$from_name." <".$from_email.">"."\r\n";
 
 		if ($mail_use_smtp) {
 			$mail = new PHPMailer(true);
@@ -170,7 +173,7 @@ if ($action == "forgot") {
 			$mail->Body = $message;
 			sendPHPMailerMessage($mail);
 		} else {
-			mail($emails, $subject, $message, $headers);
+			mail($to_email_formatted, $subject, $message, $headers);
 		}
 		
 		/*
@@ -180,7 +183,7 @@ if ($action == "forgot") {
 		echo $row_forgot['user_name']."<br>";
 		echo $totalRows_forgot."<br>";
 		echo $updateSQL."<br>";
-		echo $emails."<br>".;
+		echo $to_email."<br>".;
 		echo $headers."<br>";
 		echo $subject."<br>";
 		echo $message;
@@ -189,13 +192,13 @@ if ($action == "forgot") {
 		
 		$updateGoTo = $base_url."index.php?msg=6";
 		header(sprintf("Location: %s", $updateGoTo)); 
-		exit;
+		exit();
 	
 	} else {
 		
 		$updateGoTo = sprintf($base_url."index.php?section=login&action=forgot&go=verify&msg=4&username=%s", sterilize($_POST['loginUsername']));
 		header(sprintf("Location: %s", $updateGoTo)); 
-		exit;
+		exit();
 		
 	}
 	
@@ -214,7 +217,7 @@ if ($action == "reset") {
 		
 		$updateGoTo = sprintf($base_url."index.php?section=login&go=password&action=reset-password&msg=7&token=%s",$token);
 		header(sprintf("Location: %s", $updateGoTo)); 
-		exit;
+		exit();
 		
 	}
 	

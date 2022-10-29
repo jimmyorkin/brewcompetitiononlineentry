@@ -39,7 +39,7 @@ $print_icon = FALSE;
 
 if (isset($_SESSION['loginUsername']))  {
     $paid_icon = "";
-    $paid_icon .= " <small class=\"text-muted\">".$_SESSION['prefsCurrency'].number_format($total_to_pay,2)."</small>";
+    $paid_icon .= " <small class=\"text-muted\">".$currency_symbol.number_format($total_to_pay,2)."</small>";
     if ($total_to_pay > 0) $paid_icon .= " <span class=\"fa fa-lg fa-exclamation-circle text-danger\" aria-hidden=\"true\" data-toggle=\"tooltip\" title=\"".$pay_text_033."\" data-placement=\"auto top\" data-container=\"body\"></span>";
     else $paid_icon .= " <span class=\"fa fa-lg fa-check-circle text-success\" aria-hidden=\"true\" data-toggle=\"tooltip\" title=\"".$pay_text_024."\" data-placement=\"auto top\" data-container=\"body\"></span>";
 }
@@ -175,26 +175,25 @@ if ($logged_in)  {
 	if ($_SESSION['userLevel'] <= "1") $add_entry_link .= "index.php?section=brew&amp;go=entries&amp;action=add&amp;filter=admin";
 	else $add_entry_link .= "index.php?section=brew&amp;action=add";
 
-	// Build Add Entry BeerXML Link
-	$add_entry_beerxml_link = "index.php?section=beerxml";
-
 }
 if (($logged_in) && ($admin_user) && ($go != "error_page")) { ?>
 <!-- Admin Push Menu -->
-<div class="navbar-inverse navmenu navmenu-inverse navmenu-fixed-right offcanvas">
+<div class="navbar-inverse navmenu navmenu-inverse navmenu-fixed-right offcanvas admin-nav-off-canvas">
 <div class="navmenu-brand disabled off-canvas-header">Admin Essentials Menu</div>
         <ul class="nav navmenu-nav">
-        	<li class="disabled"><a href="#"><em class="bcoem-admin-menu-disabled">This menu contains only essential functions. Click <strong>Admin Dashboard</strong> for all options.</em></a></li>
+        	<li class="disabled"><a href="#"><em class="bcoem-admin-menu-disabled">This menu contains only essential functions. Select <strong>Admin Dashboard</strong> for all options.</em></a></li>
             <li><a href="<?php echo $base_url; ?>index.php?section=admin">Admin Dashboard</a></li>
 			<?php if ($_SESSION['userLevel'] == "0") { ?>
             <li class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown">Competition Preparation <span class="caret"></span></a>
                 <ul class="dropdown-menu navmenu-nav">
-                    <li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=contest_info&amp;action=edit">Edit Competition Info</a></li>
+                    <li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=dates">Edit All Competition Dates</a></li>
+					<li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=contest_info&amp;action=edit">Edit Competition Info</a></li>
 					<li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=contacts">Manage Contacts</a></li>
                     <li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=special_best">Manage Custom Categories</a></li>
                     <li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=dropoff">Manage Drop-Off Locations</a></li>
                     <li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=judging">Manage Judging Sessions</a></li>
+                    <li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=non-judging">Manage Non-Judging Sessions</a></li>
                     <li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=sponsors">Manage Sponsors</a></li>
                     <li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=styles">Manage Styles Accepted</a></li>
                     <li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=style_types">Manage Style Types</a></li>
@@ -394,7 +393,7 @@ $(document).ready(function(){
             <li id="help-enable"><a class="hide-loader hidden-xs hidden-sm hidden-md" href="#" role="button" data-tooltip="true" data-toggle="modal" data-target="#helpModal"><span class="fa fa-question-circle"></span></a></li>
             <?php } ?>
           	<?php if ($print_icon) { ?>
-          	<li id="print-enable"><a class="hide-loader hidden-xs hidden-sm hidden-md" href="javascript:window.print()" role="button"><span class="fa fa-print"></span></a></li>
+          	<li id="print-enable"><a class="hide-loader hidden-xs hidden-sm hidden-md" href="#" onclick="window.print()" role="button"><span class="fa fa-print"></span></a></li>
             <?php } ?>
           	<?php if ($logged_in) { ?>
             <li id="user-menu-enable" class="dropdown">
@@ -410,7 +409,6 @@ $(document).ready(function(){
                     <li><a href="<?php echo $link_user_entries; ?>" tabindex="-1"><?php echo $label_entries; ?></a></li>
                     <?php if ($add_entry_link_show) { ?>
                     <li><a href="<?php echo $add_entry_link; ?>" tabindex="-1"><?php echo $label_add_entry; ?></a></li>
-                    <?php if ((!NHC) && ($_SESSION['prefsHideRecipe'] == "N")) { ?><li tabindex="-1"><a href="<?php echo $add_entry_beerxml_link; ?>"><?php echo $label_add_beerXML; ?></a><?php } ?>
                     <?php } ?>
                     <?php } if ($_SESSION['prefsEval'] == 1) { 
                     	$brewer_assignment = brewer_assignment($_SESSION['user_id'],"1","blah",$dbTable,$filter);
@@ -440,7 +438,9 @@ $(document).ready(function(){
             <li id="login-modal-enable" <?php if ($section == "login") echo $active_class; ?>><a href="#" role="button" data-toggle="modal" data-target="#loginModal"><?php echo $label_log_in; ?></a></li>
             <li id="login-modal-disable"><a href="<?php echo $base_url; ?>index.php?section=login"><?php echo $label_log_in; ?></a></li>
             <?php } ?>
+            <li class="small visible-xs"><a href="https://brewcompetition.com" target="_blank">v <?php echo $current_version_display; ?></a></li>
             </ul>
+
           </div>
         </div><!--/.nav-collapse -->
       </div>

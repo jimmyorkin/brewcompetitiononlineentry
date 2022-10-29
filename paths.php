@@ -1,12 +1,10 @@
 <?php
+
 /**
  * Module:      paths.php
  * Description: This module sets global file folder paths. Also houses
  *              specific, site-wide variables.
- *
- */
-
-/**
+ * 
  * The following are file path definitions for various
  * script and document storage folders used/accessed by the
  * application.
@@ -51,7 +49,7 @@ define('AJAX',ROOT.'ajax'.DIRECTORY_SEPARATOR);
 define('HOSTED', FALSE);
 define('NHC', FALSE);
 define('SINGLE', FALSE);
-define('EVALUATION', FALSE);
+define('EVALUATION', TRUE);
 
 /**
  * Enable to following to put your installation into
@@ -156,6 +154,39 @@ function is_https() {
     else return FALSE;
 }
 
+/**
+ * General sanitization function.
+ * Needs to be top-level due to use in 
+ * url_variables.inc.php file.
+ */
+
+function sterilize($sterilize = NULL) {
+    
+    if ($sterilize == NULL) return NULL;
+    
+    elseif (empty($sterilize)) return $sterilize;
+
+    else {
+        
+        $sterilize = trim($sterilize);
+        
+        if (is_numeric($sterilize)) {
+            if (is_float($sterilize)) $sterilize = filter_var($sterilize,FILTER_SANITIZE_NUMBER_FLOAT,FILTER_FLAG_ALLOW_FRACTION);
+            if (is_int($sterilize)) $sterilize = filter_var($sterilize,FILTER_SANITIZE_NUMBER_INT);
+        }
+
+        else $sterilize = filter_var($sterilize,FILTER_SANITIZE_STRING);
+        
+        $sterilize = strip_tags($sterilize);
+        $sterilize = stripcslashes($sterilize);
+        $sterilize = stripslashes($sterilize);
+        $sterilize = addslashes($sterilize);
+        return $sterilize;
+
+    }
+
+}
+
 if (HOSTED) {
     $installation_id = md5(__FILE__);
     $session_expire_after = 30;
@@ -194,6 +225,9 @@ if (session_status() == PHP_SESSION_NONE) {
  */
 
 require_once (CONFIG.'config.php');
+require_once (CONFIG.'MysqliDb.php');
+$db_conn = new MysqliDb($connection);
+
 if (ENABLE_MAILER) require_once (CONFIG.'config.mail.php');
 require_once (INCLUDES.'current_version.inc.php');
 

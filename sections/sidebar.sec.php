@@ -131,7 +131,7 @@ if ($section != "admin") {
 	if ($show_entries) {
 
 		// Entry Window Dates
-		$header1_200 .= "<div class=\"panel ".$entry_panel_display."\">";
+		$header1_200 .= "<div class=\"hidden-print panel ".$entry_panel_display."\">";
 		$header1_200 .= "<div class=\"panel-heading\">";
 		$header1_200 .= sprintf("<h4 class=\"panel-title\">%s",$label_entry_registration);
 		if (($entry_window_open == 1) && (!$comp_entry_limit) && (!$comp_paid_entry_limit)) $header1_200 .= sprintf(" %s",$label_open);
@@ -170,7 +170,7 @@ if ($section != "admin") {
 			$total_not_paid = total_not_paid_brewer($_SESSION['user_id']);
 
 			// Online Registration Dates
-			$header1_100 .= "<div class=\"panel panel-info\">";
+			$header1_100 .= "<div class=\"hidden-print panel panel-info\">";
 			$header1_100 .= "<div class=\"panel-heading\">";
 			$header1_100 .= sprintf("<h4 class=\"panel-title\">%s<span class=\"fa fa-lg fa-info-circle text-primary pull-right\"></span></h4>",$label_account_summary);
 			$header1_100 .= "</div>";
@@ -257,7 +257,7 @@ if ($section != "admin") {
 
 		// Drop-off Dates and Location
 		if ($_SESSION['prefsDropOff'] == 1) {
-			$header1_300 .= sprintf("<div class=\"panel %s\">",$dropoff_panel_display);
+			$header1_300 .= sprintf("<div class=\"hidden-print panel %s\">",$dropoff_panel_display);
 			$header1_300 .= "<div class=\"panel-heading\">";
 			$header1_300 .= sprintf("<h4 class=\"panel-title\">%s",$label_entry_drop_off);
 			if ($dropoff_window_open == 1) $header1_300 .= sprintf(" %s",$label_open);
@@ -280,7 +280,7 @@ if ($section != "admin") {
 
 		// Shipping Date and Location
 		if (($_SESSION['prefsShipping'] == 1) && (!empty($row_contest_dates['contestShippingOpen']))) {
-			$header1_500 .= "<div class=\"panel ".$shipping_panel_display."\">";
+			$header1_500 .= "<div class=\"hidden-print panel ".$shipping_panel_display."\">";
 			$header1_500 .= "<div class=\"panel-heading\">";
 			$header1_500 .= sprintf("<h4 class=\"panel-title\">%s",$label_entry_shipping);
 			if ($shipping_window_open == 1) $header1_500 .= sprintf(" %s",$label_open);
@@ -301,36 +301,45 @@ if ($section != "admin") {
 	}
 
 	// Judging Location(s)
-	$header1_400 .= "<div class=\"panel panel-info\">";
+	$header1_400 .= "<div class=\"hidden-print panel panel-info\">";
 	$header1_400 .= "<div class=\"panel-heading\">";
 	$header1_400 .= sprintf("<h4 class=\"panel-title\">%s</h4>",$label_judging_loc);
 	$header1_400 .= "</div>";
 	$page_info400 .= "<div class=\"panel-body\">";
 	if ($totalRows_judging == 0) $page_info400 .= sprintf("<p>%s</p>",$sidebar_text_024);
+	
 	else {
+		
 		do {
 
-			$page_info400 .= "<p>";
-			if ($row_judging['judgingLocName'] != "") $page_info400 .= "<strong>".$row_judging['judgingLocName']."</strong>";
-			if ($row_judging['judgingLocType'] == "0") {
-				if ($logged_in) {
-					$location_link = $base_url."output/maps.output.php?section=driving&amp;id=".str_replace(' ', '+', $row_judging['judgingLocation']);
-					$location_tooltip = "Map to ".$row_judging['judgingLocName'];
+			if ($row_judging['judgingLocType'] < 2) {
+
+				$page_info400 .= "<p>";
+				if ($row_judging['judgingLocName'] != "") $page_info400 .= "<strong>".$row_judging['judgingLocName']."</strong>";
+				if ($row_judging['judgingLocType'] == "0") {
+					if ($logged_in) {
+						$location_link = $base_url."output/maps.output.php?section=driving&amp;id=".str_replace(' ', '+', $row_judging['judgingLocation']);
+						$location_tooltip = "Map to ".$row_judging['judgingLocName'];
+					}
+					else {
+						$location_link = "#";
+						$location_tooltip = "Log in to view the ".$row_judging['judgingLocName']." location";
+					}
+					if ($row_judging['judgingLocation'] != "") $page_info400 .= " <a class=\"hide-loader\" href=\"".$location_link."\" target=\"".$location_target."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"".$location_tooltip."\"> <span class=\"fa fa-lg fa-map-marker\"></span></a>";
 				}
-				else {
-					$location_link = "#";
-					$location_tooltip = "Log in to view the ".$row_judging['judgingLocName']." location";
+				if ($row_judging['judgingDate'] != "") $page_info400 .=  "<br />".getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_judging['judgingDate'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "short", "date-time");
+				if ($row_judging['judgingDateEnd'] != "") $page_info400 .=  " ".$sidebar_text_004." ".getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_judging['judgingDateEnd'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "short", "date-time");
+				$page_info400 .= ".</p>";
+				if ($row_judging['judgingLocType'] == "1") {
+					if (!empty($row_judging['judgingLocation'])) $page_info400 .= "<p><small>".$row_judging['judgingLocation']."</small></p>";
 				}
-				if ($row_judging['judgingLocation'] != "") $page_info400 .= " <a class=\"hide-loader\" href=\"".$location_link."\" target=\"".$location_target."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"".$location_tooltip."\"> <span class=\"fa fa-lg fa-map-marker\"></span></a>";
+
 			}
-			if ($row_judging['judgingDate'] != "") $page_info400 .=  "<br />".getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_judging['judgingDate'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "short", "date-time");
-			if ($row_judging['judgingDateEnd'] != "") $page_info400 .=  " ".$sidebar_text_004." ".getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_judging['judgingDateEnd'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "short", "date-time");
-			$page_info400 .= ".</p>";
-			if ($row_judging['judgingLocType'] == "1") {
-				if (!empty($row_judging['judgingLocation'])) $page_info400 .= "<p><small>".$row_judging['judgingLocation']."</small></p>";
-			}
+			
 		} while ($row_judging = mysqli_fetch_assoc($judging));
-	}
+	
+	} // end else
+	
 	$page_info400 .= "</div>";
 	$page_info400 .= "</div>";
 
@@ -340,26 +349,30 @@ if ($section != "admin") {
 		$archive_sidebar_count = 0;
 		$archive_sidebar_content = "";
 
-		do {
+		if ($totalRows_archive > 0) {
 
-			if (($row_archive['archiveDisplayWinners'] == "Y") && ($row_archive['archiveStyleSet'] != "")) {
-				$table_archive = $prefix."judging_scores_".$row_archive['archiveSuffix'];
-				if (table_exists($table_archive)) {
-			   		if (get_archive_count($table_archive) > 0) {
-			   			$archive_link = build_public_url("past-winners",$row_archive['archiveSuffix'],"default","default",$sef,$base_url);
-			   			$archive_sidebar_count += 1;
-						if ($go == $row_archive['archiveSuffix']) $archive_sidebar_content .= "<li><i class=\"fa fa-trophy text-gold\"></i> <strong>".$row_archive['archiveSuffix']."</strong></li>";
-						else $archive_sidebar_content .= "<li><i class=\"fa fa-trophy text-silver\"></i> <a href=\"".$archive_link."\">".$row_archive['archiveSuffix']."</a></li>";
+			do {
+
+				if (($row_archive['archiveDisplayWinners'] == "Y") && ($row_archive['archiveStyleSet'] != "")) {
+					$table_archive = $prefix."judging_scores_".$row_archive['archiveSuffix'];
+					if (table_exists($table_archive)) {
+				   		if (get_archive_count($table_archive) > 0) {
+				   			$archive_link = build_public_url("past-winners",$row_archive['archiveSuffix'],"default","default",$sef,$base_url);
+				   			$archive_sidebar_count += 1;
+							if ($go == $row_archive['archiveSuffix']) $archive_sidebar_content .= "<li><i class=\"fa fa-trophy text-gold\"></i> <strong>".$row_archive['archiveSuffix']."</strong></li>";
+							else $archive_sidebar_content .= "<li><i class=\"fa fa-trophy text-silver\"></i> <a href=\"".$archive_link."\">".$row_archive['archiveSuffix']."</a></li>";
+						}
 					}
-				}
-			}	
+				}	
 
-		} while($row_archive = mysqli_fetch_assoc($archive));
+			} while($row_archive = mysqli_fetch_assoc($archive));
+
+		}
 
 		if ($archive_sidebar_count > 0) $archive_sidebar = TRUE;
 
 		if ($archive_sidebar) {
-			$header1_600 .= "<div class=\"panel panel-info\">";
+			$header1_600 .= "<div class=\"hidden-print panel panel-info\">";
 			$header1_600 .= "<div class=\"panel-heading\">";
 			$header1_600 .= sprintf("<h4 class=\"panel-title\">%s</h4>",$label_past_winners);
 			$header1_600 .= "</div>";
@@ -373,12 +386,10 @@ if ($section != "admin") {
 		
 	}
 
-	
-
 	// --------------------------------------------------------------
 	// Display
 	// --------------------------------------------------------------
-	if ((isset($_SESSION['contestLogo'])) && (file_exists(USER_IMAGES.$_SESSION['contestLogo']))) echo $competition_logo;
+	if ((isset($_SESSION['contestLogo'])) && (!empty($_SESSION['contestLogo'])) && (file_exists(USER_IMAGES.$_SESSION['contestLogo']))) echo $competition_logo;
 
 	echo $page_info;
 
@@ -401,8 +412,6 @@ if ($section != "admin") {
 
 	echo $header1_500;
 	echo $page_info500;
-
-	
 
 	if ($_SESSION['prefsUseMods'] == "Y") include (INCLUDES.'mods_sidebar_bottom.inc.php');
 }

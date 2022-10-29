@@ -57,6 +57,15 @@ if ((NHC) && ($prefix == "final_")) $maxlength = 6; else $maxlength = 4;
 if ($action == "add") {
   include(INCLUDES.'process/process_barcode_check_in.inc.php');
 }
+
+if ($filter == "box-paid") {
+    $switch_to_button = "Judging/Entry Numbers Only";
+    $switch_to_link = $base_url."index.php?section=admin&amp;go=checkin";
+}
+else {
+    $switch_to_button = "Entry/Judging Numbers, Box, and Paid";
+    $switch_to_link = $base_url."index.php?section=admin&amp;go=checkin&amp;filter=box-paid";
+}
 ?>
 <script type="text/javascript">
 function moveOnMax(field,nextFieldID){
@@ -184,13 +193,14 @@ if (!empty($mismatch_table)) {
 
 
 <div class="bcoem-admin-element">
-    <p>Use the form below to check in entries and assign their judging number in the system using a barcode reader/scanner.</p>
-<div class="btn-group" role="group" aria-label="barcodeInfo">
-    <div class="btn-group" role="group">
-        <button type="button" class="btn btn-xs btn-info" data-toggle="modal" data-target="#barcodeInfoModal">
+    <p>Use the form below to check in entries into the system using a barcode reader/scanner.</p>
+    <p>Leave the Judging Number field blank if you wish to use the system- or user-generated judging number already assigned to the entry.</p>
+</div>
+<div class="bcoem-admin-element" style="margin-bottom: 25px;">
+    <a href="<?php echo $switch_to_link; ?>" class="btn btn-xs btn-primary">Switch View to <?php echo $switch_to_button; ?></a>
+    <button type="button" class="btn btn-xs btn-info" data-toggle="modal" data-target="#barcodeInfoModal">
           Barcode Check-In Info
-        </button>
-    </div>
+    </button>
 </div>
 <!-- Modal -->
 <div class="modal fade" id="barcodeInfoModal" tabindex="-1" role="dialog" aria-labelledby="barcodeInfoModalLabel">
@@ -207,8 +217,8 @@ if (!empty($mismatch_table)) {
                       <li>Use the TAB key to move between fields, to skip a field, or if the cursor does not move after data is input.</li>
                       <li>Use the space bar to place a checkmark in the &quot;Paid&quot; box.</li>
                     </ul>
-                <p>This function is intended to be used with a barcode reader/scanner in conjunction with the Judging Number Barcode Labels and the Judging Number Round Labels <a href="http://www.brewcompetition.com/bottle-labels" target="_blank">available for download at brewcompetition.com</a>. </p>
-                <p>Also available are <a href="http://www.brewcompetition.com/barcode-check-in" target="_blank">suggested usage instructions</a>.</p>
+                <p>This function was developed to be used with a barcode reader/scanner in conjunction with the Judging Number Barcode Labels and the Judging Number Round Labels <a class="hide-loader" href="http://www.brewcompetition.com/barcode-labels" target="_blank">available for download at brewcompetition.com</a>. See the <a class="hide-loader" href="http://www.brewcompetition.com/barcode-check-in" target="_blank">suggested usage instructions</a>.</p>
+                <p>However, this function can simply be used as a quick way to check-in entries without the use of the Judging Number Barcode Labels - simply leave the Judging Number field blank to use the system- or user-generated judging number already assigned to the entry.</p>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>

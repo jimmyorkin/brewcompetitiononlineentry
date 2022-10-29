@@ -41,7 +41,7 @@
  * 
  * ================ FORMAT =================
  * 
- * Always indicate the primary languge subtag first, then a dash (-) 
+ * Always indicate the primary language subtag first, then a dash (-)
  * and then the region subtag. The region subtag is in all capital letters 
  * or a three digit number.
  * 
@@ -82,7 +82,7 @@
  * code. Please leave this code intact! For example:
  * 
  * English (US):
- * $beerxml_text_008 = "Browse for your BeerXML compliant file on your hard drive and click <em>Upload</em>.";
+ * $beerxml_text_008 = "Browse for your BeerXML compliant file on your hard drive and select <em>Upload</em>.";
  * 
  * Spanish:
  * $beerxml_text_008 = "Buscar su archivo compatible BeerXML en su disco duro y haga clic en <em>Cargar</em>.";
@@ -137,11 +137,11 @@ $php_version = phpversion();
 
 $j_s_text = "";
 if (strpos($section, "step") === FALSE) {
-	if ((isset($judge_limit)) && (isset($steward_limit))) {
-		if (($judge_limit) && (!$steward_limit)) $j_s_text = "Steward"; // missing punctuation intentional
-		elseif ((!$judge_limit) && ($steward_limit)) $j_s_text = "Judge"; // missing punctuation intentional
-		else $j_s_text = "Judge or steward"; // missing punctuation intentional
-	}
+    if ((isset($judge_limit)) && (isset($steward_limit))) {
+        if (($judge_limit) && (!$steward_limit)) $j_s_text = "Steward"; // missing punctuation intentional
+        elseif ((!$judge_limit) && ($steward_limit)) $j_s_text = "Judge"; // missing punctuation intentional
+        else $j_s_text = "Judge or steward"; // missing punctuation intentional
+    }
 }
 
 $label_home = "Home";
@@ -187,7 +187,7 @@ $label_character_limit = " limite de caracteres - use palavras-chaves e abrevia�
 $label_carbonation = "Carbonatação";
 $label_sweetness = "Dulçor";
 $label_strength = "Força";
-$label_color = 	"Cor";
+$label_color =  "Cor";
 $label_table = "Mesa";
 $label_standard = "Standard";
 $label_super = "Super";
@@ -705,7 +705,7 @@ $brewer_text_000 = "Por favor digite apenas <em> um </em> nome da pessoa.";
 $brewer_text_001 = "Escolha uma. Esta questão será usada para verificar sua identidade caso você esqueça sua senha.";
 $brewer_text_003 = "Para ser considerado para uma oportunidade GABF Pro-Am você deve ser um membro da AHA.";
 $brewer_text_004 = "Forneça qualquer informação que você acredite que o organizador da competição deva conhecer (por exemplo, alergias, restrições alimentares especiais, tamanho da camisa, etc.)";
-$brewer_text_005 = "Enviarei por correios";
+$brewer_text_005 = "Não Aplicável";
 $brewer_text_006 = "Você está disposto e qualificado para servir como juiz nesta competição?";
 $brewer_text_007 = "Você passou no exame BJCP Mead Judge?";
 $brewer_text_008 = "* A classificação <em> Não-BJCP </em> é para aqueles que não fizeram o Exame de Admissão ao Juiz de Cerveja BJCP, e não são <em> uma cervejaria profissional.";
@@ -884,9 +884,9 @@ $pay_text_028 = "Você tem amostras não confirmadas que <em>não</em> estão re
 $pay_text_029 = "Por favor, vá para a sua lista de amostras para confirmar todos os dados da sua amostra. As amostras não confirmadas podem ser excluídas do sistema sem aviso.";
 
 if (strpos ($view, "^")!== FALSE) {
-	$qr_text_019 =sprintf ("%06d", $checked_in_numbers [0]);
-	if (is_numeric ($checked_in_numbers [1])) $qr_text_020 = sprintf ("%06d", $checked_in_numbers [1]);
-	else $qr_text_020 = $checked_in_numbers [1];
+    $qr_text_019 =sprintf ("%06d", $checked_in_numbers [0]);
+    if (is_numeric ($checked_in_numbers [1])) $qr_text_020 = sprintf ("%06d", $checked_in_numbers [1]);
+    else $qr_text_020 = $checked_in_numbers [1];
 }
 
 $qr_text_000 = $alert_text_080;
@@ -1272,7 +1272,7 @@ $paypal_response_text_008 = "Pagamento PayPal inválido";
 $paypal_response_text_009 = "Detalhes do pagamento via PayPal";
 
 $pwd_email_reset_text_000 = "Foi feita uma solicitação para verificar a conta no";
-$pwd_email_reset_text_001 = "website usando a função de e-mail Verfication ID. Se você não iniciou isto, entre em contato com o organizador da competição.";
+$pwd_email_reset_text_001 = "website usando a função de e-mail Verification ID. Se você não iniciou isto, entre em contato com o organizador da competição.";
 $pwd_email_reset_text_002 = "A resposta de verificação de ID faz distinção entre maiúsculas e minúsculas";
 $pwd_email_reset_text_003 = "Foi feita uma solicitação para alterar sua senha no";
 $pwd_email_reset_text_004 = "website. Se você não iniciou isto, não se preocupe. Sua senha não pode ser redefinida sem o link abaixo.";
@@ -1339,9 +1339,9 @@ $label_pro_am = "Pro-Am";
 $pay_text_034 = "O limite de entradas pagas foi atingido - pagamentos adicionais não estão sendo aceitos.";
 
 $bottle_labels_000 = "Os rótulos não podem ser gerados no momento.";
-$bottle_labels_001 = "Coloque a etiqueta SOMENTE com um elástico.";
-$bottle_labels_002 = "Use fita adesiva transparente para prender ao barril de cada garrafa.";
-$bottle_labels_003 = "Cubra a etiqueta completamente!";
+$bottle_labels_001 = "Certifique-se de verificar as regras de aceitação de participação na competição para diretrizes específicas de fixação de rótulos antes de enviar!";
+$bottle_labels_002 = "Tipicamente, é usada fita de embalagem transparente para fixar ao barril de cada entrada - cobrir completamente a etiqueta.";
+$bottle_labels_003 = "Normalmente, uma faixa de borracha é usada para fixar etiquetas em cada entrada.";
 if (isset($_SESSION['jPrefsBottleNum'])) $bottle_labels_004 = "Observação: são fornecidas 4 etiquetas como cortesia. Esta competição requer ".$_SESSION['jPrefsBottleNum']." garrafas por inscrição. Descarte qualquer etiqueta extra.";
 else $bottle_labels_004 = "Observação: são fornecidas 4 etiquetas como cortesia. Descarte qualquer etiqueta extra.";
 $bottle_labels_005 = "Se algum item estiver faltando, feche esta janela e edite a entrada.";
@@ -1801,7 +1801,7 @@ $qr_text_018 = "Digitalize um código QR localizado no rótulo de um frasco, dig
 
 /**
  * ------------------------------------------------------------------------
- * Version 2.3.2 Additions
+ * Version 2.4.0 Additions
  * Via Google Translate English to Portuguese - and for that, I'm sorry. 
  * Again. :)
  * ------------------------------------------------------------------------
@@ -1815,6 +1815,78 @@ $styles_entry_text_C1A = "Os participantes DEVEM especificar o nível de carbona
 $styles_entry_text_C1B = "Os participantes DEVEM indicar o nível de carbonatação (3 níveis). Os participantes DEVEM indicar a doçura (seca a média doçura, 4 níveis). Os participantes DEVEM indicar a variedade de maçã para cidra varietal única; se indicado, é esperado o caráter varietal.";
 $styles_entry_text_C1C = "Os participantes DEVEM especificar o nível de carbonatação (3 níveis). Os participantes DEVEM especificar o nível de doçura (somente de média a doce, 3 níveis). Os participantes PODEM especificar a variedade de maçã para uma única cidra varietal; se especificado, será esperado um caráter varietal.";
 $winners_text_007 = "Não há entradas vencedoras nesta tabela.";
+
+/**
+ * ------------------------------------------------------------------------
+ * Version 2.4.0 Additions
+ * Via DeepL Translator English to Portuguese - and for that, I'm sorry. 
+ * Again. :)
+ * ------------------------------------------------------------------------
+ */
+
+$label_entries_to_judge = "Entradas para Julgar";
+$evaluation_info_073 = "Se você tiver alterado ou adicionado qualquer item ou comentário nesta folha de pontuação, seus dados poderão ser perdidos se você navegar para longe desta página.";
+$evaluation_info_074 = "Se você TENHA feito alterações, feche este diálogo, role até o final da folha de pontuação e selecione Submeter Avaliação.";
+$evaluation_info_075 = "Se você NÃO tiver feito nenhuma mudança, selecione o botão azul do Painel de Julgamento abaixo.";
+$evaluation_info_076 = "Comente sobre malte, lúpulo, ésteres e outros aromáticos.";
+$evaluation_info_077 = "Comente sobre cor, clareza e cabeça (retenção, cor e textura).";
+$evaluation_info_078 = "Comente sobre malte, lúpulo, características de fermentação, equilíbrio, acabamento/sabor, e outras características de sabor.";
+$evaluation_info_079 = "Comentário sobre o corpo, carbonação, calor, cremosidade, adstringência e outras sensações palatinas.";
+$evaluation_info_080 = "Comente sobre o prazer geral de beber associado à entrada, dê sugestões para melhorias.";
+
+if ($_SESSION['prefsStyleSet'] == "BJCP2021") {
+    $styles_entry_text_21B = "O participante DEVE especificar uma força (sessão, padrão, duplo); se nenhuma força for especificada, o padrão será assumido. O participante DEVE especificar o tipo específico de Especialidade IPA da lista de Tipos Definidos Atualmente identificados nas Diretrizes de Estilo, ou conforme emendado pelos Estilos Provisórios no site do BJCP; OU o participante DEVE descrever o tipo de Especialidade IPA e suas principais características em forma de comentários para que os juízes saibam o que esperar. Os participantes PODEM especificar as variedades específicas de lúpulo utilizadas, se os participantes acharem que os juízes podem não reconhecer as características varietais dos lúpulos mais recentes. Os participantes PODEM especificar uma combinação de tipos IPA definidos (por exemplo, IPA Centeio Negro) sem fornecer descrições adicionais.";
+    $styles_entry_text_24C = "O participante DEVE especificar a Bière de Garde loira, âmbar ou marrom.";
+    $styles_entry_text_25B = "O participante DEVE especificar a força (tabela, padrão, super) e a cor (pálido, escuro). O participante PODE identificar os grãos de caráter utilizados.";
+    $styles_entry_text_27A = "Categoria para outras cervejas históricas que NÃO tenham sido definidas pelo BJCP. O participante DEVE fornecer uma descrição para os juízes do estilo histórico que NÃO é um dos exemplos de estilo histórico definido atualmente fornecidos pelo BJCP. Exemplos atualmente definidos: Kellerbier, Kentucky Common, Lichtenhainer, London Brown Ale, Piwo Grodziskie, Pre-Prohibition Lager, Pre-Prohibition Porter, Roggenbier, Sahti. Se uma cerveja é entrada apenas com um nome de estilo e sem descrição, é muito improvável que os juízes entendam como julgá-la.";
+    $styles_entry_text_28A = "O participante DEVE especificar ou um Estilo Base, ou fornecer uma descrição dos ingredientes, especificações, ou caráter desejado. O participante PODE especificar as linhagens de Brett utilizadas.";
+    $styles_entry_text_28B = "O participante DEVE especificar uma descrição da cerveja, identificando a levedura ou as bactérias usadas e um Estilo Base, ou os ingredientes, especificações, ou o caráter alvo da cerveja.";
+    $styles_entry_text_28C = "O participante DEVE especificar qualquer ingrediente de tipo especial (por exemplo, fruta, especiarias, ervas ou madeira) utilizado. O participante DEVE especificar ou uma descrição da cerveja, identificando a levedura ou as bactérias usadas e um Estilo Base, ou os ingredientes, especificações, ou o caráter alvo da cerveja. Uma descrição geral da natureza especial da cerveja pode cobrir todos os itens necessários.";
+    $styles_entry_text_29A = "O participante DEVE especificar o(s) tipo(s) de fruta(s) utilizado(s). O participante DEVE especificar uma descrição da cerveja, identificando um Estilo Base ou os ingredientes, especificações ou o caráter alvo da cerveja. Uma descrição geral da natureza especial da cerveja pode cobrir todos os itens necessários.  Cervejas de fruta baseadas no estilo clássico devem ser inseridas neste estilo, exceto a Lambic.";
+    $styles_entry_text_29B = "O participante deve especificar o tipo de fruta e o tipo de SHV utilizado; os ingredientes individuais de SHV não precisam ser especificados se for utilizada uma mistura bem conhecida de especiarias (por exemplo, especiarias de torta de maçã). O participante deve especificar uma descrição da cerveja, seja um Estilo Base ou os ingredientes, especificações ou o caráter alvo da cerveja. Uma descrição geral da natureza especial da cerveja pode cobrir todos os itens necessários.";
+    $styles_entry_text_29C = "O entrante DEVE especificar o tipo de fruta utilizada. O participante DEVE especificar o tipo de ingrediente adicional (conforme a introdução) ou processo especial empregado. O participante DEVE especificar uma descrição da cerveja, identificando um Estilo Base ou os ingredientes, especificações ou caráter alvo da cerveja. Uma descrição geral da natureza especial da cerveja pode cobrir todos os itens necessários.";
+    $styles_entry_text_29D = "O entrante DEVE especificar o tipo de uva utilizada. O participante PODE fornecer informações adicionais sobre o estilo de base ou ingredientes característicos.";
+    $styles_entry_text_30A = "O participante DEVE especificar o tipo de especiarias, ervas ou vegetais utilizados, mas os ingredientes individuais não precisam ser especificados se for utilizada uma mistura de especiarias bem conhecida (por exemplo, especiarias para torta de maçã, caril em pó, chili em pó). O participante DEVE especificar uma descrição da cerveja, identificando um Estilo Base ou os ingredientes, especificações ou o caráter alvo da cerveja. Uma descrição geral da natureza especial da cerveja pode cobrir todos os itens necessários.";
+    $styles_entry_text_30B = "O participante DEVE especificar o tipo de especiarias, ervas ou vegetais utilizados; os ingredientes individuais não precisam ser especificados se for utilizada uma mistura bem conhecida de especiarias (por exemplo, tempero para torta de abóbora). O participante DEVE especificar uma descrição da cerveja, identificando um Estilo Base ou os ingredientes, especificações ou o caráter alvo da cerveja. Uma descrição geral da natureza especial da cerveja pode cobrir todos os itens necessários.";
+    $styles_entry_text_30C = "O participante DEVE especificar o tipo de especiarias, açúcares, frutas ou fermentáveis adicionais utilizados; os ingredientes individuais não precisam ser especificados se for utilizada uma mistura bem conhecida de especiarias (por exemplo, especiarias mulling). O participante DEVE especificar uma descrição da cerveja, identificando um Estilo Base ou os ingredientes, especificações ou o caráter alvo da cerveja. Uma descrição geral da natureza especial da cerveja pode cobrir todos os itens necessários.";
+    $styles_entry_text_30D = "O participante DEVE especificar o tipo de SHV utilizado, mas os ingredientes individuais não precisam ser especificados se for utilizada uma mistura de especiarias bem conhecida (por exemplo, especiarias para torta de maçã, caril em pó, pimenta em pó). O participante DEVE especificar o tipo de ingrediente adicional (de acordo com a introdução) ou o processo especial empregado. O participante DEVE especificar uma descrição da cerveja, identificando um Estilo Base ou os ingredientes, especificações ou o caráter alvo da cerveja. Uma descrição geral da natureza especial da cerveja pode cobrir todos os itens necessários.";
+    $styles_entry_text_31A = "O participante deve especificar o tipo de grão alternativo utilizado. O participante deve especificar uma descrição da cerveja, identificando o Estilo Base ou os ingredientes, especificações ou o caráter alvo da cerveja. Uma descrição geral da natureza especial da cerveja pode cobrir todos os itens necessários.";
+    $styles_entry_text_31B = "O entrante DEVE especificar o tipo de açúcar utilizado. O participante DEVE especificar uma descrição da cerveja, identificando um Estilo Base ou os ingredientes, especificações ou o caráter alvo da cerveja. Uma descrição geral da natureza especial da cerveja pode cobrir todos os itens necessários.";
+    $styles_entry_text_32A = "O participante DEVE especificar um Estilo Base. O participante DEVE especificar o tipo de madeira ou fumaça se um caractere varietal de fumaça for perceptível.";
+    $styles_entry_text_32B = "O entrante DEVE especificar o tipo de madeira ou fumaça se um caráter de fumaça varietal for perceptível. O entrante DEVE especificar os ingredientes ou processos adicionais que fazem desta uma cerveja defumada especial. O participante DEVE especificar uma descrição da cerveja, identificando um estilo base ou os ingredientes, especificações, ou o caráter alvo da cerveja. Uma descrição geral da natureza especial da cerveja pode cobrir todos os itens necessários.";
+    $styles_entry_text_33A = "O entrante DEVE especificar o tipo de madeira utilizada e o nível de torrada ou char (se usado). Se for usada uma madeira varietal incomum, o participante DEVE fornecer uma breve descrição dos aspectos sensoriais que a madeira acrescenta à cerveja. O entrante DEVE especificar uma descrição da cerveja, identificando o Estilo Base ou os ingredientes, especificações ou o caráter alvo da cerveja. Uma descrição geral da natureza especial da cerveja pode cobrir todos os itens necessários.";
+    $styles_entry_text_33B = "O participante DEVE especificar o caráter alcoólico adicional, com informações sobre o barril se relevante para o perfil de sabor acabado. Se uma madeira ou ingrediente incomum tiver sido utilizado, o participante DEVE fornecer uma breve descrição dos aspectos sensoriais que os ingredientes acrescentam à cerveja. O entrante DEVE especificar uma descrição da cerveja, identificando o Estilo Base ou os ingredientes, especificações ou o caráter alvo da cerveja. Uma descrição geral da natureza especial da cerveja pode cobrir todos os itens necessários.";
+    $styles_entry_text_34A = "O participante DEVE especificar o nome da cerveja comercial, especificações (estatísticas vitais) para a cerveja e uma breve descrição sensorial ou uma lista de ingredientes usados na fabricação da cerveja. Sem esta informação, os juízes que não estiverem familiarizados com a cerveja não terão base para comparação.";
+    $styles_entry_text_34B = "O participante DEVE especificar o Estilo ou Estilos Base utilizados, e quaisquer ingredientes especiais, processos ou variações envolvidas. O participante PODE fornecer uma descrição adicional do perfil sensorial da cerveja ou as estatísticas vitais da cerveja resultante.";
+    $styles_entry_text_PRX3 = "O entrante DEVE especificar o tipo de uva utilizada. O participante PODE fornecer informações adicionais sobre o estilo de base ou ingredientes característicos.";
+}
+
+/**
+ * ------------------------------------------------------------------------
+ * Version 2.5.0 Additions
+ * Via DeepL Translator English to Portuguese - and for that, I'm sorry. 
+ * Again. :)
+ * ------------------------------------------------------------------------
+ */
+
+$register_text_047 = "Sua pergunta e/ou resposta de segurança mudou.";
+$register_text_048 = "Se você não iniciou esta mudança, sua conta pode estar comprometida. Você deve entrar imediatamente em sua conta e alterar sua senha, além de atualizar sua pergunta e resposta de segurança.";
+$register_text_049 = "Se você não conseguir entrar em sua conta, você deve entrar imediatamente em contato com um administrador do site para atualizar sua senha e outras informações vitais da conta.";
+$register_text_050 = "A resposta de sua pergunta de segurança é criptografada e não pode ser lida pelos administradores do site. Ela deve ser inserida se você optar por mudar sua pergunta e/ou resposta de segurança.";
+$register_text_051 = "Informações de Conta Atualizadas";
+$register_text_052 = "Uma resposta de Sim ou Não é necessária para cada local abaixo.";
+$brewer_text_044 = "Você deseja mudar sua pergunta e/ou resposta de segurança?";
+$brewer_text_045 = "Não se registraram resultados.";
+$brewer_text_046 = "Para a entrada de nomes de clubes de forma livre, alguns símbolos não são permitidos, incluindo ampersand (&amp;), marcas de cotações simples (&#39;), marcas de cotações duplas (&quot;), e porcentagem (&#37;).";
+$brewer_text_047 = "Se você não estiver disponível para qualquer uma das sessões listadas abaixo, mas ainda pode servir como funcionário em outra função, selecione Sim.";
+$brewer_text_048 = "Enviarei por correios";
+$brewer_text_049 = "Selecione \"Não Aplicável\" se você não planeja apresentar nenhuma participação na competição.";
+$brewer_text_050 = "Selecione \"Enviarei por correios\" se você planeja encaixotar e enviar suas entradas para o local de embarque fornecido.";
+$label_change_security = "Mudar pergunta/resposta de segurança?";
+$label_semi_dry = "Semi-Seco";
+$label_semi_sweet = "Semi-Doce";
+$label_shipping_location = "Localização da Expedição";
+$volunteers_text_010 = "O pessoal pode indicar sua disponibilidade para as seguintes sessões sem juízos de valor:";
 
 /**
  * ----------------------------------------------------------------------------------
