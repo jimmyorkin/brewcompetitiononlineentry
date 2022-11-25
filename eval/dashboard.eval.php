@@ -213,7 +213,7 @@ if (!$admin) {
 	$assignment_display .= "<table id=\"judge_assignments\" class=\"table table-condensed table-striped table-bordered table-responsive\">";
 	$assignment_display .= "<thead>";
 	$assignment_display .= "<tr>";
-	$assignment_display .= sprintf("<th>%s</th>",$label_location);
+	$assignment_display .= sprintf("<th>%s</th>",$label_session);
 	$assignment_display .= sprintf("<th width=\"30%%\">%s</th>",$label_date);
 	$assignment_display .= sprintf("<th width=\"30%%\">%s</th>",$label_table);
 	$assignment_display .= "</tr>";
@@ -285,7 +285,13 @@ if ($totalRows_table_assignments > 0) {
 		$table_location = get_table_info($tbl_loc_disp,"location",$tbl_id,"default","default");
 		$table_location = explode("^", $table_location);
 
-		if (($admin) || ((!$admin) && (time() > $table_location[0]))) {
+		/**
+		 * Open up for non-admins 10 minutes before the stated session start time.
+		 * Useful when judging is in-person and judges wish to review their assigned
+		 * entries prior to "officially" starting.
+		 */
+
+		if (($admin) || ((!$admin) && (time() > ($table_location[0] - 600))) { 
 
 			if ((!empty($table_location[1]) && (time() > $table_location[1]))) $disable_add_edit = TRUE;
 
@@ -519,7 +525,7 @@ if ($totalRows_table_assignments > 0) {
 
 				if ($assigned_judges > 0) {
 
-					$query_assigned_judge_names = sprintf("SELECT a.brewerFirstName,a.brewerLastName FROM %s a, %s b WHERE b.assignTable='%s' AND a.uid = b.bid ORDER BY a.brewerLastName, a.brewerFirstName ASC",$prefix."brewer",$prefix."judging_assignments",$tbl_id);
+					$query_assigned_judge_names = sprintf("SELECT a.brewerFirstName,a.brewerLastName, b.assignment FROM %s a, %s b WHERE b.assignTable='%s' AND a.uid = b.bid AND b.assignment='J' ORDER BY a.brewerLastName, a.brewerFirstName ASC",$prefix."brewer",$prefix."judging_assignments",$tbl_id);
 					$assigned_judge_names = mysqli_query($connection,$query_assigned_judge_names);
 					$row_assigned_judge_names = mysqli_fetch_assoc($assigned_judge_names);
 					
@@ -794,8 +800,8 @@ if ($totalRows_table_assignments > 0) {
 
 		$total_evals_alert .= "<div class=\"alert alert-teal\">";
 
-		$two_to_end_prefs = ($row_judging_prefs['jPrefsJudgingClosed']-172800);
-		if ($totalRows_session_end > 0) $two_to_end_sess = ($row_session_end['judgingDateEnd']-172800);
+		$two_to_end_prefs = ($row_judging_prefs['jPrefsJudgingClosed'] - 172800);
+		if ((!empty($row_session_end['judgingDateEnd'])) && (is_numeric($row_session_end['judgingDateEnd'])) && ($totalRows_session_end > 0)) $two_to_end_sess = ($row_session_end['judgingDateEnd'] - 172800);	
 		else $two_to_end_sess = $two_to_end_prefs;
 
 		if ($two_to_end_sess > $two_to_end_prefs) {
