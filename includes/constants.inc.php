@@ -2321,7 +2321,7 @@ $club_array = array(
     "WIZARDS",
     "Wizards of Ale Homebrewers (WOAH)",
     "Woo Brew",
-    "Woodstock Malt Monkeys",
+    "North Georgia Malt Monkeys",
     "Wootown Brewers",
     "Worry Worts",
     "Worshipful Co. Of Brewers",
@@ -2457,7 +2457,9 @@ $club_array = array(
     "STLBrewhogs",
     "Brewly Homebrew Club",
     "Butler County Brewing Society (BCBS)",
-    "NINJA Homebrewers",
+    "The Brü Club",
+    "Ninja Homebrewers",
+    "Master Homebrewer Program",
     "Round Rock HOPS"
 );
 asort($club_array);
