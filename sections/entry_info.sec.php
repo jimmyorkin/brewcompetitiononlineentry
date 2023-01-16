@@ -47,6 +47,8 @@ include (DB.'dropoff.db.php');
 include (DB.'judging_locations.db.php');
 include (DB.'styles.db.php');
 include (DB.'entry_info.db.php');
+// Bluebonnet 
+include (DB.'BBOtables.db.php');
 
 $primary_page_info = "";
 $header1_1 = "";
@@ -235,6 +237,8 @@ else {
 	
 	$page_info7 .= $anchor_top;
 }
+
+
 
 // Categories Accepted
 $header1_8 .= "";
@@ -526,6 +530,48 @@ if (($judging_past == 0) && ($registration_open == 2) && ($entry_window_open == 
 
 // Display anchor links
 echo "<p><a class=\"anchor-offset\" name=\"top-page\"></a>";
+
+// Bluebonnet Table Count Display
+echo "<h2>Current Medal Category Counts</h2>";
+echo "<table class=\"table table-striped table-bordered table-responsive\">";
+echo "
+  <tr>
+    <th>
+      Table Number
+    </th>
+    <th>
+      Table Name
+    </th>
+    <th>
+      Count
+    </th>
+  </tr>";
+foreach($BBOtables as $BBOkey => $BBOvalue)
+{
+	if ($BBOvalue['count'] >= $BBOtableMaxEntries)
+	  {
+		$BBOtableCountFull = $BBOvalue['count'] . " [Full]";
+	  }
+	else
+	  {
+	 		$BBOtableCountFull = $BBOvalue['count'];
+	  }
+echo "
+  <tr>
+    <td>
+      $BBOkey
+    </td>
+    <td>" .
+      $BBOvalue['name'] .
+   "</td>
+    <td>" .
+      $BBOtableCountFull .
+   "</td>
+  </tr>";
+}
+echo "</table>";
+// Bluebonnet Table Count Display End
+
 $anchor_link_display = "";
 
 if (is_array($anchor_links)) {
@@ -616,4 +662,5 @@ echo $header1_15;
 echo $page_info15;
 
 echo $style_info_modals;
+
 ?>

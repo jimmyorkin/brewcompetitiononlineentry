@@ -118,7 +118,7 @@ while ($BBOrow = $BBOresult->fetch_assoc())
 
 
 $BBOsql = <<<EOT
-SELECT tableNumber, tableStyles FROM judging_tables
+SELECT tableNumber, tableStyles, tableName FROM judging_tables
 EOT;
 
 if (!$BBOresult = $connection->query($BBOsql)) {
@@ -140,15 +140,19 @@ while ($BBOrow = $BBOresult->fetch_assoc())
 {
 	$BBOtableNumber  = $BBOrow['tableNumber'];
 	$BBOtableStyles  = $BBOrow['tableStyles'];
+	$BBOtableName  = $BBOrow['tableName'];
 
   $BBOtables["$BBOtableNumber"]['styles'] = $BBOtableStyles;
   $BBOtables["$BBOtableNumber"]['count'] = 0;
+  $BBOtables["$BBOtableNumber"]['name'] = $BBOtableName;
 }
 
 /*
   Data from judging_tables table
   $BBOtables['51'] => ['styles'] => '99,100,103'
   $BBOtables['51'] => ['count'] => 0
+  $BBOtables['51'] => ['name'] => 'Light Lagers'
+  
 */
 
 //var_dump($BBOtables);
