@@ -1957,6 +1957,7 @@ $winners_text_007 = "There are no winning entries at this table.";
  */
 
   $bbo_message_001 = "The Medal category is full.";
+  $bbo_message_002 = "You must select a style.";
 
 /**
  * ------------------------------------------------------------------------

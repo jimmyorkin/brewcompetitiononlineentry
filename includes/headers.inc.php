@@ -643,4 +643,5 @@ if ($msg == "17") $output = sprintf("<strong>%s</strong>",$header_text_101);
 if ($msg == "27") $output = sprintf("<strong>%s</strong> %s",$header_text_102,$header_text_008);
 if ($msg == "98") $output = sprintf("<strong>%s</strong>",$header_text_112);
 if ($msg == "99") $output = sprintf("<strong>%s</strong>",$header_text_103);
+if ($msg == "bbo2") $output = sprintf("<strong>%s</strong>",$bbo_message_002);
 ?>

@@ -17,6 +17,17 @@ $errors = FALSE;
 $error_output = array();
 $_SESSION['error_output'] = "";
 
+if ($_POST['brewStyle'] == "0-A")
+{
+	$insertGoTo = $base_url."index.php?section=list&msg=bbo2";
+	$pattern = array('\'', '"');
+	$insertGoTo = str_replace($pattern, "", $insertGoTo);
+	$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
+	header($redirect_go_to);
+	exit();
+}
+
+
 if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) && (isset($_SESSION['userLevel'])))) {
 
 	include (DB.'entries.db.php');
