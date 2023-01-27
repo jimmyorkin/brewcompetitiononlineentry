@@ -27,11 +27,11 @@ $skip_update = 0;
 
 $barcode_text_000 = "Check-In Entries with a Barcode Reader/Scanner modified for Bluebonnet";
 $barcode_text_001 = "The following entries have been checked in";
-$barcode_text_002 = "Attempt to reuse judging number, the following entries have judging numbers assigned to other entries.";
-$barcode_text_003 = "The following entry numbers were not found.";
-$barcode_text_004 = "The following entries were already assigned judging numbers.";
-$barcode_text_005 = "The following entries already received in database";
-$barcode_text_006 = "The following entries have mismatched table numbers between entry sheet and database";
+$barcode_text_002 = "3# Attempt to reuse judging number, the following entries have judging numbers assigned to other entries.";
+$barcode_text_003 = "1# The following entry numbers were not found.";
+$barcode_text_004 = "2# The following entries were already assigned judging numbers.";
+$barcode_text_005 = "4# The following entries already received in database";
+$barcode_text_006 = "5# The following entries have mismatched table numbers between entry sheet and database";
 $barcode_text_007 = "";
 $barcode_text_008 = "";
 $barcode_text_009 = "";
