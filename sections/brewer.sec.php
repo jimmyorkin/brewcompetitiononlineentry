@@ -32,6 +32,8 @@ if ($section != "step2") {
 $show_judge_steward_fields = TRUE;
 $entrant_type_brewery = FALSE;
 $pro_entrant = FALSE;
+$club_other = FALSE;
+$affiliated_other = FALSE;
 
 if ($section == "step2") {
     $_SESSION['prefsProEdition'] = 0;
@@ -92,7 +94,6 @@ if (($_SESSION['prefsProEdition'] == 0) || (($_SESSION['prefsProEdition'] == 1) 
     // Build Clubs dropdown
     $club_options = "";
     $club_alert = "";
-    $club_other = FALSE;
 
     if ($section != "step2") {
         if ((!empty($row_brewer['brewerClubs'])) && (!in_array($row_brewer['brewerClubs'],$club_array))) {
@@ -109,6 +110,62 @@ if (($_SESSION['prefsProEdition'] == 0) || (($_SESSION['prefsProEdition'] == 1) 
             if ($club == $row_brewer['brewerClubs']) $club_selected = " SELECTED";
         }
         $club_options .= "<option value=\"".$club."\"".$club_selected.">".$club."</option>\n";
+    }
+
+}
+
+$organization_options = "";
+
+if (($_SESSION['prefsProEdition'] == 1) && ($show_judge_steward_fields)) {
+
+    $query_organizations = sprintf("SELECT brewerAssignment, brewerBreweryName FROM %s WHERE brewerBreweryName IS NOT NULL OR brewerAssignment IS NOT NULL ORDER BY brewerBreweryName ASC",$prefix."brewer");
+    $organizations = mysqli_query($connection,$query_organizations) or die (mysqli_error($connection));
+    $row_organizations = mysqli_fetch_assoc($organizations);
+    $totalRows_organizations = mysqli_num_rows($organizations);
+
+    $org_options = "";
+
+    if ($totalRows_organizations > 0) {
+
+        /*
+        $affiliated_orgs = '{"affilliated":["Bloated Pear","Cider One"],"affilliatedOther":["Beginners Luck","Apres Cidery","Bloated Pear","Testing"]}';
+        */
+
+        $affiliated_orgs = "";
+        if (!empty($row_brewer['brewerAssignment'])) $affiliated_orgs = json_decode($row_brewer['brewerAssignment'],true);
+
+        $org_array = array();
+
+        do {
+
+            if (!empty($row_organizations['brewerBreweryName'])) $org_array[] = $row_organizations['brewerBreweryName'];   
+            $org_selected_dropdown = "";
+            
+            if ($section != "step2") {
+
+                if (is_array($affiliated_orgs)) {
+                    if ((in_array($row_organizations['brewerBreweryName'],$affiliated_orgs['affilliated'])) || (in_array($row_organizations['brewerBreweryName'],$affiliated_orgs['affilliatedOther']))) $org_selected_dropdown = "SELECTED";
+                }
+
+            }
+
+            if ((isset($row_organizations['brewerBreweryName'])) && (!empty($row_organizations['brewerBreweryName']))) $org_options .= "<option value=\"".$row_organizations['brewerBreweryName']."\"".$org_selected_dropdown.">".$row_organizations['brewerBreweryName']."</option>\n";
+
+        } while($row_organizations = mysqli_fetch_assoc($organizations));
+            
+    }
+
+    $org_other = array();
+
+    if (!empty($affiliated_orgs)) {
+        foreach($affiliated_orgs['affilliatedOther'] as $value) {
+            if (!in_array($value,$org_array)) $org_other[] = $value;
+        }
+    }
+
+    if (!empty($org_other)) {
+        asort($org_other);
+        $org_other = implode(",",$org_other);
     }
 
 }
@@ -305,7 +362,7 @@ if (action == "edit") {
 }
 </script>
 <script src="<?php echo $base_url; ?>js_includes/add_edit_user.min.js"></script>
-<form class="form-horizontal" data-toggle="validator" action="<?php echo $form_action; ?>" method="POST" name="form1" id="form1">
+<form id="submit-form" class="form-horizontal hide-loader-form-submit" data-toggle="validator" action="<?php echo $form_action; ?>" method="POST" name="form1">
 
 <?php 
 include (SECTIONS.'brewer_form_0.sec.php'); // Participant Info
@@ -339,7 +396,7 @@ if (($go != "entrant") && ($section != "step2")) include (SECTIONS.'brewer_form_
 <div class="form-group">
     <div class="col-lg-offset-2 col-md-offset-3 col-sm-offset-4">
         <!-- Input Here -->
-        <button name="submit" type="submit" class="btn btn-primary" ><?php echo $submit_text; ?> </button>
+        <button id="form-submit-button" name="submit" type="submit" class="btn btn-primary" ><?php echo $submit_text; ?> </button>
     </div>
 </div><!-- Form Group -->
 </form>

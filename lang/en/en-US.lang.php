@@ -712,35 +712,34 @@ $beerxml_text_012 = "entry added"; // lower-case and missing punctuation intenti
  * ------------------------------------------------------------------------
  */
 
-if ($section == "brew") {
-	$brew_text_000 = "Select for specifics about style"; // missing punctuation intentional
-	$brew_text_001 = "Judges will not know the name of your entry.";
-	$brew_text_002 = "[disabled - style entry limit reached]"; // missing punctuation intentional
-	$brew_text_003 = "[disabled - style entry limit reached for user]"; // missing punctuation intentional
-	$brew_text_004 = "Specific type, special ingredients, classic style, strength (for beer styles), and/or color are required";
-	$brew_text_005 = "Strength required"; // missing punctuation intentional
-	$brew_text_006 = "Carbonation level required"; // missing punctuation intentional
-	$brew_text_007 = "Sweetness level required"; // missing punctuation intentional
-	$brew_text_008 = "This style requires that you provide specific information for entry.";
-	$brew_text_009 = "Requirements for"; // missing punctuation intentional
-	$brew_text_010 = "This style requires more information. Please enter in the provided area.";
-	$brew_text_011 = "The entry's name is required.";
-	$brew_text_012 = "***NOT REQUIRED*** Provide ONLY if you wish the judges to fully consider what you write here when evaluating and scoring your entry. Use to record specifics that you would like judges to consider when evaluating your entry that you have NOT SPECIFIED in other fields (e.g., mash technique, hop variety, honey variety, grape variety, pear variety, etc.).";
-	$brew_text_013 = "DO NOT use this field to specify special ingredients, classic style, strength (for beer entries), or color.";
-	$brew_text_014 = "Provide only if you wish the judges to fully consider what you specify when evaluating and scoring your entry.";
-	$brew_text_015 = "Type of extract (e.g., light, dark) or brand.";
-	$brew_text_016 = "Type of grain (e.g., pilsner, pale ale, etc.)";
-	$brew_text_017 = "Type of ingredient or name.";
-	$brew_text_018 = "Hop name.";
-	$brew_text_019 = "Numbers only (e.g., 12.2, 6.6, etc.).";
-	$brew_text_020 = "Name of strain (e.g., 1056 American Ale).";
-	$brew_text_021 = "Wyeast, White Labs, etc.";
-	$brew_text_022 = "1 smackpack, 2 vials, 2000 ml, etc.";
-	$brew_text_023 = "Primary fermentation in days.";
-	$brew_text_024 = "Saccharification rest, etc.";
-	$brew_text_025 = "Secondary fermentation in days.";
-	$brew_text_026 = "Other fermentation in days.";
-}
+$brew_text_000 = "Select for specifics about style"; // missing punctuation intentional
+$brew_text_001 = "Judges will not know the name of your entry.";
+$brew_text_002 = "[disabled - style entry limit reached]"; // missing punctuation intentional
+$brew_text_003 = "[disabled - style entry limit reached for user]"; // missing punctuation intentional
+$brew_text_004 = "Specific type, special ingredients, classic style, strength (for beer styles), and/or color are required";
+$brew_text_005 = "Strength required"; // missing punctuation intentional
+$brew_text_006 = "Carbonation level required"; // missing punctuation intentional
+$brew_text_007 = "Sweetness level required"; // missing punctuation intentional
+$brew_text_008 = "This style requires that you provide specific information for entry.";
+$brew_text_009 = "Requirements for"; // missing punctuation intentional
+$brew_text_010 = "This style requires more information. Please enter in the provided area.";
+$brew_text_011 = "The entry's name is required.";
+$brew_text_012 = "***NOT REQUIRED*** Provide ONLY if you wish the judges to fully consider what you write here when evaluating and scoring your entry. Use to record specifics that you would like judges to consider when evaluating your entry that you have NOT SPECIFIED in other fields (e.g., mash technique, hop variety, honey variety, grape variety, pear variety, etc.).";
+$brew_text_013 = "DO NOT use this field to specify special ingredients, classic style, strength (for beer entries), or color.";
+$brew_text_014 = "Provide only if you wish the judges to fully consider what you specify when evaluating and scoring your entry.";
+$brew_text_015 = "Type of extract (e.g., light, dark) or brand.";
+$brew_text_016 = "Type of grain (e.g., pilsner, pale ale, etc.)";
+$brew_text_017 = "Type of ingredient or name.";
+$brew_text_018 = "Hop name.";
+$brew_text_019 = "Numbers only, please.";
+$brew_text_020 = "Name of strain (e.g., 1056 American Ale).";
+$brew_text_021 = "Wyeast, White Labs, etc.";
+$brew_text_022 = "1 smackpack, 2 vials, 2000 ml, etc.";
+$brew_text_023 = "Primary fermentation in days.";
+$brew_text_024 = "Saccharification rest, etc.";
+$brew_text_025 = "Secondary fermentation in days.";
+$brew_text_026 = "Other fermentation in days.";
+
 
 /**
  * ------------------------------------------------------------------------
@@ -1479,9 +1478,9 @@ $bottle_labels_000 = "Labels cannot be generated at this time.";
 $bottle_labels_001 = "Be sure to check the competition entry acceptance rules for specific label attachment guidelines before submitting!";
 $bottle_labels_002 = "Typically, clear packing tape is used to attach to the barrel of each entry - cover the label completely.";
 $bottle_labels_003 = "Typically, a rubber band is used to attach labels to each entry.";
-if (isset($_SESSION['jPrefsBottleNum'])) $bottle_labels_004 = "4 labels are provided as a courtesy. This competition requires ".$_SESSION['jPrefsBottleNum']." bottles per entry. Discard any extra labels.";
+if (isset($_SESSION['jPrefsBottleNum'])) $bottle_labels_004 = "4 labels are provided as a courtesy. This competition requires ".$_SESSION['jPrefsBottleNum']." bottles per entry. You may need to print multiple pages depending upon the number of bottles required.";
 else $bottle_labels_004 = "4 labels are provided as a courtesy. Discard any extra labels.";
-$bottle_labels_005 = "If any items are missing, close this window and edit the entry.";
+$bottle_labels_005 = "If any items are missing, close this window and edit the entry. You may need to print multiple pages depending upon the number of bottles required.";
 $bottle_labels_006 = "Space reserved for competition staff use.";
 $bottle_labels_007 = "THIS RECIPE FORM IS FOR YOUR RECORDS ONLY - please DO NOT include a copy of it with your entry shipment.";
 
@@ -2055,13 +2054,34 @@ $evaluation_info_094 = "The minimum word requirement has not been reached in one
  */
 
 $label_regional_variation = "Regional Variation";
+$label_characteristics = "Characteristics";
+$label_intensity = "Intensity";
+$label_quality = "Quality";
+$label_palate = "Palate";
+$label_medium = "Medium";
+$label_medium_dry = "Medium Dry";
+$label_medium_sweet = "Medium Sweet";
+$label_your_score = "Your Score";
+$label_summary_overall_impression = "Summary of Evaluation and Overall Impression";
+$label_medal_count = "Medal Count";
+$label_best_brewer_place = "Best Brewer Place";
+$label_industry_affiliations = "Industry Organization Affiliations";
+
 $brew_text_041 = "Optional &ndash; specify a regional variation (e.g., Mexican Lager, Dutch Lager, Japanese Rice Lager, etc.).";
+
 $evaluation_info_095 = "Next assigned judging session open:";
 $evaluation_info_096 = "To assist in preparation, assigned tables/flights and associated entries are available ten minutes prior to the start of a session.";
 $evaluation_info_097 = "Your next judging session is now available.";
 $evaluation_info_098 = "Refresh to view.";
 $evaluation_info_099 = "Past or current judging sessions:";
 $evaluation_info_100 = "Upcoming judging sessions:";
+
+$evaluation_info_101 = "Please provide another color descriptor.";
+$evaluation_info_102 = "Enter your total score - maximum of 50. Use the scoring guide below if needed.";
+$evaluation_info_103 = "Please provide your score - minimum of 5, maximum of 50.";
+
+$brewer_text_051 = "Select the industry organizations that you are affiliated with as an employee, volunteer, etc. This is to make sure there are not any conflicts of interest when assigning judges and stewards to evaluate entries.";
+$brewer_text_052 = "<strong>If any industry organization is <u>not</u> listed in the drop-down above, enter it here.</strong> Separate each organization's name by comma (,) or semi-colon (;). Some symbols are not allowed, including ampersand (&amp;), single-quotation marks (&#39;), double-quotation marks (&quot;), and percent (&#37;).";
 
 /**
  * ----------------------------------------------------------------------------------
