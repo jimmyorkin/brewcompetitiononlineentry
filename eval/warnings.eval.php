@@ -101,9 +101,10 @@ setInterval(function() {
   if ((elapsedTime > 600) && (elapsedTime < 900)) {
     $("#elapsed-time-p").attr("class", "text-warning");
   }
-  if ((elapsedTime >= 900) && (elapsedTime < 901)) {
-    $("#eval-courtesy-warning-15").modal('show');
-  }
+// BBO disabling the 15 minute warning popup message  
+//  if ((elapsedTime >= 900) && (elapsedTime < 901)) {
+//    $("#eval-courtesy-warning-15").modal('show');
+//  }
   if (elapsedTime >= 900) {
     $("#elapsed-time-p").attr("class", "text-danger");
   }
