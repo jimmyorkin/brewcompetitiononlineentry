@@ -69,9 +69,13 @@ if ($row_brewer_organizer) $organizer = $row_brewer_organizer['brewerFirstName']
 else $organizer = "";
 
 // Bluebonnet get table name and number for entry sheets and bottle lables
-include(MODS.'user_functions.php');
-$table_info = get_table_name($brewing_info['brewStyle']);
-$table_number = sprintf("%2s",$table_info['tableNumber']);
+include (DB.'BBOtables.db.php');
+
+$BBOStyle = sprintf("%02s", $brewing_info['brewCategory'])."-".$brewing_info['brewSubCategory'];
+$table_number = $BBOTables['TableStyles']['TableNumber'][$BBOStyle];
+$table_info['tableNumber'] = $table_number;
+$table_info['tableName'] = $BBOTables['TableEntryCounts'][$table_number]['Name'];
+
 // End of get table info
 
 if (in_array($_SESSION['prefsEntryForm'],$barcode_qrcode_array)) {

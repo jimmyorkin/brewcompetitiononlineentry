@@ -315,7 +315,7 @@ $styles_dropdown = "";
 
 if ($action == "edit")
 {
-	$BBOCurrentTable = $BBOSubCatCount["$view"]['table'];
+	$BBOCurrentTable = $BBOTables['TableStyles']['TableNumber'][$view];
 }
 
 do {
@@ -345,12 +345,14 @@ do {
 	elseif ($disable_fields) $selected_disabled = "DISABLED";
 
 	// Bluebonnet
-	if (($action == "add") && ($BBOtables[$BBOSubCatCount["$BBOsubcat"]['table']]['count'] >= $BBOtableMaxEntries))
+  //	                           $BBOTables['TableEntryCounts']['51']['Count']
+	                           
+	if (($action == "add") && ($BBOTables['TableEntryCounts'][$BBOTables['TableStyles']['TableNumber'][$BBOsubcat]]['Count'] >= $BBOtableMaxEntries))
 	{
 	 	$BBOtableLimitDisabled = TRUE;
 		$selected_disabled = "DISABLED";
 	} 
-	elseif (($action == "edit") && ($BBOtables[$BBOSubCatCount["$BBOsubcat"]['table']]['count'] >= $BBOtableMaxEntries) && ($BBOSubCatCount["$BBOsubcat"]['table'] != $BBOCurrentTable))
+	elseif (($action == "edit") && ($BBOTables['TableEntryCounts'][$BBOTables['TableStyles']['TableNumber'][$BBOsubcat]]['Count'] >= $BBOtableMaxEntries) && ($BBOTables['TableStyles']['TableNumber'][$BBOsubcat] != $BBOCurrentTable))
 	{
 	 	$BBOtableLimitDisabled = TRUE;
 		$selected_disabled = "DISABLED";

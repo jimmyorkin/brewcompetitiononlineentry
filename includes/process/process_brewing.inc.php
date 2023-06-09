@@ -93,22 +93,24 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 			$BBOLookUpStyle = $_POST['brewStyle'];
 		}
 		
-		$BBOWork = explode('-', $_POST['brewEditStyle']);
-		if (preg_match("/^[[:digit:]]+$/",$BBOWork[0]))
-		{
-			$BBObrewEditStyle = sprintf('%02d',$BBOWork[0]) . "-" . $BBOWork[1];
+		if (isset($_POST['brewEditStyle'])) // $_POST['brewEditStyle'] does not exist on an add
+		{		
+			$BBOWork = explode('-', $_POST['brewEditStyle']);
+			if (preg_match("/^[[:digit:]]+$/",$BBOWork[0]))
+			{
+				$BBObrewEditStyle = sprintf('%02d',$BBOWork[0]) . "-" . $BBOWork[1];
+			}
+			else
+			{
+				$BBObrewEditStyle = $_POST['brewEditStyle'];
+			}
 		}
-		else
-		{
-			$BBObrewEditStyle = $_POST['brewEditStyle'];
-		}
-
 	if ($action == "edit")
 	{
-		if ($BBOtables[$BBOSubCatCount["$BBOLookUpStyle"]['table']]['count'] >= $BBOtableMaxEntries)
+		if ($BBOTables['TableEntryCounts'][$BBOTables['TableStyles']['TableNumber'][$BBOLookUpStyle]]['Count'] >= $BBOtableMaxEntries)
 		{
-			                     //The old style                                  The new style
-		  if ($BBOSubCatCount["$BBObrewEditStyle"]['table'] != $BBOSubCatCount["$BBOLookUpStyle"]['table']) // The entrant can change the style in a full table as long as it stays in the same table
+			                                           //The old style                                                  The new style
+		  if ($BBOTables['TableStyles']['TableNumber'][$BBObrewEditStyle] != $BBOTables['TableStyles']['TableNumber'][$BBOLookUpStyle]) // The entrant can change the style in a full table as long as it stays in the same table
 			{
 				$insertGoTo = $base_url."index.php?section=list&msg=13";
 				$pattern = array('\'', '"');
@@ -122,7 +124,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 	if ($action == "add")
 	{
-		if ($BBOtables[$BBOSubCatCount["$BBOLookUpStyle"]['table']]['count'] >= $BBOtableMaxEntries)
+		if ($BBOTables['TableEntryCounts'][$BBOTables['TableStyles']['TableNumber'][$BBOLookUpStyle]]['Count'] >= $BBOtableMaxEntries)
 		{
 			$insertGoTo = $base_url."index.php?section=list&msg=13";
 			$pattern = array('\'', '"');

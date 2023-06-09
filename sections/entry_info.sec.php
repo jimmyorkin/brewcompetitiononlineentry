@@ -571,15 +571,15 @@ echo "
       Count
     </th>
   </tr>";
-foreach($BBOtables as $BBOkey => $BBOvalue)
+foreach($BBOTables['TableEntryCounts'] as $BBOkey => $BBOvalue)
 {
-	if ($BBOvalue['count'] >= $BBOtableMaxEntries)
+	if ($BBOvalue['Count'] >= $BBOtableMaxEntries)
 	  {
-		$BBOtableCountFull = $BBOvalue['count'] . " [Full]";
+		  $BBOtableCountFull = $BBOvalue['Count'] . " [Full]";
 	  }
 	else
 	  {
-	 		$BBOtableCountFull = $BBOvalue['count'];
+	 		$BBOtableCountFull = $BBOvalue['Count'];
 	  }
 echo "
   <tr>
@@ -587,7 +587,7 @@ echo "
       $BBOkey
     </td>
     <td>" .
-      $BBOvalue['name'] .
+      $BBOvalue['Name'] .
    "</td>
     <td>" .
       $BBOtableCountFull .
