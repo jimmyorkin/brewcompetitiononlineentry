@@ -303,7 +303,8 @@ if ($entry_found) {
   $entry_info_html .= "</div>";
 
   $entry_info_html .= "<div class=\"row bcoem-admin-element\">";
-  $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$_SESSION['style_set_short_name']." ".$label_style."</strong></div>";
+  if ($nw_cider) $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$_SESSION['style_set_short_name']." ".$label_category."</strong></div>";
+  else $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$_SESSION['style_set_short_name']." ".$label_style."</strong></div>";
   $entry_info_html .= "<div class=\"col col-lg-9 col-md-8 col-sm-8 col-xs-12\">";
 
   // Style Links
@@ -651,6 +652,7 @@ if ($entry_found) {
     <div id="ordinal-help-total" class="help-block small text-danger"><?php echo $evaluation_info_051; ?></div>
   </div>
 </div>
+<?php if (!$nw_cider) { ?>
 <div class="form-group">
   <label for="evalBottle"><?php echo $label_bottle_inspection; ?></label>
   <div class="checkbox">
@@ -663,6 +665,7 @@ if ($entry_found) {
   <label for="evalBottleNotes"><?php echo $label_bottle_inspection_comments; ?></label>
   <input type="text" class="form-control" name="evalBottleNotes" id="evalBottleNotes" maxlength="255" placeholder="" value="<?php if ($action == "edit") echo $row_eval['evalBottleNotes']; ?>">
 </div>
+<?php } ?>
 <?php include (EVALS.$scoresheet_form); ?>
 <h3 class="section-heading"><?php echo $label_score; ?></h3>
 

@@ -2,7 +2,7 @@
 /**
  * Module:      en-US.lang.php
  * Description: This module houses all display text in the English language.
- * Updated:     January 17, 2023
+ * Updated:     April 26, 2023
  *  
  * To translate this file, first make a copy of it and rename it with the 
  * language name in the title.
@@ -750,7 +750,7 @@ $brew_text_026 = "Other fermentation in days.";
 
 $brewer_text_000 = "Please enter only <em>one</em> person's name.";
 $brewer_text_001 = "Choose one. This question will be used to verify your identity should you forget your password.";
-$brewer_text_003 = "To be considered for a GABF Pro-Am brewing opportunity you must be an AHA member.";
+$brewer_text_003 = "Input only accepts numeric characters. To be considered for a GABF Pro-Am brewing opportunity you must be an AHA member.";
 $brewer_text_004 = "Provide any information that you believe the competition organizer, judge coordinator, or competition staff should know (e.g., allergies, special dietary restrictions, shirt size, etc.).";
 $brewer_text_005 = "Not Applicable";
 $brewer_text_006 = "Are you willing and qualified to serve as a judge in this competition?";
@@ -2063,9 +2063,18 @@ $label_medium_dry = "Medium Dry";
 $label_medium_sweet = "Medium Sweet";
 $label_your_score = "Your Score";
 $label_summary_overall_impression = "Summary of Evaluation and Overall Impression";
-$label_medal_count = "Medal Count";
+$label_medal_count = "Medal Group Count";
 $label_best_brewer_place = "Best Brewer Place";
 $label_industry_affiliations = "Industry Organization Affiliations";
+$label_deep_gold = "Deep Gold";
+$label_chestnut = "Chestnut";
+$label_pink = "Pink";
+$label_red = "Red";
+$label_purple = "Purple";
+$label_garnet = "Garnet";
+$label_clear = "Clear";
+$label_final_judging_date = "Final Judging Date";
+$label_entries_judged = "Entries Judged";
 
 $brew_text_041 = "Optional &ndash; specify a regional variation (e.g., Mexican Lager, Dutch Lager, Japanese Rice Lager, etc.).";
 
@@ -2075,13 +2084,12 @@ $evaluation_info_097 = "Your next judging session is now available.";
 $evaluation_info_098 = "Refresh to view.";
 $evaluation_info_099 = "Past or current judging sessions:";
 $evaluation_info_100 = "Upcoming judging sessions:";
-
 $evaluation_info_101 = "Please provide another color descriptor.";
 $evaluation_info_102 = "Enter your total score - maximum of 50. Use the scoring guide below if needed.";
 $evaluation_info_103 = "Please provide your score - minimum of 5, maximum of 50.";
 
 $brewer_text_051 = "Select the industry organizations that you are affiliated with as an employee, volunteer, etc. This is to make sure there are not any conflicts of interest when assigning judges and stewards to evaluate entries.";
-$brewer_text_052 = "<strong>If any industry organization is <u>not</u> listed in the drop-down above, enter it here.</strong> Separate each organization's name by comma (,) or semi-colon (;). Some symbols are not allowed, including ampersand (&amp;), single-quotation marks (&#39;), double-quotation marks (&quot;), and percent (&#37;).";
+$brewer_text_052 = "<strong>If any industry organization is <u>not</u> listed in the drop-down above, enter it here.</strong> Separate each organization's name by comma (,) or semi-colon (;). Some symbols are not allowed, including double-quotation marks (&quot;) and percent (&#37;).";
 
 /**
  * ----------------------------------------------------------------------------------
