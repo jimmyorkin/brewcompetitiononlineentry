@@ -2,6 +2,8 @@
 
 $entries_updated[] = "";
 
+include (DB.'BBOtables.db.php');
+
 //echo "Post=", var_dump($_POST), "<br><br>;";
 //echo '<pre>';
 //var_dump($_SESSION);
@@ -16,7 +18,7 @@ Here are the tests for an entry.
 1. Does the entry number exist in the brewing table
 2. Has this entry already been assigned a judging number. Determined by the judging number being less than or equal to 9999
 3. Has the judging number already been assigned to another entry
-4. Has this entry already been recieved by looking at the received column in the brewing table
+4. Has this entry already been received by looking at the received column in the brewing table
 5. Does the table from the entry form match the what the entry has in the database?
 
 We propagate the brewPaid value from the database back into the database
@@ -49,20 +51,14 @@ foreach ($_POST['id'] as $id) {
 			$row_jnum = mysqli_fetch_assoc($jnum);
 			
 			// Get Table Number to match against entry form
-			// First get id of style from brewing and style tables
-			// Cheating here by hardcoding brewStyleVersion
-			$query_styleid_in_DB = sprintf("SELECT a.id FROM %s a, %s b WHERE brewStyleGroup = brewCategorySort and brewStyleNum = brewSubCategory and brewStyleVersion = 'BJCP2021' AND b.id = %u", $prefix."styles", $prefix."brewing", $_POST['eid'.$id]);
+			// Get Category and Subcategory from the brewing table
+			// Then use the $BBOTables variable to look up the Table this entry is in.
+			$query_styleid_in_DB = sprintf("SELECT brewCategorySort, brewSubCategory FROM %s WHERE id = %u", $prefix."brewing", $_POST['eid'.$id]);
 
-			$styleid_in_DB = mysqli_query($connection,$query_styleid_in_DB) or die (mysqli_error($connection));
-			$row_styleid_in_DB = mysqli_fetch_assoc($styleid_in_DB);
-			
-	    $likeString = "'%" . strval($row_styleid_in_DB['id']) . "%'";
-			
-	    // The get the table number from the table table
-			$query_table = sprintf("SELECT tableNumber FROM %s WHERE tableStyles LIKE %s", $prefix."judging_tables", $likeString);
+			$style_in_DB = mysqli_query($connection,$query_styleid_in_DB) or die (mysqli_error($connection));
+			$row_style_in_DB = mysqli_fetch_assoc($style_in_DB);
 
-			$table = mysqli_query($connection,$query_table) or die (mysqli_error($connection));
-			$row_table = mysqli_fetch_assoc($table);
+			$row_table = $BBOTables['TableStyles']['TableNumber'][$row_style_in_DB['brewCategorySort'] . '-' . $row_style_in_DB['brewSubCategory']];
 		}
 			
 		if ($totalRows_enum == 0) { // 1. Does the entry number exist in the brewing table?
@@ -93,12 +89,12 @@ foreach ($_POST['id'] as $id) {
 			mysqli_query($connection, $insert_log_sql) or die (mysqli_error($connection));
 			$skip_update = 1;
 		}
-		elseif (intval($_POST['tableNumber'.$id]) != $row_table["tableNumber"]) // 5. Does the table number on the entry form match the database?
+		elseif (intval($_POST['tableNumber'.$id]) != $row_table) // 5. Does the table number on the entry form match the database?
 		  {
-		    $mismatch_table[] = $row_table["tableNumber"] . "*" . $_POST['eid'.$id] . "*" . $_POST['tableNumber'.$id];
+		    $mismatch_table[] = $row_table . "*" . $_POST['eid'.$id] . "*" . $_POST['tableNumber'.$id];
 		    
 		    $insert_log_sql = sprintf("INSERT INTO %s (user_name, entrynum, errortext) VALUES ('%s', '%s', '5# Entry %s table mismatch, Entry sheet says %s, DB says %s');", 
-			  $prefix."barcode_log", $_SESSION["user_name"], $_POST['eid'.$id], $_POST['eid'.$id], $_POST['tableNumber'.$id], $row_table["tableNumber"]);
+			  $prefix."barcode_log", $_SESSION["user_name"], $_POST['eid'.$id], $_POST['eid'.$id], $_POST['tableNumber'.$id], $row_table);
 			  mysqli_query($connection, $insert_log_sql) or die (mysqli_error($connection));
 		    $skip_update = 1;
 		  }
