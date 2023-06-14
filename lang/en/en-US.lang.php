@@ -1325,7 +1325,7 @@ $brew_text_038 = "Does this entry have possible food allergens? Common food alle
 $brew_text_039 = "Please specify any and all possible allergen(s)";
 
 $brewer_text_022 = "You will be able to identify a co-brewer when adding your entries.";
-$brewer_text_023 = "Select &quot;None&quot; if you are not affiliated with a club. Select &quot;Other&quot; if your club is not on the list - <strong>be sure to use the search box</strong>.";
+$brewer_text_023 = "Select &quot;None&quot; if you are not affiliated with a club. If your club is not on the list, contact the &quot;Dataguy&quot; to have it added.";
 $brewer_text_024 = "Please provide your first name.";
 $brewer_text_025 = "Please provide your last name.";
 $brewer_text_026 = "Please provide your phone number.";

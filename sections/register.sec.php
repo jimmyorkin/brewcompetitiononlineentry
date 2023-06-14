@@ -646,7 +646,7 @@ if ($go == "default") {  ?>
         <!-- Input Here -->
         <select class="selectpicker" name="brewerClubs" id="brewerClubs" data-live-search="true" data-size="10" data-width="fit" data-show-tick="true" data-header="<?php echo $label_select_club; ?>" title="<?php echo $label_select_club; ?>">
         	<option value="">None</option>
-            <option value="Other">Other</option>
+<!--            <option value="Other">Other</option> -->
             <option data-divider="true"></option>
             <?php echo $club_options; ?>
         </select>
