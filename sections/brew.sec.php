@@ -346,24 +346,24 @@ do {
 
 	// Bluebonnet
   //	                           $BBOTables['TableEntryCounts']['51']['Count']
-	                           
-	if (($action == "add") && ($BBOTables['TableEntryCounts'][$BBOTables['TableStyles']['TableNumber'][$BBOsubcat]]['Count'] >= $BBOtableMaxEntries))
-	{
-	 	$BBOtableLimitDisabled = TRUE;
-		$selected_disabled = "DISABLED";
-	} 
-	elseif (($action == "edit") && ($BBOTables['TableEntryCounts'][$BBOTables['TableStyles']['TableNumber'][$BBOsubcat]]['Count'] >= $BBOtableMaxEntries) && ($BBOTables['TableStyles']['TableNumber'][$BBOsubcat] != $BBOCurrentTable))
-	{
-	 	$BBOtableLimitDisabled = TRUE;
-		$selected_disabled = "DISABLED";
-	} 
-	else
-	{
-		$BBOtableLimitDisabled = FALSE;
-	}
 
-	
-	
+  $BBOTableUnlimited = in_array($BBOTables['TableStyles']['TableNumber'][$BBOsubcat], $BBOUnlimitedTables);
+
+	if (($action == "add") && (!$BBOTableUnlimited) && ($BBOTables['TableEntryCounts'][$BBOTables['TableStyles']['TableNumber'][$BBOsubcat]]['Count'] >= $BBOtableMaxEntries))
+	{
+	 	$BBOtableLimitDisabled = TRUE;
+		$selected_disabled = "DISABLED";
+	} 
+	elseif (($action == "edit") && (!$BBOTableUnlimited) && ($BBOTables['TableEntryCounts'][$BBOTables['TableStyles']['TableNumber'][$BBOsubcat]]['Count'] >= $BBOtableMaxEntries) && ($BBOTables['TableStyles']['TableNumber'][$BBOsubcat] != $BBOCurrentTable))
+		{
+		 	$BBOtableLimitDisabled = TRUE;
+			$selected_disabled = "DISABLED";
+		} 
+		else
+		{
+			$BBOtableLimitDisabled = FALSE;
+		}
+
 	if (($action == "edit") && ($view == $style_value_edit)) { // You can always change the entry you are trying to edit
 		$selected = " SELECTED";
 		$selected_disabled = "";

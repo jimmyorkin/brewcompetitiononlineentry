@@ -80,8 +80,8 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		exit();
 	}
 	
-	// $_POST['brewStyle'] is the new style
-	// brewEditStyle is the old style
+	// $_POST['brewStyle'] is the new style, becomes $BBOLookUpStyle
+	// $_POST['brewEditStyle'] is the old style, becomes $BBObrewEditStyle
 
 		$BBOWork = explode('-', $_POST['brewStyle']);
 		if (preg_match("/^[[:digit:]]+$/",$BBOWork[0]))
@@ -105,9 +105,12 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 				$BBObrewEditStyle = $_POST['brewEditStyle'];
 			}
 		}
+	
 	if ($action == "edit")
 	{
-		if ($BBOTables['TableEntryCounts'][$BBOTables['TableStyles']['TableNumber'][$BBOLookUpStyle]]['Count'] >= $BBOtableMaxEntries)
+		$BBOTableUnlimited = in_array($BBOTables['TableStyles']['TableNumber'][$BBOLookUpStyle], $BBOUnlimitedTables);
+		
+		if ((!$BBOTableUnlimited) && ($BBOTables['TableEntryCounts'][$BBOTables['TableStyles']['TableNumber'][$BBOLookUpStyle]]['Count'] >= $BBOtableMaxEntries))
 		{
 			                                           //The old style                                                  The new style
 		  if ($BBOTables['TableStyles']['TableNumber'][$BBObrewEditStyle] != $BBOTables['TableStyles']['TableNumber'][$BBOLookUpStyle]) // The entrant can change the style in a full table as long as it stays in the same table
@@ -124,7 +127,9 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 	if ($action == "add")
 	{
-		if ($BBOTables['TableEntryCounts'][$BBOTables['TableStyles']['TableNumber'][$BBOLookUpStyle]]['Count'] >= $BBOtableMaxEntries)
+		$BBOTableUnlimited = in_array($BBOTables['TableStyles']['TableNumber'][$BBOLookUpStyle], $BBOUnlimitedTables);
+		
+		if ((!$BBOTableUnlimited) && ($BBOTables['TableEntryCounts'][$BBOTables['TableStyles']['TableNumber'][$BBOLookUpStyle]]['Count'] >= $BBOtableMaxEntries))
 		{
 			$insertGoTo = $base_url."index.php?section=list&msg=13";
 			$pattern = array('\'', '"');

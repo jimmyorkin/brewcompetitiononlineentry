@@ -217,4 +217,12 @@ $server_root = $_SERVER['DOCUMENT_ROOT'];
 
 $BBOtableMaxEntries = 4;
 
+/*
+ * ******************************************************************************
+ * Set the array members that have unlimited entry counts
+ * ******************************************************************************
+ */
+
+$BBOUnlimitedTables = array(64);
+
 ?>
