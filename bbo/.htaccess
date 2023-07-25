@@ -1,5 +1,5 @@
 AuthType Basic
 AuthName "Authentication Required"
-AuthUserFile ../htdocs/bcoem-bluebonnet/bbo/.htpasswd
+AuthUserFile PathTo.htpasswdFile
 Require valid-user
 Options -Indexes

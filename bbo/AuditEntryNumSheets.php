@@ -138,18 +138,16 @@ if ($mysqli->connect_errno)
 
 
 	$sql = <<<EOT
-	SELECT 
+SELECT 
 	  b.tableNumber,
 	  b.tableName,
 	  a.id
 	FROM 
 	  brewing a,
-	  judging_tables b,
-	  judging_flights c
+	  bbo_tables b
 	WHERE
-	      b.id = c.flightTable
-	  and a.id = c.flightEntryID
-  ORDER by 1,3
+	      b.style = concat(a.brewCategory, a.brewSubCategory)
+  ORDER by 1,3;
 EOT;
 
 if (!$result = $mysqli->query($sql)) {
