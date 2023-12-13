@@ -11,6 +11,8 @@ require_once ('paths.php');
 require_once (CONFIG.'bootstrap.php');
 require_once (DB.'mods.db.php');
 
+require_once (MODS.'bbo-delete-unpaids.php');
+
 $account_pages = array("list","pay","brewer","user","brew","pay","evaluation");
 
 if ((!$logged_in) && (in_array($section,$account_pages))) {

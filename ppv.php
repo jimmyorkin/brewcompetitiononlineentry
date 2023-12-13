@@ -138,10 +138,13 @@ if ($verified) {
 
 		foreach ($b as $key=>$value) {
 
-			$update_table = $prefix."brewing";
+// Modified for 1 hour unpaid logical delete
+
+			$update_table = $prefix."brewing_bbo_real";
 			$data_paid = array(
 				'brewPaid' => 1,
-				'brewUpdated' => $db_conn->now()
+				'brewUpdated' => $db_conn->now(),
+				'bboLogicallyDeleted' => 0
 			);
 			$db_conn->where ('id', $value);
 			$result = $db_conn->update ($update_table, $data_paid);
