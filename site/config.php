@@ -225,4 +225,12 @@ $BBOtableMaxEntries = 4;
 
 $BBOUnlimitedTables = array(64);
 
+/*
+ * ******************************************************************************
+ * Set the maximum number of entries and entrant can have in a table
+ * ******************************************************************************
+ */
+
+$BBOMaxEntrantEntriesPerTable = 2;
+
 ?>
