@@ -6,8 +6,15 @@
  *
  */
 
-// Bluebonnet 
+// Bluebonnet
+$BBOentrantTableCount = array();
 include (DB.'BBOtables.db.php');
+BBOgetEntrantTableCount($BBOentrantTableCount, $_SESSION['user_id'], $BBOTables, $connection);
+
+
+
+
+
 
 include (DB.'styles.db.php');
 if ($_SESSION['prefsStyleSet'] == "BA") include (INCLUDES.'ba_constants.inc.php');
@@ -56,6 +63,7 @@ function admin_relocate($user_level,$go,$referrer) {
 	return $output;
 }
 
+//remaining_entries is the entrant level count limit 
 // Disable fields trigger
 if ((($action == "add") && ($remaining_entries <= 0) && ($_SESSION['userLevel'] == 2)) || (($action == "add") && ($entry_window_open == "2") && ($_SESSION['userLevel'] == 2))) $disable_fields = TRUE; else $disable_fields = FALSE;
 
@@ -313,6 +321,7 @@ if ($add_or_edit) {
 // Construct styles drop-down
 $styles_dropdown = "";
 
+// $view has original style in "01-A" format when in edit. Has "default" when in add.
 if ($action == "edit")
 {
 	$BBOCurrentTable = $BBOTables['TableStyles']['TableNumber'][$view];
@@ -320,8 +329,8 @@ if ($action == "edit")
 
 do {
 
-	$style_value = style_number_const($row_styles['brewStyleGroup'],$row_styles['brewStyleNum'],$_SESSION['style_set_system_separator'],999);
-	$style_value_edit = style_number_const($row_styles['brewStyleGroup'],$row_styles['brewStyleNum'],$_SESSION['style_set_system_separator'],1);
+	$style_value = style_number_const($row_styles['brewStyleGroup'],$row_styles['brewStyleNum'],$_SESSION['style_set_system_separator'],999); // no leading zero
+	$style_value_edit = style_number_const($row_styles['brewStyleGroup'],$row_styles['brewStyleNum'],$_SESSION['style_set_system_separator'],1); // has leading zero
 
 	if (($_SESSION['userLevel'] <= 1) && ($bid != "default")) $subcat_limit = limit_subcategory($style_value,$user_subcat_limit,$user_subcat_limit_exception,$row_limits['prefsUSCLEx'],$bid);
 	else $subcat_limit = limit_subcategory($style_value,$user_subcat_limit,$user_subcat_limit_exception,$row_limits['prefsUSCLEx'],$_SESSION['user_id']);
@@ -332,7 +341,9 @@ do {
 	
 	// Bluebonnet
 	$BBOtableLimitDisabled = FALSE;
+	$BBOentrantTableLimitDisabled = FALSE;
 	$BBOsubcat = $style_value_edit; // With leading zero
+	$BBOtableOfRowStyle = $BBOTables['TableStyles']['TableNumber'][$BBOsubcat];
 	// end Bluebonnet
 
 	
@@ -349,22 +360,36 @@ do {
 
   $BBOTableUnlimited = in_array($BBOTables['TableStyles']['TableNumber'][$BBOsubcat], $BBOUnlimitedTables);
 
+// If doing an add, if over table max you cannot select that style
 	if (($action == "add") && (!$BBOTableUnlimited) && ($BBOTables['TableEntryCounts'][$BBOTables['TableStyles']['TableNumber'][$BBOsubcat]]['Count'] >= $BBOtableMaxEntries))
 	{
 	 	$BBOtableLimitDisabled = TRUE;
 		$selected_disabled = "DISABLED";
-	} 
+	}
+// If doing an add, if the entrant has maxed out the entrant table limit they cannot select that style
+	elseif (($action == "add") && (!$BBOTableUnlimited) && (isset($BBOentrantTableCount[$BBOtableOfRowStyle])) && ($BBOentrantTableCount[$BBOtableOfRowStyle] >= $BBOMaxEntrantEntriesPerTable))
+	{
+	 	$BBOentrantTableLimitDisabled = TRUE;
+		$selected_disabled = "DISABLED";
+	}
+	// If you are doing an edit that would move to a different table and that table is fill, you cannot select that style
 	elseif (($action == "edit") && (!$BBOTableUnlimited) && ($BBOTables['TableEntryCounts'][$BBOTables['TableStyles']['TableNumber'][$BBOsubcat]]['Count'] >= $BBOtableMaxEntries) && ($BBOTables['TableStyles']['TableNumber'][$BBOsubcat] != $BBOCurrentTable))
 		{
 		 	$BBOtableLimitDisabled = TRUE;
 			$selected_disabled = "DISABLED";
-		} 
-		else
+		}
+	elseif (($action == "edit") && (!$BBOTableUnlimited) && (isset($BBOentrantTableCount[$BBOtableOfRowStyle])) && ($BBOentrantTableCount[$BBOtableOfRowStyle] >= $BBOMaxEntrantEntriesPerTable) && ($BBOTables['TableStyles']['TableNumber'][$BBOsubcat] != $BBOCurrentTable))
+		{
+		 	$BBOentrantTableLimitDisabled = TRUE;
+			$selected_disabled = "DISABLED";
+		}
+	else
 		{
 			$BBOtableLimitDisabled = FALSE;
+			$BBOentrantTableLimitDisabled = FALSE;
 		}
 
-	if (($action == "edit") && ($view == $style_value_edit)) { // You can always change the entry you are trying to edit
+	if (($action == "edit") && ($view == $style_value_edit)) { // The current style is selected in edit, Geoff's code
 		$selected = " SELECTED";
 		$selected_disabled = "";
 	}
@@ -380,7 +405,11 @@ do {
    
 //print_r("BBOsubcat=$BBOsubcat, s-d=$selected_disabled, BBOtableLimitDisabled=$BBOtableLimitDisabled, action=$action <br>");	
 	// Bluebonnet
-	if (($selected_disabled == "DISABLED") && ($BBOtableLimitDisabled == TRUE))
+	if (($selected_disabled == "DISABLED") && ($BBOentrantTableLimitDisabled == TRUE))
+	{
+		$selection .= " [disabled - entrant maxed in medal category]";
+	}
+	elseif (($selected_disabled == "DISABLED") && ($BBOtableLimitDisabled == TRUE))
 	{
 		$selection .= " [disabled - medal category is full]";
 	}

@@ -34,7 +34,10 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
     include (INCLUDES.'constants.inc.php');
     
   // Bluebonnet 
-  include (DB.'BBOtables.db.php');
+  $BBOentrantTableCount = array();
+	include (DB.'BBOtables.db.php');
+	BBOgetEntrantTableCount($BBOentrantTableCount, $_SESSION['user_id'], $BBOTables, $connection);
+
 
 	// Instantiate HTMLPurifier
 	require (CLASSES.'htmlpurifier/HTMLPurifier.standalone.php');
@@ -81,7 +84,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 	}
 	
 	// $_POST['brewStyle'] is the new style, becomes $BBOLookUpStyle
-	// $_POST['brewEditStyle'] is the old style, becomes $BBObrewEditStyle
+	// $_POST['brewEditStyle'] is the old style, becomes $BBObrewEditStyle, does not exist on an add
 
 		$BBOWork = explode('-', $_POST['brewStyle']);
 		if (preg_match("/^[[:digit:]]+$/",$BBOWork[0]))
@@ -123,6 +126,21 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 				exit;
 			}
 	  }
+		$BBOnewTable = $BBOTables['TableStyles']['TableNumber'][$BBOLookUpStyle];
+		$BBOoldTable = $BBOTables['TableStyles']['TableNumber'][$BBObrewEditStyle];
+		
+	  if ((!$BBOTableUnlimited) && (isset($BBOentrantTableCount[$BBOnewTable])) && ($BBOentrantTableCount[$BBOnewTable] >= $BBOMaxEntrantEntriesPerTable))
+		{
+		  if ($BBOoldTable != $BBOnewTable) // The entrant can change the style in a full table as long as it stays in the same table
+			{
+				$insertGoTo = $base_url."index.php?section=list&msg=bbo3";
+				$pattern = array('\'', '"');
+				$insertGoTo = str_replace($pattern, "", $insertGoTo);
+				$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
+				header($redirect_go_to);
+				exit;
+			}
+	  }
 	}
 
 	if ($action == "add")
@@ -132,6 +150,18 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		if ((!$BBOTableUnlimited) && ($BBOTables['TableEntryCounts'][$BBOTables['TableStyles']['TableNumber'][$BBOLookUpStyle]]['Count'] >= $BBOtableMaxEntries))
 		{
 			$insertGoTo = $base_url."index.php?section=list&msg=13";
+			$pattern = array('\'', '"');
+			$insertGoTo = str_replace($pattern, "", $insertGoTo);
+			$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
+			header($redirect_go_to);
+			exit;
+	  }
+
+		$BBOnewTable = $BBOTables['TableStyles']['TableNumber'][$BBOLookUpStyle];
+
+ 		if ((!$BBOTableUnlimited) && (isset($BBOentrantTableCount[$BBOnewTable])) && ($BBOentrantTableCount[$BBOnewTable] >= $BBOMaxEntrantEntriesPerTable))
+		{
+			$insertGoTo = $base_url."index.php?section=list&msg=bbo3";
 			$pattern = array('\'', '"');
 			$insertGoTo = str_replace($pattern, "", $insertGoTo);
 			$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));

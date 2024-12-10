@@ -17,6 +17,42 @@ if ($connection->connect_errno)
 }
 */
 
+function BBOgetEntrantTableCount(&$BBOentrantTableCount, $BBObrewerID, $BBOTables, $connection)
+{
+	$BBOsql = <<<EOT
+  SELECT brewCategorySort, brewSubCategory
+  FROM brewing
+  where brewBrewerID = $BBObrewerID
+EOT;
+
+	if (!$BBOresult = $connection->query($BBOsql)) {
+    echo "Error: Query3 failed to execute and here is why: <br>";
+    echo "Query: " . $BBOsql . "<br>";
+    echo "Errno: " . $connection->errno . "<br>";
+    echo "Error: " . $connection->error . "<br>";
+    exit;
+	}
+    
+  while ($BBOrow = $BBOresult->fetch_assoc())
+	{
+		$BBObrewCategorySort = $BBOrow['brewCategorySort'];
+		$BBObrewSubCategory  = $BBOrow['brewSubCategory'];
+		$BBOBCOEMSubCat			 = $BBObrewCategorySort . "-" . $BBObrewSubCategory;
+		
+//	            $BBOTables['TableStyles']['TableNumber']['01-A'] == 51; Style 01-A is in table 51
+		$BBOtable = $BBOTables['TableStyles']['TableNumber'][$BBOBCOEMSubCat];
+		
+		if (array_key_exists($BBOtable, $BBOentrantTableCount))
+			{
+				$BBOentrantTableCount[$BBOtable]++;
+			}
+		else
+			{
+				$BBOentrantTableCount[$BBOtable] = 1;
+			}
+	}
+}
+
 // Read the Bluebonnet table definitions into $BBOTables['TableStyles']['TableNumber'] array
 // First query
 
