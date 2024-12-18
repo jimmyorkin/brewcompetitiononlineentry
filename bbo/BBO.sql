@@ -34,6 +34,12 @@ CREATE TABLE `brewing_bbo_real` (
   `bboLogicallyDeletedTime` timestamp NULL DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+ALTER TABLE `brewing_bbo_real`
+  ADD PRIMARY KEY (`id`);
+  
+ALTER TABLE `brewing_bbo_real`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1001;
+
 --
 -- Structure for view `brewing`
 --
