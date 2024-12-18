@@ -227,10 +227,18 @@ $BBOUnlimitedTables = array(64);
 
 /*
  * ******************************************************************************
- * Set the maximum number of entries and entrant can have in a table
+ * Set the maximum number of entries an entrant can have in a table
  * ******************************************************************************
  */
 
 $BBOMaxEntrantEntriesPerTable = 2;
+
+/*
+ * ******************************************************************************
+ * Set the Timezone in the datebase to CST
+ * ******************************************************************************
+ */
+
+mysqli_query($connection, "SET time_zone = '-06:00';");
 
 ?>
