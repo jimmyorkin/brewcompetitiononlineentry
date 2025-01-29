@@ -118,8 +118,6 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 set_time_limit(30);
 
-$round   = $_GET['round'];
-
 $pdf = new PDF('P', 'in', 'Letter');
 $pdf->AliasNbPages();
 
@@ -135,30 +133,26 @@ if ($mysqli->connect_errno)
   exit;
 }
 
-if ($round == 1 )
-{
+
 	$sql = <<<EOT
 	SELECT 
 	  b.tableNumber,
 	  b.tableName,
-	 	c.flightNumber,
 	  a.brewJudgingNumber,
 	  a.brewCategorySort,
 	  a.brewSubCategory,
 	  a.id
 	FROM 
 	  brewing a,
-	  judging_tables b,
-	  judging_flights c
+	  bbo_tables b
 	WHERE
-	      b.id = c.flightTable
-	  and a.id = c.flightEntryID
+    concat(a.brewCategory, a.brewSubCategory) = b.style
+	  and a.brewReceived = 1
 	ORDER by
 	  b.tableNumber asc,
-    c.flightNumber asc,
     a.brewJudgingNumber asc
 EOT;
-}
+
 
 if (!$result = $mysqli->query($sql)) {
     echo "Error: Our query failed to execute and here is why: \n";
