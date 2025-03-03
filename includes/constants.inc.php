@@ -2465,7 +2465,14 @@ $club_array = array(
     "The Brü Club",
     "Ninja Homebrewers",
     "Master Homebrewer Program",
-    "Round Rock HOPS"
+    "Round Rock HOPS",
+    "Peninsula Fermentation Society",
+    "Cider, Homebrew, And Mead Production Specialists (CHAMPS)",
+    "Ace Brewing Society",
+    "256 Brewers",
+    "North Side Alers (NSA)",
+    "Cervezatlan",
+    "Pittsburgh Mead Makers & Homebrewers"
 );
 asort($club_array);
 
