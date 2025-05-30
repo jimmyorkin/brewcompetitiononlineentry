@@ -1958,6 +1958,7 @@ $winners_text_007 = "There are no winning entries at this table.";
   $bbo_message_001 = "The Medal category is full.";
   $bbo_message_002 = "You must select a style.";
   $bbo_message_003 = "Entrant entry count in table is full.";
+  $bbo_message_004 = "Entering too soon after previous add. Entry rate is 1 per 60 seconds.";
 
 /**
  * ------------------------------------------------------------------------

@@ -863,6 +863,78 @@ if ($action == "edit") {
 	$submit_text = $label_edit_entry;
 }
 ?>
+
+
+<!-- The bbomodal -->
+<div id="mybbomodal" class="bbomodal">
+  <!-- bbomodal content -->
+  <div class="bbomodal-content">
+    <span class="bboclose">&times;</span>
+    <p>You can create an entry once per 60 seconds. This banner will disappear when you can enter your next entry. Click outside of this banner to remove it.</p>
+    <p>Seconds before adding your next entry: <span id=bbo-cdt><span></p>
+  </div>
+</div>
+
+<script>
+// Get the bbomodal
+var bbomodal = document.getElementById("mybbomodal");
+
+// Get the <span> element that closes the bbomodal
+var closespan = document.getElementsByClassName("bboclose")[0];
+
+var BBOseconds = <?php 
+$BBOseconds = BBOsecondsSinceEntry($_SESSION['user_id'], $connection);
+if ($action == "edit")
+	{
+		echo 0;
+	}	
+elseif ($BBOseconds < 0) 
+	{
+			echo abs($BBOseconds);
+	} 
+	else 
+		{
+			echo 0;
+		}
+	?>;
+
+if (BBOseconds > 0)
+{
+	var x = setInterval(cdt, 1000);
+	bbomodal.style.display = "block";
+}
+
+// When the user clicks on <span> (x), close the bbomodal
+closespan.onclick = function() {
+  bbomodal.style.display = "none";
+}
+
+// When the user clicks anywhere outside of the bbomodal, close it
+window.onclick = function(event) {
+  if (event.target == bbomodal) {
+    bbomodal.style.display = "none";
+  }
+}
+
+function cdt()
+{
+	document.getElementById("bbo-cdt").innerHTML = BBOseconds;
+ 
+  if (BBOseconds < 1) 
+  {
+  	clearInterval(x);
+    bbomodal.style.display = "none";
+  }
+  
+  BBOseconds--;
+}
+</script>
+
+
+
+
+
+
 <div class="bcoem-admin-element hidden-print">
 <div class="form-group">
     <div class="col-lg-offset-2 col-md-offset-3 col-sm-offset-3 col-xs-12">

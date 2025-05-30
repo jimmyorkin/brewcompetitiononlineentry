@@ -41,7 +41,7 @@ if ($msg != "default") {
 
   $info_msg_alerts = array(11,12,99);
   $warning_msg_alerts = array(0,4,6,8,37,10);
-  $danger_msg_alerts = array(3,13,15,18,19,24,27,30,98,755);
+  $danger_msg_alerts = array(3,13,15,18,19,24,27,30,98,755, "bbo2", "bbo3","bbo4");
   $success_msg_alerts = array();
 
   $success_msg = array();

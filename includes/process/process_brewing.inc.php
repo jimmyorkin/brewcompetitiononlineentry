@@ -37,6 +37,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
   $BBOentrantTableCount = array();
 	include (DB.'BBOtables.db.php');
 	BBOgetEntrantTableCount($BBOentrantTableCount, $_SESSION['user_id'], $BBOTables, $connection);
+	$BBOseconds = BBOsecondsSinceEntry($_SESSION['user_id'], $connection);
 
 
 	// Instantiate HTMLPurifier
@@ -83,6 +84,16 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		exit();
 	}
 	
+	// check for entries entered too quickly
+	if (($action == "add") && ($BBOseconds < 0)) {
+		$insertGoTo = $base_url."index.php?section=list&msg=bbo4";
+		$pattern = array('\'', '"');
+		$insertGoTo = str_replace($pattern, "", $insertGoTo);
+		$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
+		header($redirect_go_to);
+		exit();
+		}
+	
 	// $_POST['brewStyle'] is the new style, becomes $BBOLookUpStyle
 	// $_POST['brewEditStyle'] is the old style, becomes $BBObrewEditStyle, does not exist on an add
 
@@ -123,7 +134,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 				$insertGoTo = str_replace($pattern, "", $insertGoTo);
 				$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
 				header($redirect_go_to);
-				exit;
+				exit();
 			}
 	  }
 		$BBOnewTable = $BBOTables['TableStyles']['TableNumber'][$BBOLookUpStyle];
@@ -138,7 +149,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 				$insertGoTo = str_replace($pattern, "", $insertGoTo);
 				$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
 				header($redirect_go_to);
-				exit;
+				exit();
 			}
 	  }
 	}
@@ -154,7 +165,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 			$insertGoTo = str_replace($pattern, "", $insertGoTo);
 			$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
 			header($redirect_go_to);
-			exit;
+			exit();
 	  }
 
 		$BBOnewTable = $BBOTables['TableStyles']['TableNumber'][$BBOLookUpStyle];
@@ -166,7 +177,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 			$insertGoTo = str_replace($pattern, "", $insertGoTo);
 			$redirect_go_to = sprintf("Location: %s", stripslashes($insertGoTo));
 			header($redirect_go_to);
-			exit;
+			exit();
 	  }
 	}
 

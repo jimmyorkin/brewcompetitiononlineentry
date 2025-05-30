@@ -149,7 +149,7 @@ if (($row_system) && (!empty($row_system['update_date'])) && ($row_system['updat
     else include (INCLUDES.'load_local_libraries.inc.php');
 ?>
     <!-- Load BCOE&M Custom CSS - Contains Bootstrap overrides and custom classes common to all BCOE&M themes -->
-    <link rel="stylesheet" type="text/css" href="<?php echo $base_url."css/common.min.css"; ?>" />
+    <link rel="stylesheet" type="text/css" href="<?php echo $base_url."css/common.css"; ?>" />
     <link rel="stylesheet" type="text/css" href="<?php echo $theme; ?>" />
 
     <script type="text/javascript">

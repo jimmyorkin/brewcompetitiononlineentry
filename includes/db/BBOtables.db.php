@@ -53,6 +53,38 @@ EOT;
 	}
 }
 
+function BBOsecondsSinceEntry($BBObrewerID, $connection)
+{
+// If the sql result is negative then the absolute value of the result is the time to wait before the next add
+// If the sql result is zero or positive, no need to wait	
+	
+	$BBOsql = <<<EOT
+	SELECT UNIX_TIMESTAMP(NOW()) - (UNIX_TIMESTAMP(brewUpdated) + 60) as sec
+	FROM `brewing` 
+	where brewBrewerID = $BBObrewerID
+	order by 1
+	limit 1;
+EOT;
+
+	if (!$BBOresult = $connection->query($BBOsql)) {
+	   echo "Error: Query3 failed to execute and here is why: <br>";
+	   echo "Query: " . $BBOsql . "<br>";
+	   echo "Errno: " . $connection->errno . "<br>";
+	   echo "Error: " . $connection->error . "<br>";
+	   exit;
+	}
+
+	if ($BBOresult->num_rows == 0) { // nothing in the database yet
+		$BBOresult->free();
+	  return 0;
+	}
+	
+	$BBOrow = $BBOresult->fetch_assoc(); // newest entry unix timestamp
+	$BBOsecondsSince = intval($BBOrow['sec']);
+	$BBOresult->free();
+	return $BBOsecondsSince;
+}
+
 // Read the Bluebonnet table definitions into $BBOTables['TableStyles']['TableNumber'] array
 // First query
 
