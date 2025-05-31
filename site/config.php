@@ -128,7 +128,7 @@ $installation_id = '';
  * expires due to inactivity. Default is 30 minutes.
  */
 
-$session_expire_after = 120;
+$session_expire_after = 60;
 
 /*
  * ******************************************************************************
