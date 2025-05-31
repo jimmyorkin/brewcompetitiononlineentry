@@ -8,7 +8,7 @@
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
-$fields = 24;
+$fields = 10;
 $entry_list = "";
 $flag_enum_not_found = [];
 $flag_enum_not_found_info = "";

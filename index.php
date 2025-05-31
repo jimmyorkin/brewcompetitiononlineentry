@@ -11,7 +11,9 @@ require_once ('paths.php');
 require_once (CONFIG.'bootstrap.php');
 require_once (DB.'mods.db.php');
 
-require_once (MODS.'bbo-delete-unpaids.php');
+if ($BBOOneHourUnpaidDelete == 1) {
+		require_once (MODS.'bbo-delete-unpaids.php');
+}
 
 $account_pages = array("list","pay","brewer","user","brew","pay","evaluation");
 

@@ -573,7 +573,7 @@ echo "
   </tr>";
 foreach($BBOTables['TableEntryCounts'] as $BBOkey => $BBOvalue)
 {
-	if ($BBOvalue['Count'] >= $BBOtableMaxEntries)
+	if (($BBOvalue['Count'] >= $BBOtableMaxEntries) && !in_array($BBOkey, $BBOUnlimitedTables))
 	  {
 		  $BBOtableCountFull = $BBOvalue['Count'] . " [Full]";
 	  }
