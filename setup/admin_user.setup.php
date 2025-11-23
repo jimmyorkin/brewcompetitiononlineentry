@@ -1,9 +1,8 @@
 <script type="text/javascript">
-var username_url = "<?php echo $base_url; ?>ajax/username.ajax.php";
-var email_url="<?php echo $base_url; ?>ajax/valid_email.ajax.php";
+var username_url = "<?php echo $ajax_url; ?>username.ajax.php";
+var email_url="<?php echo $ajax_url; ?>valid_email.ajax.php";
 var setup = 1;
 </script>
-<script src="<?php echo $base_url; ?>js_includes/registration_checks.min.js"></script>
 <script type="text/javascript">
         $(document).ready(function () {
             "use strict";
@@ -36,11 +35,11 @@ $security = "";
 foreach ($security_questions_display as $key => $value) {
 	$security .= "<div class=\"radio\"><label><input type=\"radio\" name=\"userQuestion\" value=\"".$security_question[$value]."\" required> ".$security_question[$value]."</label></div>";
 }
-
 ?>
 <p class="lead">This will be the Administrator's account with full access to <em>all</em> of the installation's features and functions.</p>
 <p class="lead"><small>The owner of this account will be able to add, edit, and delete any entry and participant, grant administration privileges to other users, define custom styles, define tables and flights, add scores, print reports, etc. This user will also be able to add, edit, and delete their own entries into the competition.</small></p>
 <form class="form-horizontal" data-toggle="validator" action="<?php echo $base_url; ?>includes/process.inc.php?section=<?php if ($section == "step1") echo "setup"; else echo $section; ?>&amp;action=add&amp;dbTable=<?php echo $users_db_table; ?>" method="POST" name="form1" id="form1">
+<input type="hidden" name="token" value ="<?php if (isset($_SESSION['token'])) echo $_SESSION['token']; ?>">
 <input name="userLevel" type="hidden" value="0" />
 <div class="form-group"><!-- Form Group REQUIRED Text Input -->
 		<label for="" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Email Address</label>
@@ -49,7 +48,7 @@ foreach ($security_questions_display as $key => $value) {
 				<span class="input-group-addon" id="email-addon1"><span class="fa fa-envelope"></span></span>
 				<!-- Input Here -->
 				<input class="form-control" name="user_name" id="user_name" type="email" placeholder="Your email address is your user name" onchange="AjaxFunction(this.value);" value="<?php if ((isset($_COOKIE['user_name'])) && ($msg > 0)) echo $_COOKIE['user_name']; ?>" required>
-				<span class="input-group-addon" id="email-addon2"><span class="fa fa-star"></span>
+				<span class="input-group-addon" id="email-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span>
 			</div>
 			<div id="msg_email" class="help-block"></div>
 			<div id="username-status"></div>
@@ -63,7 +62,7 @@ foreach ($security_questions_display as $key => $value) {
 				<span class="input-group-addon" id="password-addon1"><span class="fa fa-key"></span></span>
 				<!-- Input Here -->
 				<input class="form-control" name="password" id="password" type="password" placeholder="Password" value="<?php if ((isset($_COOKIE['password'])) && ($msg > 0)) echo $_COOKIE['password']; ?>" required>
-				<span class="input-group-addon" id="password-addon2"><span class="fa fa-star"></span>
+				<span class="input-group-addon" id="password-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span>
 			</div>
 		</div>
 	</div><!-- ./Form Group -->
@@ -92,7 +91,7 @@ foreach ($security_questions_display as $key => $value) {
 				<span class="input-group-addon" id="security-question-answer-addon1"><span class="fa fa-bullhorn"></span></span>
 				<!-- Input Here -->
 				<input class="form-control" name="userQuestionAnswer" id="userQuestionAnswer" type="text" placeholder="" value="<?php if ((isset($_COOKIE['userQuestionAnswer'])) && ($msg > 0)) echo $_COOKIE['userQuestionAnswer']; ?>" required>
-				<span class="input-group-addon" id="security-question-answer-addon2"><span class="fa fa-star"></span>
+				<span class="input-group-addon" id="security-question-answer-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span>
 			</div>
 		</div>
 	</div><!-- ./Form Group -->

@@ -1,13 +1,27 @@
+<?php 
+
+/*
+// Redirect if directly accessed without authenticated session
+if ((!isset($_SESSION['loginUsername'])) || ((isset($_SESSION['loginUsername'])) && (!isset($base_url)))) {
+    $redirect = "../../403.php";
+    $redirect_go_to = sprintf("Location: %s", $redirect);
+    header($redirect_go_to);
+    exit();
+}
+*/
+
+if ($_SESSION['prefsProEdition'] == 0) { 
+
+?>
 <!-- Not a Brewery; clubs, Pro-Am, AHA, Staff -->
-<?php if ($_SESSION['prefsProEdition'] == 0) { ?>
 <section id="participant-clubs">
     <div class="form-group">
         <label for="brewerClubs" class="col-lg-3 col-md-3 col-sm-4 col-xs-12 control-label"><?php echo $label_club; ?></label>
         <div class="col-lg-9 col-md-6 col-sm-8 col-xs-12">
         
-        <select class="selectpicker" name="brewerClubs" id="brewerClubs" data-live-search="true" data-size="10" data-width="fit" data-show-tick="true" data-header="<?php echo $label_select_club; ?>" title="<?php echo $label_select_club; ?>">
+        <select class="selectpicker" name="brewerClubs" id="brewerClubs" data-live-search-normalize="true" data-live-search="true" data-size="10" data-width="fit" data-show-tick="true" data-header="<?php echo $label_select_club; ?>" title="<?php echo $label_select_club; ?>">
             <option value="" <?php if (($action == "edit") && (empty($row_brewer['brewerClubs']))) echo "SELECTED"; ?>>None</option>
-<!--            <option value="Other" <?php // if ($club_other) echo "SELECTED"; ?>>Other</option> -->
+<!--   BBO disable user from adding their own club         <option value="Other" <?php // if ($club_other) echo "SELECTED"; ?>>Other</option> -->
             <option data-divider="true"></option>
             <?php echo $club_options; ?>
         </select>
@@ -49,13 +63,23 @@
     <div class="form-group">
         <label for="brewerAHA" class="col-lg-3 col-md-3 col-sm-4 col-xs-12 control-label"><?php echo $label_aha_number; ?></label>
         <div class="col-lg-9 col-md-9 col-sm-8 col-xs-12">
-            <input class="form-control" name="brewerAHA" id="brewerAHA" type="text" pattern="\d*" placeholder="" data-error="<?php echo $brew_text_019; ?>" value="<?php if ($action == "edit") echo $row_brewer['brewerAHA']; ?>" placeholder="">
+            <input class="form-control" name="brewerAHA" id="brewerAHA" type="text" pattern="[A-Za-z0-9]+" placeholder="" data-error="<?php echo $brew_text_019; ?>" value="<?php if ($action == "edit") echo $row_brewer['brewerAHA']; ?>" placeholder="">
             <span id="ahaProAmText" class="help-block"><?php echo $brewer_text_003; ?></span>
+        </div>
+    </div>
+</section>
+<section id="mhp-number">
+    <div class="form-group">
+        <label for="brewerMHP" class="col-lg-3 col-md-3 col-sm-4 col-xs-12 control-label"><?php echo $label_mhp_number; ?></label>
+        <div class="col-lg-9 col-md-9 col-sm-8 col-xs-12">
+            <input class="form-control" name="brewerMHP" id="brewerMHP" type="text" pattern="\d*" placeholder="" data-error="<?php echo $brew_text_019; ?>" value="<?php if ($action == "edit") echo $row_brewer['brewerMHP']; ?>" placeholder="">
+            <span class="help-block"><?php echo $brewer_text_053; ?></span>
         </div>
     </div>
 </section>
 <?php } else { ?>
     <input type="hidden" name="brewerProAm" value="0">
+    <input type="hidden" name="brewerMHP" value="0">
 <?php } ?>
 <section id="staff-preferences">
     <div class="form-group">

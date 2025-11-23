@@ -2,14 +2,14 @@
 /**
  * Module:      cs-CZ.lang.php
  * Description: This module houses all display text in the Czech language.
- * Updated:     January 17, 2023
+ * Updated:     November 6, 2023
  *  
  * To translate this file, first make a copy of it and rename it with the 
  * language name in the title.
  * 
  * ==============================
  * 
- * Use ISO 169-2 Standards for and WWW3C Language Tag Standards for naming 
+ * Use ISO 169-2 Standards and WWW3C Language Tag Standards for naming 
  * of language files. Use the ALPHA-2 letter code whenever possible.
  * 
  * ISO 169-2:
@@ -818,14 +818,14 @@ $entry_info_text_032 = $label_cash;
 $entry_info_text_033 = $label_check.", vystavený na";
 $entry_info_text_034 = "Kreditní/debetní karta a e-check (prostřednictvím PayPalu)";
 $entry_info_text_035 = "Data degustace ještě nebyla určena. Prosím, navštivte náš web později.";
-$entry_info_text_036 = "Lahve se vzorky přijímáme na poštovní adrese počínaje";
+$entry_info_text_036 = "Lahve se vzorky přijímáme na poštovní adrese";
 $entry_info_text_037 = "Vzorky zasílejte na následující adresu:";
 $entry_info_text_038 = "Pečlivě zabalte své vzorky do pevné krabice. Vnitřek krabice vyložte plastovým pytlem na odpad. Oddělte a zabalte každou lahev odpovídajícím balicím materiálem. S množstvím materiálu to nepřehánějte!";
 $entry_info_text_039 = "Na balík napište: <em>Křehké! Neklopit!</em> Pro balení používejte dostatek bublinkové fólii nebo každou lahev vložte do vaku AirCover.";
 $entry_info_text_040 = "<em>Každý</em> ze štítků na vašich lahvích zabalete do malého sáčku před jeho upevněním na lahev. Tímto způsobem nám usnadníte určení, který vzorek se rozbil, pokud se něco stane při přepravě.";
 $entry_info_text_041 = "Vynasnažíme se vás kontaktovat, pokud se některý z vašich vzorků při přepravě rozbije.";
 $entry_info_text_042 = "Pokud se soutěž koná ve Spojených státech, mějte na paměti, že je <strong>zakázáno</strong> posílat vzorky pomocí United States Postal Service (USPS). <em>Pozn. překl.: Na zásilky zaslané prostřednictvím České pošty se žádný podobný zákaz nevztahuje.</em><br />Soukromé přepravní společnosti vám mohou odmítnout přepravu, pokud se dozví, že zásilka obsahuje sklo nebo alkoholické nápoje. Berte na vědomí, že vzorky zaslané mezinárodně mohou podléhat celnímu řízení. Zásilky mohou být otevřeny a vráceny odesilateli celní správou dle jejího uvážení. Je vaší povinností se řídit příslušnými zákony a nařízeními.";
-$entry_info_text_043 = "Začátek příjmu vzorků je";
+$entry_info_text_043 = "Začátek příjmu vzorků";
 $entry_info_text_044 = "Zobrazit na mapě místo";
 $entry_info_text_045 = "Klikněte pro povinné informace o vzorku";
 $entry_info_text_046 = "Pokud je název stylu s odkazem, má styl povinné požadavky na vzorek. Klikněte nebo se dotkněte názvu pro zobrazení požadavků podkategorie.";
@@ -1781,7 +1781,7 @@ $evaluation_info_067 = "Uveďte prosím hodnocení.";
 $evaluation_info_068 = "Uveďte konsensuální skóre - minimálně 5, maximálně 50.";
 $evaluation_info_069 = "Nejméně dva degustátoři ze sady, do které byl váš vzorek zadán, dosáhli konsensu o vašem konečném skóre. Není to nutně průměr jednotlivých skóre.";
 $evaluation_info_070 = "Na základě degustačního listu BJCP";
-$evaluation_info_071 = "Od vašeho hodnocení uplynulo 15 minut. I když máte dostatek času, než vás systém automaticky odhlásí, toto je zdvořilostní varování, abyste se ujistili, že dokončíte své hodnocení včas a abyste udrželi tempo posuzování v přijatelné míře.";
+$evaluation_info_071 = "Uplynulo 15+ minut.";
 $evaluation_info_072 = "Ve výchozím nastavení je automatické odhlášení prodlouženo na 30 minut pro hodnocení vzorků.";
 
 $alert_text_090 = "Vaše relace vyprší za dvě minuty. Můžete zůstat na aktuální stránce, abyste mohli dokončit práci, než vyprší čas, obnovit tuto stránku a pokračovat v aktuální relaci (data formuláře se mohou ztratit) nebo se odhlásit.";
@@ -1814,95 +1814,91 @@ $winners_text_007 = "U tohoto stolu nejsou žádné vítězné vzorky.";
 /**
  * ------------------------------------------------------------------------
  * Version 2.4.0 Additions
- * Via DeepL Translator English to Czech - and for that, I'm sorry. 
- * Again. :)
  * ------------------------------------------------------------------------
  */
 
-$label_entries_to_judge = "Přihlášky k posouzení";
-$evaluation_info_073 = "Pokud jste v tomto výsledkovém listu změnili nebo přidali nějakou položku nebo komentář, mohou být vaše údaje ztraceny, pokud přejdete z této stránky pryč.";
+$label_entries_to_judge = "Vzorky k posouzení";
+$evaluation_info_073 = "Pokud jste v tomto výsledkovém listu změnili nebo přidali nějakou položku nebo komentář, mohou být vaše údaje ztraceny, pokud odejdete z této stránky.";
 $evaluation_info_074 = "Pokud jste provedli změny, zavřete toto dialogové okno, přejděte na konec výsledkové listiny a vyberte možnost Odeslat hodnocení.";
-$evaluation_info_075 = "Pokud jste neprovedli žádné změny, vyberte níže uvedené modré tlačítko Judging Dashboard.";
+$evaluation_info_075 = "Pokud jste neprovedli žádné změny, zvolte níže tlačítko Přehled hodnocení.";
 $evaluation_info_076 = "Komentář ke sladu, chmelu, esterům a dalším aromatickým látkám.";
 $evaluation_info_077 = "Komentář k barvě, průzračnosti a pěně (retenci, barvě a struktuře).";
 $evaluation_info_078 = "Komentář ke sladu, chmelu, kvasným vlastnostem, vyváženosti, dochuti a dalším chuťovým vlastnostem.";
-$evaluation_info_079 = "Komentujte tělo, sycení, teplotu, krémovitost, trpkost a další chuťové vjemy.";
-$evaluation_info_080 = "Okomentujte celkový požitek z pití spojený se vstupem, uveďte návrhy na zlepšení.";
+$evaluation_info_079 = "Komentujte tělo, nasycení, hřejivost, krémovitost, trpkost a další chuťové vjemy.";
+$evaluation_info_080 = "Okomentujte celkový požitek z pití spojený se vzorkem, uveďte návrhy na zlepšení.";
 
 
 if ($_SESSION['prefsStyleSet'] == "BJCP2021") {
-    $styles_entry_text_21B = "Účastník MUSÍ zadat sílu (relační, standardní, dvojitá); pokud sílu nezadá, předpokládá se, že je standardní. Účastník MUSÍ uvést konkrétní typ Specialty IPA ze seznamu aktuálně definovaných typů uvedených v pokynech pro styly nebo ve znění prozatímních stylů na internetových stránkách BJCP; NEBO MUSÍ popsat typ Specialty IPA a jeho klíčové vlastnosti formou komentáře, aby porotci věděli, co mají očekávat. Účastníci MŮŽOU uvést konkrétní použité odrůdy chmele, pokud se domnívají, že porotci nemusí rozpoznat odrůdové vlastnosti novějších chmelů. Účastníci MOHOU uvést kombinaci definovaných typů IPA (např. Black Rye IPA) bez uvedení dalších popisů.";
+    $styles_entry_text_21B = "Účastník MUSÍ zadat sílu (session, standard, double); pokud sílu nezadá, předpokládá se, že je standardní. Účastník MUSÍ uvést konkrétní typ Specialty IPA ze seznamu ve Style Guidelines nebo Provisonal Styles na internetových stránkách BJCP; NEBO MUSÍ popsat styl Specialty IPA a jeho klíčové vlastnosti formou komentáře, aby degustátoři věděli, co mají očekávat. Účastníci MOHOU uvést konkrétní použité odrůdy chmele, pokud se domnívají, že degustátoři nemusí rozpoznat odrůdové vlastnosti novějších chmelů. Účastníci MOHOU uvést kombinaci definovaných typů IPA (např. Black Rye IPA) bez uvedení dalších popisů.";
     $styles_entry_text_24C = "Účastník MUSÍ uvést světlé, jantarové nebo hnědé Bière de Garde.";
-    $styles_entry_text_25B = "Účastník MUSÍ uvést sílu (stolní, standardní, super) a barvu (světlá, tmavá). Účastník MŮŽE uvést použitá znaková zrna.";
-    $styles_entry_text_27A = "Souhrnná kategorie pro ostatní historická piva, která NEBYLY definována BJCP. Účastník MUSÍ poskytnout porotcům popis historického stylu, který NENÍ jedním z aktuálně definovaných příkladů historických stylů poskytovaných BJCP. V současné době definované příklady: Kellerbier, Kentucky Common, Lichtenhainer, London Brown Ale, Piwo Grodziskie, Pre-Prohibition Lager, Pre-Prohibition Porter, Roggenbier, Sahti. Pokud je pivo přihlášeno pouze s názvem stylu a bez popisu, je velmi nepravděpodobné, že by porotci pochopili, jak jej hodnotit.";
-    $styles_entry_text_28A = "O participante DEVE especificar ou um Estilo Base, ou fornecer uma descrição dos ingredientes, especificações, ou caráter desejado. O participante PODE especificar as linhagens de Brett utilizadas.";
-    $styles_entry_text_28B = "Účastník MUSÍ uvést popis piva, identifikaci použitých kvasinek nebo bakterií a buď základní styl, nebo složky, specifikace nebo cílový charakter piva.";
+    $styles_entry_text_25B = "Účastník MUSÍ uvést sílu (table, standard, super) a barvu (světlá, tmavá). Účastník MŮŽE uvést druh použitého sladu.";
+    $styles_entry_text_27A = "Souhrnná kategorie pro ostatní historická piva, která NEBYLY definovány BJCP. Účastník MUSÍ poskytnout degustátorům popis historického stylu, který NENÍ jedním z aktuálně definovaných příkladů historických stylů poskytovaných BJCP. V současné době definované příklady: Kellerbier, Kentucky Common, Lichtenhainer, London Brown Ale, Piwo Grodziskie, Pre-Prohibition Lager, Pre-Prohibition Porter, Roggenbier, Sahti. Pokud je pivo přihlášeno pouze s názvem stylu a bez popisu, je velmi nepravděpodobné, že by degustátoři pochopili, jak jej hodnotit.";
+    $styles_entry_text_28A = "Účastník MUSÍ uvést buď základní styl nebo popsat suroviny, specifikaci a požadovaný charakter piva. Účastník MŮŽE uvést druh použitých brettek.";
+    $styles_entry_text_28B = "Účastník MUSÍ uvést popis piva, druh použitých kvasinek nebo bakterií a buď základní styl, nebo suroviny, specifikaci nebo požadovaný charakter piva.";
     $styles_entry_text_28C = "Účastník MUSÍ uvést všechny použité složky speciálního typu (např. ovoce, koření, byliny nebo dřevo). Účastník MUSÍ uvést buď popis piva, identifikaci použitých kvasinek nebo bakterií a buď základní styl, nebo složky, specifikace nebo cílový charakter piva. Obecný popis zvláštního charakteru piva může zahrnovat všechny požadované položky.";
     $styles_entry_text_29A = "Účastník MUSÍ uvést druh (druhy) použitého ovoce. Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo složek, specifikací nebo cílového charakteru piva. Obecný popis zvláštního charakteru piva může zahrnovat všechny požadované položky.  Ovocná piva založená na klasickém stylu by měla být přihlášena v tomto stylu, s výjimkou Lambicu.";
-    $styles_entry_text_29B = "Účastník musí uvést druh ovoce a typ použitého SHV; jednotlivé složky SHV není třeba uvádět, pokud je použita známá směs koření (např. koření na jablečný koláč). Účastník musí uvést popis piva, a to buď základní styl, nebo přísady, specifikace nebo cílový charakter piva. Obecný popis zvláštního charakteru piva může zahrnovat všechny požadované položky.";
-    $styles_entry_text_29C = "Účastník MUSÍ uvést druh použitého ovoce. Účastník MUSÍ uvést druh další přísady (podle úvodu) nebo použitý zvláštní postup. Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo přísad, specifikací nebo cílového charakteru piva. Obecný popis zvláštního charakteru piva může zahrnovat všechny požadované položky.";
+    $styles_entry_text_29B = "Účastník musí uvést druh ovoce a typ použitého koření; jednotlivé složky koření není třeba uvádět, pokud je použita známá směs koření (např. koření na štrůdl). Účastník musí uvést popis piva, a to buď základní styl nebo suroviny, specifikace a požadovaný charakter piva. Obecný popis zvláštního charakteru piva může zahrnovat všechny požadované položky.";
+    $styles_entry_text_29C = "Účastník MUSÍ uvést druh použitého ovoce. Účastník MUSÍ uvést druh další přísady (podle úvodu) nebo použitý zvláštní postup. Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo přísad, specifikací nebo požadovaný charakter piva. Obecný popis zvláštního charakteru piva může zahrnovat všechny požadované položky.";
     $styles_entry_text_29D = "Účastník MUSÍ uvést druh použitých hroznů. Účastník MŮŽE uvést další informace o základním stylu nebo charakteristických složkách.";
-    $styles_entry_text_30A = "Účastník MUSÍ uvést druh použitého koření, bylinek nebo zeleniny, ale jednotlivé ingredience nemusí být uvedeny, pokud je použita známá směs koření (např. koření na jablečný koláč, kari, chilli). Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo přísad, specifikací nebo cílového charakteru piva. Obecný popis zvláštního charakteru piva může zahrnovat všechny požadované položky.";
-    $styles_entry_text_30B = "Účastník MUSÍ uvést druh použitého koření, bylinek nebo zeleniny; jednotlivé ingredience není třeba uvádět, pokud je použita známá směs koření (např. koření na dýňový koláč). Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo přísad, specifikací nebo cílového charakteru piva. Obecný popis zvláštního charakteru piva může zahrnovat všechny požadované položky.";
+    $styles_entry_text_30A = "Účastník MUSÍ uvést druh použitého koření, bylin nebo zeleniny, ale jednotlivé ingredience nemusí být uvedeny, pokud je použita známá směs koření (např. koření na jablečný koláč, kari, chilli). Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo přísad, specifikací nebo cílového charakteru piva. Obecný popis zvláštního charakteru piva může zahrnovat všechny požadované položky.";
+    $styles_entry_text_30B = "Účastník MUSÍ uvést druh použitého koření, bylin nebo zeleniny; jednotlivé ingredience není třeba uvádět, pokud je použita známá směs koření (např. koření na dýňový koláč). Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo přísad, specifikací nebo cílového charakteru piva. Obecný popis zvláštního charakteru piva může zahrnovat všechny požadované položky.";
     $styles_entry_text_30C = "Účastník MUSÍ uvést druh použitého koření, cukrů, ovoce nebo dalších fermentovatelných látek; jednotlivé složky není třeba uvádět, pokud je použita známá směs koření (např. koření na mulling). Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo přísad, specifikací nebo cílového charakteru piva. Obecný popis zvláštního charakteru piva může zahrnovat všechny požadované položky.";
-    $styles_entry_text_30D = "Účastník MUSÍ uvést typ použitých SHV, ale jednotlivé ingredience není třeba uvádět, pokud je použita známá směs koření (např. koření na jablečný koláč, kari, chilli). Účastník MUSÍ uvést typ další přísady (podle úvodu) nebo použitý zvláštní postup. Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo přísad, specifikací nebo cílového charakteru piva. Obecný popis zvláštního charakteru piva může zahrnovat všechny požadované položky.";
+    $styles_entry_text_30D = "Účastník MUSÍ uvést typ použitých SHV, ale jednotlivé ingredience není třeba uvádět, pokud je použita známá směs koření (např. koření na štrůdl, kari, chilli). Účastník MUSÍ uvést typ další přísady (podle úvodu) nebo použitý zvláštní postup. Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo přísad, specifikací nebo cílového charakteru piva. Obecný popis zvláštního charakteru piva může zahrnovat všechny požadované položky.";
     $styles_entry_text_31A = "Účastník musí uvést typ použitého alternativního obilí. Účastník musí uvést popis piva s uvedením buď základního stylu, nebo složek, specifikací nebo cílového charakteru piva. Obecný popis zvláštního charakteru piva může zahrnovat všechny požadované položky.";
     $styles_entry_text_31B = "Účastník MUSÍ uvést typ použitého cukru. Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo složek, specifikací nebo cílového charakteru piva. Obecný popis zvláštního charakteru piva může zahrnovat všechny požadované položky.";
     $styles_entry_text_32A = "Účastník MUSÍ zadat základní styl. Účastník MUSÍ uvést druh dřeva nebo kouře, pokud je patrný odrůdový charakter kouře.";
-    $styles_entry_text_32B = "Účastník MUSÍ uvést druh dřeva nebo kouře, pokud je patrný odrůdový charakter kouře. Účastník MUSÍ uvést další přísady nebo postupy, díky nimž se jedná o speciální uzené pivo. Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo přísad, specifikací nebo cílového charakteru piva. Obecný popis speciálního charakteru piva může zahrnovat všechny požadované položky.";
-    $styles_entry_text_33A = "Účastník MUSÍ uvést druh použitého dřeva a stupeň opečení nebo zuhelnatění (pokud je použito). Pokud je použito neobvyklé odrůdové dřevo, účastník MUSÍ uvést stručný popis senzorických aspektů, které dřevo pivu dodává. Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo složek, specifikací nebo cílového charakteru piva. Obecný popis speciálního charakteru piva může zahrnovat všechny požadované položky.";
+    $styles_entry_text_32B = "Účastník MUSÍ uvést druh dřeva nebo kouře, pokud je patrný odrůdový charakter kouře. Účastník MUSÍ uvést další přísady nebo postupy, díky nimž získalo pivo nakuřovaný charakter. Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo přísad, specifikací nebo cílového charakteru piva. Obecný popis speciálního charakteru piva může zahrnovat všechny požadované položky.";
+    $styles_entry_text_33A = "Účastník MUSÍ uvést druh použitého dřeva a stupeň opečení nebo opálení (pokud je použito). Pokud je použito neobvyklé odrůdové dřevo, účastník MUSÍ uvést stručný popis senzorických aspektů, které dřevo pivu dodává. Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo složek, specifikací nebo cílového charakteru piva. Obecný popis speciálního charakteru piva může zahrnovat všechny požadované položky.";
     $styles_entry_text_33B = "Účastník MUSÍ uvést dodatečný charakter alkoholu a informace o sudu, pokud je to relevantní pro konečný chuťový profil. Pokud bylo použito neobvyklé dřevo nebo přísada, účastník MUSÍ uvést stručný popis senzorických aspektů, které tyto přísady pivu dodávají. Účastník MUSÍ uvést popis piva s uvedením buď základního stylu, nebo složek, specifikací nebo cílového charakteru piva. Obecný popis speciálního charakteru piva může zahrnovat všechny požadované položky.";
-    $styles_entry_text_34A = "Účastník MUSÍ uvést název komerčního piva, specifikace (základní statistiky) piva a buď stručný senzorický popis, nebo seznam ingrediencí použitých při výrobě piva. Bez těchto informací nebudou mít porotci, kteří pivo neznají, žádný podklad pro srovnání.";
-    $styles_entry_text_34B = "Účastník MUSÍ uvést použitý základní styl nebo styly a jakékoli speciální přísady, postupy nebo varianty. Účastník MŮŽE uvést další popis senzorického profilu piva nebo životních statistik výsledného piva.";
-    $styles_entry_text_PRX3 = "Účastník MUSÍ uvést druh použitých hroznů. Účastník MŮŽE uvést další informace o základním stylu nebo charakteristických složkách.";
+    $styles_entry_text_34A = "Účastník MUSÍ uvést název komerčního piva, specifikace (základní statistiky) piva a buď stručný senzorický popis, nebo seznam ingrediencí použitých při výrobě piva. Bez těchto informací nebudou mít degustátoři, kteří pivo neznají, žádný podklad pro srovnání.";
+    $styles_entry_text_34B = "Účastník MUSÍ uvést použitý základní styl nebo styly a jakékoli speciální suroviny, postupy nebo varianty. Účastník MŮŽE uvést další popis senzorického profilu piva nebo základních údajů výsledného piva.";
+    $styles_entry_text_PRX3 = "Účastník MUSÍ uvést druh použitých hroznů. Účastník MŮŽE uvést další informace o základním stylu nebo charakteristických surovinách.";
 }
 
 /**
  * ------------------------------------------------------------------------
  * Version 2.5.0 Additions
- * Via DeepL Translator English to Portuguese - and for that, I'm sorry. 
- * Again. :)
  * ------------------------------------------------------------------------
  */
 
-$register_text_047 = "Vaše bezpečnostní otázka a/nebo odpověď se změnila.";
+$register_text_047 = "Vaše bezpečnostní otázka nebo odpověď se změnila.";
 $register_text_048 = "Pokud jste tuto změnu neiniciovali, může být váš účet ohrožen. Kromě aktualizace bezpečnostní otázky a odpovědi byste se měli okamžitě přihlásit ke svému účtu a změnit heslo.";
-$register_text_049 = "Pokud se nemůžete přihlásit ke svému účtu, měli byste neprodleně kontaktovat správce webu a aktualizovat heslo a další důležité informace o účtu.";
+$register_text_049 = "Pokud se nemůžete přihlásit ke svému účtu, obraťe se neprodleně na správce a webu.";
 $register_text_050 = "Odpověď na bezpečnostní otázku je zašifrovaná a správci webu ji nemohou přečíst. Pokud se rozhodnete změnit svou bezpečnostní otázku a/nebo odpověď, musíte ji zadat.";
-$register_text_051 = "Informace o účtu Aktualizováno";
+$register_text_051 = "Informace o účtu aktualizovány";
 $register_text_052 = "U každého níže uvedeného místa je třeba uvést odpověď Ano nebo Ne.";
-$brewer_text_044 = "Chcete změnit bezpečnostní otázku a/nebo odpověď?";
+$brewer_text_044 = "Chcete změnit bezpečnostní otázku nebo odpověď?";
 $brewer_text_045 = "Nebyly zaznamenány žádné výsledky.";
 $brewer_text_046 = "Při zadávání názvu klubu ve volném tvaru nejsou povoleny některé symboly, včetně ampersandu (&amp;), jednoduchých uvozovek (&#39;), dvojitých uvozovek (&quot;), a procent (&#37;).";
-$brewer_text_047 = "Pokud se nemůžete zúčastnit některého z níže uvedených zasedání, ale přesto můžete pracovat jako zaměstnanec v jiné funkci, vyberte možnost Ano.";
-$brewer_text_048 = "Přepravní položky";
-$brewer_text_049 = "Pokud neplánujete do soutěže přihlásit žádné příspěvky, vyberte možnost \"Nepoužije se\".";
-$brewer_text_050 = "Zvolte \"Přepravní položky\", pokud plánujete své položky zabalit do krabice a odeslat na zadané přepravní místo.";
-$label_change_security = "Změna bezpečnostní otázky/odpovědi?";
+$brewer_text_047 = "Pokud se nemůžete zúčastnit některé z níže uvedených degustací, ale přesto můžete pomoci v jiné funkci, vyberte možnost Ano.";
+$brewer_text_048 = "Vzorky zasílám";
+$brewer_text_049 = "Pokud neplánujete do soutěže přihlásit žádná piva, vyberte možnost \"Nepoužije se\".";
+$brewer_text_050 = "Zvolte \"Vzorky zasílám\", pokud plánujete svá piva zabalit do krabice a odeslat přepravní službou.";
+$label_change_security = "Změnit bezpečnostní otázku nebo odpověď?";
 $label_semi_dry = "Polosuché";
 $label_semi_sweet = "Polosladké";
-$label_shipping_location = "Místo Odeslání";
-$volunteers_text_010 = "Zaměstnanci mohou oznámit svou dostupnost pro následující zasedání, která nejsou určena pro rozhodčí:";
+$label_shipping_location = "Doručovací adresa";
+$volunteers_text_010 = "Personál zde může indikovat svoji dostupnost pro následující události, které nejsou degustacemi:";
 
-$evaluation_info_081 = "Komentář k medovému projevu, alkoholu, esterům, komplexnosti a dalším aromatickým látkám.";
-$evaluation_info_082 = "Komentář k barvě, čirosti, nohám a sycení oxidem uhličitým.";
-$evaluation_info_083 = "Komentář k medu, sladkosti, kyselosti, tříslovinám, alkoholu, vyváženosti, tělu, sycení, dochuti a případným zvláštním přísadám nebo chutím specifickým pro daný styl.";
-$evaluation_info_084 = "Okomentujte celkový požitek z pití spojený se vstupem, uveďte návrhy na zlepšení.";
-$evaluation_info_085 = "Barva (2), čirost (2), stupeň sycení (2).";
-$evaluation_info_086 = "Vyjádření dalších složek podle potřeby.";
-$evaluation_info_087 = "Vyváženost kyselosti, sladkosti, obsahu alkoholu, těla, sycení oxidem uhličitým (je-li to vhodné) (14), Další složky podle potřeby (5), Dochuť (5).";
-$evaluation_info_088 = "Okomentujte celkový požitek z pití spojený se vstupem, uveďte návrhy na zlepšení.";
+$evaluation_info_081 = "Komentář k projevu, alkoholu, esterům, komplexnosti a dalším aromatickým látkám medu.";
+$evaluation_info_082 = "Komentář k barvě, čirosti, kroužkování a nasycení.";
+$evaluation_info_083 = "Komentář k medu, sladkosti, kyselosti, tříslovinám, alkoholu, vyváženosti, tělu, nasycení, dochuti a případným zvláštním surovinám nebo chutím specifickým pro daný styl.";
+$evaluation_info_084 = "Okomentujte celkový požitek z napití spojený se vzorkem, uveďte návrhy na zlepšení.";
+$evaluation_info_085 = "Barva (2), čirost (2), nasycenost (2).";
+$evaluation_info_086 = "Vhodný projev ostatních surovin.";
+$evaluation_info_087 = "Vyváženost kyselosti, sladkosti, obsahu alkoholu, těla, nasycení oxidem uhličitým (je-li to požadováno) (14), ostatní suroviny, jak je požadováno (5), dochuť (5).";
+$evaluation_info_088 = "Okomentujte celkový požitek z napití spojený se vzorkem, uveďte návrhy na zlepšení.";
 
-$evaluation_info_089 = "Dosažený nebo překročený minimální počet slov.";
+$evaluation_info_089 = "Dosažen nebo překročen minimální počet slov.";
 $evaluation_info_090 = "Děkujeme vám za poskytnutí co nejúplnějšího hodnocení. Celkem slov: ";
-$evaluation_info_091 = "Minimální počet slov potřebných pro váš komentář: ";
+$evaluation_info_091 = "Minimální požadovaný počet slov komentáře: ";
 $evaluation_info_092 = "Dosavadní počet slov: ";
 $evaluation_info_093 = "Ve výše uvedeném poli Celkové hodnocení dojmu nebylo dosaženo minimálního počtu slov.";
 $evaluation_info_094 = "V jednom nebo více výše uvedených polích pro zpětnou vazbu / komentář nebylo dosaženo minimálního počtu slov.";
 
 /**
  * ------------------------------------------------------------------------
- * Version 2.5.1 Additions
+ * Version 2.6.0 Additions
  * ------------------------------------------------------------------------
  */
 
@@ -1910,45 +1906,154 @@ $label_regional_variation = "Regionální Rozdíly";
 $label_characteristics = "Charakteristika";
 $label_intensity = "Intenzita";
 $label_quality = "Kvalita";
-$label_palate = "Patro";
+$label_palate = "Pocit v ústech";
 $label_medium = "Střední";
-$label_medium_dry = "Středně Suché";
-$label_medium_sweet = "Středně Sladká";
-$label_your_score = "Vaše Skóre";
-$label_summary_overall_impression = "Shrnutí Hodnocení a Celkový Dojem";
-$label_medal_count = "Počet Skupin Medailí";
-$label_best_brewer_place = "Nejlepší Pivovarské Místo";
-$label_industry_affiliations = "Členství v Průmyslových Organizacích";
-$label_deep_gold = "Hluboké Zlato";
-$label_chestnut = "Kaštany";
+$label_medium_dry = "Středně suché";
+$label_medium_sweet = "Středně sladké";
+$label_your_score = "Vaše skóre";
+$label_summary_overall_impression = "Shrnutí hodnocení a celkový dojem";
+$label_medal_count = "Počet medailí v skupině";
+$label_best_brewer_place = "Nejlepší umístění sládka";
+$label_industry_affiliations = "Spojení s oborovými organizacemi";
+$label_deep_gold = "Tmavě zlatá";
+$label_chestnut = "Kaštanová";
 $label_pink = "Růžová";
 $label_red = "Červená";
 $label_purple = "Fialová";
-$label_garnet = "Garnet";
-$label_clear = "Přehledně";
-$label_final_judging_date = "Datum Závěrečného Hodnocení";
-$label_entries_judged = "Posuzované Položky";
+$label_garnet = "Granátová";
+$label_clear = "Čiré";
+$label_final_judging_date = "Datum závěrečného hodnocení";
+$label_entries_judged = "Posouzených vzorků";
+$label_results_export = "Exportovat výsledky";
+$label_results_export_personal = "Exportovat osobní výsledky";
 
 $brew_text_041 = "Nepovinné - uveďte regionální variantu (např. mexický ležák, holandský ležák, japonský rýžový ležák atd.).";
 
-$evaluation_info_095 = "Další přidělená hodnotící schůzka otevřena:";
-$evaluation_info_096 = "Pro usnadnění přípravy jsou přidělené stoly/lety a související záznamy k dispozici deset minut před začátkem zasedání.";
-$evaluation_info_097 = "Vaše další hodnotící zasedání je nyní k dispozici.";
+$evaluation_info_095 = "Další přidělená degustace otevřena:";
+$evaluation_info_096 = "Pro usnadnění přípravy jsou přidělené stoly/skupiny a související záznamy k dispozici deset minut před začátkem degustace.";
+$evaluation_info_097 = "Vaše další degustace je nyní k dispozici.";
 $evaluation_info_098 = "Obnovit zobrazení.";
-$evaluation_info_099 = "Minulá nebo současná soudní jednání:";
-$evaluation_info_100 = "Nadcházející hodnotící zasedání:";
-$evaluation_info_101 = "Uveďte prosím jiný popis barvy.";
+$evaluation_info_099 = "Počet degustací:";
+$evaluation_info_100 = "Nadcházejících degustací:";
+$evaluation_info_101 = "Uveďte prosím další popis barvy.";
 $evaluation_info_102 = "Zadejte celkový počet bodů - maximálně 50. V případě potřeby použijte níže uvedeného průvodce bodováním.";
 $evaluation_info_103 = "Uveďte své hodnocení - minimálně 5 bodů, maximálně 50 bodů.";
 
-$brewer_text_051 = "Vyberte oborové organizace, s nimiž jste spojeni jako zaměstnanci, dobrovolníci atd. To proto, abyste se ujistili, že nedochází ke střetu zájmů při přidělování porotců a stewardů k hodnocení přihlášek.";
+$brewer_text_051 = "Vyberte oborové organizace, s nimiž jste spojeni jako zaměstnanci, dobrovolníci atd. To proto, abychom se ujistili, že nedochází ke střetu zájmů při přidělování degustátorů a obsluhy při hodnocení vzorků.";
 $brewer_text_052 = "<strong>Pokud některá z oborových organizací není v rozbalovacím seznamu výše uvedena, uveďte ji zde.</strong> Oddělte název každé organizace čárkou (,) nebo středníkem (;). Některé symboly nejsou povoleny, včetně dvojitých uvozovek (&quot;) a procent (&#37;).";
+
+/**
+ * ------------------------------------------------------------------------
+ * Version 2.6.1 Additions
+ * ------------------------------------------------------------------------
+ */
+
+$evaluation_info_104 = "Ne všichni degustátoři označili tento vzorek jako postupující do Mini-BOS. Ověřte si to a vyberte Ano nebo Ne výše.";
+$evaluation_info_105 = "Následující vzorky mají od degutátorů nesprávné označení Mini-BOS:";
+
+$label_non_judging = "Nedegustační události:";
+
+
+/**
+ * ------------------------------------------------------------------------
+ * Version 2.6.2 Additions
+ * ------------------------------------------------------------------------
+ */
+$label_mhp_number = "Číslo člena programu Master Homebrewer";
+$brewer_text_053 = "Program Master Homebrewer je nezisková organizace založená za účelem podpory domácího vaření piva.";
+$best_brewer_text_015 = "Body za každé umístění se vypočítávají podle následujícího vzorce, který vychází z vzorce používaného v programu Master Homebrewer pro <a href='https://www.masterhomebrewerprogram.com/circuit-of-america' target='_blank'>Circuit of America</a>:";
+
+/**
+ * ------------------------------------------------------------------------
+ * Version 2.7.0 Additions
+ * ------------------------------------------------------------------------
+ */
+$label_abv = "Objemový obsah alkoholu (ABV)";
+$label_final_gravity = "Konečná stupňovitosti";
+$label_juice_source = "Zdroj šťávy(y)";
+$label_select_all_apply = "Vyberte vše, co platí";
+$label_pouring = "Rozlévání";
+$label_pouring_notes = "Poznámky k rozlévání";
+$label_rouse_yeast = "Uvolnit kvasnice";
+$label_fast = "Rychle";
+$label_slow = "Pomalu";
+$label_normal = "Normálně";
+$label_brewing_partners = "Spolupracovníci při vaření";
+$label_entry_edit_deadline = "Upravit termín odevzdání";
+$brew_text_042 = "Prosím, uveďte objemový obsah alkoholu s přesností na až na setiny procenta.";
+$brew_text_043 = "Pouze čísla s přesností až na setiny (např. 5.2, 12.84, atd.).";
+$brew_text_044 = "Prosím, uveďte konečnou stupňovitost ve formě hustoty (např. 0.991, 1.000, 1.007, atd.).";
+$brew_text_045 = "Prosím, uveďte zdroje šťávy(y) - vyberte všechny, které platí.";
+$brew_text_046 = "Prosím, uveďte dvoupísmennou zkratku státu/provincie jakéhokoli dalšího zdroje(y) šťávy (např. VT, ME, CA, ON, atd.). Oddělte každou zkratku místa čárkou (,) nebo středníkem (;). Některé symboly nejsou povoleny, včetně uvozovek (&quot;) a procenta (&#37;).";
+$brew_text_047 = "Jak by mělo být vaše pivo rozléváno degustátorům?";
+$brew_text_048 = "Je třeba uvolnit a rozmíchat kvasnice nalepené na stěnách lahve?";
+$brew_text_049 = "Poskytněte další informace o tom, jak by měl být váš vzorek rozléván nebo jiné související informace (např. možné přepěňování, atd.).";
+$brewer_text_055 = "Vyberte všechny osoby, se kterými jste pivo vařili. To je proto, aby nevznikl žádný zájmů při přiřazování degutátorů a personálu k hodnocení vzorků."; 
+$brewer_text_054 = "<strong>Pokud jméno některé osoby není uvedeno v rozbalovacím menu výše, zadejte jejich CELÉ jméno zde (např. Jan Novák, Medojed Kapský, Marie Svobodová, atd.). Zadejte zde také název skupiny, pokud se nějak společně označujete.</strong> Oddělte každé jméno týmu nebo osoby čárkou (,) nebo středníkem (;). Některé symboly nejsou povoleny, včetně uvozovek (&quot;) a procenta (&#37;).";
+
+$brew_text_050 = "Některé styly jsou zakázány, protože byl dosažen limit pro danou skupinu (např. pivo, medovina, cider, atd.).";
+$entry_info_text_053 = "Omezení počtu vzorků podle stylů:";
+$alert_text_093 = "Maximální počet některých skupin byl dosažen!";
+$alert_text_094 = "V těchto stylech již nepřijímáme žádné vzorky.";
+$label_limit = "Limit";
+$label_beer = "Pivo";
+$label_mead = "Medovina";
+$label_cider = "Cider";
+$label_mead_cider = "Medovina/Cider";
+$label_wine = "Víno";
+$label_rice_wine = "Rýžové víno";
+$label_spirits = "Destiláty";
+$label_kombucha = "Kombucha";
+$label_pulque = "Pulque";
+
+$form_required_fields_00 = "Nebyly vyplněny nebo vybrána všechna povinná pole.";
+$form_required_fields_01 = "Povinná pole označená hvězdičkou <i class=\"fa fa-sm fa-star\"></i> bez zadné hodnoty jsou zvýrazněna <strong class=\"text-danger\">červeně</strong>. Přejděte, prosím, nahoru podle potřeby.";
+$form_required_fields_02 = "Toto pole je povinné.";
+
+$entry_info_text_054 = "Aktuální počty vzorků podle stylu a příslušný limit:";
+
+$maintenance_text_002 = "Když je web v režimu údržby, mohou se přihlásit pouze správci nejvyšší úrovně.";
+
+$brew_text_054 = "Odkud pochází ovoce nebo džus z jablek/hrušek? Prosím, vyberte všechny možnosti, které odpovídají základní nápoji.";
+$label_packaging = "Obal";
+$label_bottle = "Láhev";
+$label_other_size = "Jiná velikost";
+$label_can = "Plechovka";
+$label_fruit_add_source = "Zdroj(e) přídavku ovoce";
+
+$label_yearly_volume = "Roční objem";
+$label_gallons = "Galonů";
+$label_barrels = "Barrellů";
+$label_hectoliters = "Hektolitrů";
+
+/**
+ * ------------------------------------------------------------------------
+ * Version 2.7.1 Additions
+ * ------------------------------------------------------------------------
+ */
+$sidebar_text_027 = "platné do";
+$entry_info_text_055 = "V systému nejsou v tuto chvíli uvedeny žádné způsoby platby. Zkontrolujte pravidla soutěže nebo kontaktujte organizátora.";
+
+/**
+ * ------------------------------------------------------------------------
+ * Version 2.7.2 Additions
+ * ------------------------------------------------------------------------
+ */
+$brew_text_055 = "Vrátit se sem a přidat další položku?";
+$brewer_info_015 = "<p>Zdá se, že jste se zaregistrovali jako porotce nebo asistent, ale neuvedli jste, že jste k dispozici pro jakoukoli hodnotící relaci v kterékoli z těchto rolí.</p><p>Vyberte prosím níže uvedené tlačítko pro úpravu vašeho účtu a poté vyberte \"Ano\" pro každou z relací, pro které jste dostupní jako porotce v sekci Dostupnost Hodnotících Relací a pro ty, kde jste dostupní jako asistent v sekci Dostupnost Relací Asistenta.</p><p>Pokud nejste k dispozici pro žádnou relaci v jedné nebo obou rolích, vyberte prosím \"Ne\" v sekci Hodnocení a/nebo Asistence.</p>";
+$brewer_info_016 = "<p>Zdá se, že jste se zaregistrovali jako porotce, ale neuvedli jste, že jste k dispozici pro jakoukoli hodnotící relaci.</p><p>Vyberte prosím níže uvedené tlačítko pro úpravu vašeho účtu a poté vyberte \"Ano\" pro každou z relací, pro které jste dostupní jako porotce v sekci Dostupnost Hodnotících Relací.</p><p>Pokud nejste k dispozici pro žádnou relaci, vyberte prosím \"Ne\" v sekci Hodnocení.</p>";
+$brewer_info_017 = "<p>Zdá se, že jste se zaregistrovali jako asistent, ale neuvedli jste, že jste k dispozici pro jakoukoli hodnotící relaci.</p><p>Vyberte prosím níže uvedené tlačítko pro úpravu vašeho účtu a poté vyberte \"Ano\" pro každou z relací, pro které jste dostupní jako asistent v sekci Dostupnost Relací Asistenta.</p><p>Pokud nejste k dispozici pro žádnou relaci, vyberte prosím \"Ne\" v sekci Hodnocení.</p>";
+$brewer_info_018 = "<strong>Uvedli jste, že jste ochotni sloužit jako porotce, ale neuvedli jste, že jste k dispozici pro jakoukoli uvedenou hodnotící relaci.</strong> Prosím, upravte informace o svém účtu a vyberte \"Ano\" pro jednu nebo více hodnotících relací.";
+$brewer_info_019 = "<strong>Uvedli jste, že jste ochotni sloužit jako asistent, ale neuvedli jste, že jste k dispozici pro jakoukoli uvedenou asistentskou relaci.</strong> Prosím, upravte informace o svém účtu a vyberte \"Ano\" pro jednu nebo více asistentských relací.";
+$brewer_info_020 = "<strong>Již jste byli přiděleni ke stolu jako rozhodčí nebo steward.</strong> Pokud si přejete změnit svou dostupnost, kontaktujte prosím organizátora soutěže nebo koordinátora rozhodčích.";
 
 /**
  * ----------------------------------------------------------------------------------
  * END TRANSLATIONS
  * ----------------------------------------------------------------------------------
  */
+
+
 
 /**
  * ----------------------------------------------------------------------------------
@@ -1971,12 +2076,5 @@ if (strpos($section, "step") === FALSE) $alert_text_070 = $alert_text_070; else 
 if (strpos($section, "step") === FALSE) $label_character_limit = $label_character_limit; else $label_character_limit = "";
 if (strpos($section, "step") === FALSE) $header_text_031 = $header_text_031; else $header_text_031 = "";
 if (strpos($section, "step") === FALSE) $beerxml_text_007 = $beerxml_text_007; else $beerxml_text_007 = "";
-
-/**
- * ----------------------------------------------------------------------------------
- * Admin Pages - Admin pages will be included in a future release
- * ----------------------------------------------------------------------------------
- */
-// if ($section == "admin") include (LANG.'en_admin.lang.php');
 
 ?>

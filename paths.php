@@ -67,7 +67,7 @@ define('MAINT', FALSE);
  * in the root folder of your installation.
  * If set to FALSE, the local libraries must be in place
  * PRIOR to proceeding through the setup process.
- * @see http://www.brewcompetition.com/local-load
+ * @see http://www.brewingcompetitions.com/local-load
  * Default is TRUE.
  */
 
@@ -101,7 +101,7 @@ define('DEBUG_SESSION_VARS', FALSE);
  * Enable the following when receiving mySQL "column does
  * not exist" errors and the like.
  * This will trigger DB structure updates contained in the
- * off_schedule_update.php file.
+ * run_update.php file.
  * ONLY enbable for a single refresh of the index.php
  * page for performance issues.
  * Default is FALSE.
@@ -169,7 +169,7 @@ function sterilize($sterilize = NULL) {
             if (is_float($sterilize)) $sterilize = filter_var($sterilize,FILTER_SANITIZE_NUMBER_FLOAT,FILTER_FLAG_ALLOW_FRACTION);
             if (is_int($sterilize)) $sterilize = filter_var($sterilize,FILTER_SANITIZE_NUMBER_INT);
         }
-        else $sterilize = filter_var($sterilize,FILTER_SANITIZE_STRING);
+        else $sterilize = filter_var($sterilize,FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         $sterilize = strip_tags($sterilize);
         $sterilize = stripcslashes($sterilize);
         $sterilize = stripslashes($sterilize);
@@ -180,7 +180,7 @@ function sterilize($sterilize = NULL) {
 
 if (HOSTED) {
     $installation_id = md5(__FILE__);
-    $session_expire_after = 30;
+    $session_expire_after = 60;
 }
 
 /** 
@@ -235,8 +235,7 @@ $_SESSION['last_action'] = time();
 
 /**
  * RECAPTCHA Keys
- * One set is for hosted installations on brewcomp.com or
- * brewcompetition.com - the other is for outside use.
+ * One set is for hosted installations, the other is for outside use.
  * Per Google guidelines, all keys validate the domain from
  * which it was generated:
  * @see https://developers.google.com/recaptcha/docs/domain_validation
@@ -253,11 +252,14 @@ if (HOSTED) {
 }
 
 else {
-    $public_captcha_key = "6LfHUCoUAAAAACHsPn8hpzbtzcpXatm-GXTTWuR3";
-    $private_captcha_key = "6LfHUCoUAAAAACNL-wzpAG3eIWQC-PpX6X3a0iaM";
+    $public_captcha_key = "";
+    $private_captcha_key = "";
 }
 
-/** Uncomment to display paths */
+/** 
+ * Uncomment to display paths. 
+ */
+
 /*
 echo ROOT."<br>";
 echo ADMIN."<br>";

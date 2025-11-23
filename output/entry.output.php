@@ -1,35 +1,29 @@
 <?php
-require ('../paths.php');
-require (CONFIG.'bootstrap.php');
-require (LIB.'output.lib.php');
-include (CLASSES.'tiny_but_strong/tbs_class.php');
-include (DB.'output_entry.db.php');
+$entry_forms = array("0","1","2","E","C");
 
+// If using non-TBS bottle labels, redirect
+if (!in_array($_SESSION['prefsEntryForm'],$entry_forms)) {
+	header(sprintf("Location: %s?section=entry-form-multi&id=%s&bid=%s", $base_url."includes/output.inc.php", $id, $bid));
+}
+
+// Otherwise run normally.
 $bottleNum = $_SESSION['jPrefsBottleNum'];
 $bottle_labels_001 = strtoupper($bottle_labels_001);
-
-/*
-$bottle_labels_002 = strtoupper($bottle_labels_002);
-$bottle_labels_003 = strtoupper($bottle_labels_003);
-*/
 
 $entry_closed = getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_contest_dates['contestEntryDeadline'], $_SESSION['prefsDateFormat'],$_SESSION['prefsTimeFormat'], "long", "date-no-gmt");
 $contest_name = $contest_info['contestName'];
 
 // Check access restrictions
-$restricted = FALSE;
-if (($_SESSION['user_id'] != $brewing_info['brewBrewerID']) && ($_SESSION['userLevel'] > 1)) $restricted = TRUE;
-
-if ($restricted) {
-	echo "<html><head><title>Error</title></head><body>";
-	echo "<p>You do not have sufficient access privileges to view this page.</p>";
-	echo "</body>";
+if ((!isset($_SESSION['loginUsername'])) || (($_SESSION['user_id'] != $brewing_info['brewBrewerID']) && ($_SESSION['userLevel'] > 1))) {
+	$redirect = "../../403.php";
+	$redirect_go_to = sprintf("Location: %s", $redirect);
+	header($redirect_go_to);
 	exit();
 }
 
 if ((!pay_to_print($_SESSION['prefsPayToPrint'],$brewing_info['brewPaid'])) && ($go != "recipe") && ($filter != "admin")) {
 	echo "<html><head><title>Error</title></head><body>";
-	echo "<p>You must pay for your entry to print its entry form (if applicable) and any bottle labels.</p>";
+	echo "<p>You must pay for your entry to print its bottle labels.</p>";
 	echo "</body>";
 	exit();
 }
@@ -37,8 +31,8 @@ if ((!pay_to_print($_SESSION['prefsPayToPrint'],$brewing_info['brewPaid'])) && (
 $category_end = $_SESSION['style_set_category_end'];
 
 // Bluebonnet still using 4 character Entry IDs, Changed 6 to 4
+//$brewing_id = sprintf("%06s",$brewing_info['id']);
 $brewing_id = sprintf("%04s",$brewing_info['id']);
-
 $brewer_info['brewerFirstName'] = html_entity_decode($brewer_info['brewerFirstName']);
 $brewing_info['brewName'] = html_entity_decode($brewing_info['brewName']);
 $style_entry = $brewing_info['brewCategory']."-".$brewing_info['brewSubCategory'];
@@ -70,25 +64,22 @@ else $organizer = "";
 
 // Bluebonnet get table name and number for entry sheets and bottle lables
 include (DB.'BBOtables.db.php');
-
 $BBOStyle = sprintf("%02s", $brewing_info['brewCategory'])."-".$brewing_info['brewSubCategory'];
 $table_number = $BBOTables['TableStyles']['TableNumber'][$BBOStyle];
 $table_info['tableNumber'] = $table_number;
 $table_info['tableName'] = $BBOTables['TableEntryCounts'][$table_number]['Name'];
-
 // End of get table info
+
 
 if (in_array($_SESSION['prefsEntryForm'],$barcode_qrcode_array)) {
 
 	// Generate Barcode
-// Use local barcode generator.	
-//	$barcode_link = "http://www.brewcompetition.com/includes/barcode/html/image.php?filetype=PNG&dpi=300&scale=1&rotation=0&font_family=Arial.ttf&font_size=10&text=".$brewing_id."&thickness=50&code=BCGcode39";
-  $barcode_link = $base_url."barcode.php?f=png&s=code39&d=$brewing_id&sf=2&h=125";
-  
-// Added Bluebonnet Table barecode  
+	// Use BBO local barcode generator.
+	//$barcode_link = "https://admin.brewingcompetitions.com/includes/barcode/html/image.php?filetype=PNG&dpi=300&scale=1&rotation=0&font_family=Arial.ttf&font_size=10&text=".$brewing_id."&thickness=50&code=BCGcode39";
+	$barcode_link = $base_url."barcode.php?f=png&s=code39&d=$brewing_id&sf=2&h=125";
+	// Added Bluebonnet Table barcode  
   $barcode_table_link = $base_url."barcode.php?f=png&s=code39&d=$table_number&sf=2&h=125";
-  
-  
+	
 	// Generate QR Code
 	require_once (CLASSES.'qr_code/qrClass.php');
 	$qr = new qRClas();
@@ -96,7 +87,7 @@ if (in_array($_SESSION['prefsEntryForm'],$barcode_qrcode_array)) {
 	$qrcode_url = $base_url."qr.php?id=".$brewing_info['id'];
 	$qrcode_url = urlencode($qrcode_url);
 
-	$qr->qRCreate($qrcode_url,"90x90","UTF-8");
+	$qr->qRCreate($qrcode_url,"75x75","UTF-8");
 	$qrcode_link = $qr->url;
 
 }
@@ -112,7 +103,7 @@ else $brewing_paid = "";
 // Style name
 if ($brewing_info['brewCategory'] < $category_end) {
   $brewing_info['styleName'] = $brewing_info['brewStyle'];
- 	$brewing_info['styleCat'] = style_convert($brewing_info['brewCategory'],1);
+ 	$brewing_info['styleCat'] = style_convert($brewing_info['brewCategory'],1,$base_url);
 }
 
 else $brewing_info['styleName'] = $brewing_info['brewStyle'];
@@ -145,53 +136,7 @@ if ($go == "default") {
 		$TBS->MergeBlock('dropOffLocation',$brewing,'SELECT * FROM '.$prefix.'drop_off ORDER BY dropLocationName ASC');
 	}
 
-	// If using non-TBS bottle labels, redirect
-	else {
-		header(sprintf("Location: %s?id=%s&bid=%s", $base_url."output/bottle_label.output.php", $id, $bid));
-	}
-
-/*
-	elseif ($_SESSION['prefsEntryForm'] == "B") {
-		$TBS->LoadTemplate(TEMPLATES.'bjcp-entry.html');
-	}
-
-	elseif ($_SESSION['prefsEntryForm'] == "M") {
-		$TBS->LoadTemplate(TEMPLATES.'simple-metric-entry.html');
-	}
-
-	elseif ($_SESSION['prefsEntryForm'] == "3") {
-		$TBS->LoadTemplate(TEMPLATES.'simple-metric-entry-barcode.html');
-	}
-
-	elseif ($_SESSION['prefsEntryForm'] == "U") {
-		$TBS->LoadTemplate(TEMPLATES.'simple-us-entry.html');
-	}
-
-	elseif ($_SESSION['prefsEntryForm'] == "4") {
-		$TBS->LoadTemplate(TEMPLATES.'simple-us-entry-barcode.html');
-	}
-
-	elseif ($_SESSION['prefsEntryForm'] == "N") {
-		$TBS->LoadTemplate(TEMPLATES.'barcode-entry.html');
-		$TBS->MergeBlock('dropOffLocation',$brewing,'SELECT * FROM '.$prefix.'drop_off ORDER BY dropLocationName ASC');
-	}
-
-*/
-
 }
-
-/*
-if ($go == "recipe") {
-	$TBS->LoadTemplate(TEMPLATES.'recipe.html');
-}
-
-if (isset($brewing_info['grains'])) $TBS->MergeBlock('grains',$brewing_info['grains']);
-if (isset($brewing_info['extracts'])) $TBS->MergeBlock('extracts',$brewing_info['extracts']);
-if (isset($brewing_info['adjuncts'])) $TBS->MergeBlock('adjuncts',$brewing_info['adjuncts']);
-if (isset($brewing_info['hops'])) $TBS->MergeBlock('hops',$brewing_info['hops']);
-if (isset($brewing_info['mashSteps'])) $TBS->MergeBlock('mashSteps',$brewing_info['mashSteps']);
-
-*/
 
 $TBS->NoErr;
 $TBS->Show();

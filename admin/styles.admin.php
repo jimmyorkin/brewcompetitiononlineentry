@@ -1,4 +1,13 @@
 <?php
+
+// Redirect if directly accessed without authenticated session
+if ((!isset($_SESSION['loginUsername'])) || ((isset($_SESSION['loginUsername'])) && (strpos($section, "step") === FALSE) && ($_SESSION['userLevel'] > 0))) {
+    $redirect = "../../403.php";
+    $redirect_go_to = sprintf("Location: %s", $redirect);
+    header($redirect_go_to);
+    exit();
+}
+
 if ($section != "step7") include (DB.'judging_locations.db.php');
 include (DB.'styles.db.php');
 if ($_SESSION['prefsStyleSet'] == "BA") include (INCLUDES.'ba_constants.inc.php');
@@ -10,15 +19,14 @@ if ((($action == "default") && ($filter == "default")) || ($section == "step7") 
 
 	$sorting_default = "[[2,'asc']]";
 
+	$current_styles_active = json_decode($_SESSION['prefsSelectedStyles'],true);
+
 	do {
 
 		if ($row_styles['id'] != "") {
 
 			$brewStyleActive = "";
-			if (isset($row_styles['brewStyleActive']) && ($row_styles['brewStyleActive'] == "Y")) $brewStyleActive = "CHECKED";
-
-			$brewStyleJudgingLoc = "";
-			if (isset($row_styles['brewStyleJudgingLoc']) && ($row_styles['brewStyleJudgingLoc'] == $bid)) $brewStyleJudgingLoc = "CHECKED";
+			if (array_key_exists($row_styles['id'],$current_styles_active)) $brewStyleActive = "CHECKED";
 
 			$brewStyleOwn_prefix = "";
 			$brewStyleOwn_suffix = "";
@@ -47,11 +55,11 @@ if ((($action == "default") && ($filter == "default")) || ($section == "step7") 
 			if ($bid != "default") $table_body .= "<td width=\"1%\" nowrap><input name=\"brewStyleJudgingLoc".$row_styles['id']."\" type=\"checkbox\" value=\"".$bid."\" ".$brewStyleJudgingLoc."></td>";
 			$table_body .= "<td>".$row_styles['brewStyle']."</td>";
 			if ($_SESSION['prefsStyleSet'] == "BA") {
-				if ($row_styles['brewStyleOwn'] == "custom") $table_body .= "<td>Custom Style</td>";
+				if ($row_styles['brewStyleOwn'] == "custom") $table_body .= "<td>*Custom Style</td>";
 				else $table_body .= "<td>".$ba_category_names[ltrim($row_styles['brewStyleGroup'],"0")]."</td>";
 			}
 			elseif ($_SESSION['prefsStyleSet'] == "AABC") {
-				if ($row_styles['brewStyleOwn'] == "custom") $table_body .= "<td>Custom Style</td>";
+				if ($row_styles['brewStyleOwn'] == "custom") $table_body .= "<td>*Custom Style</td>";
 				else $table_body .= "<td>".ltrim($row_styles['brewStyleGroup'], "0").".".ltrim($row_styles['brewStyleNum'], "0")."</td>";
 			}
 			else $table_body .= "<td>".$brewStyleOwn_prefix.$row_styles['brewStyleGroup'].$row_styles['brewStyleNum'].$brewStyleOwn_suffix."</td>";
@@ -68,7 +76,7 @@ if ((($action == "default") && ($filter == "default")) || ($section == "step7") 
 
 		}
 
-	} while($row_styles = mysqli_fetch_assoc($styles));
+	} while ($row_styles = mysqli_fetch_assoc($styles));
 
 }
 
@@ -128,6 +136,7 @@ function checkUncheckAll(theElement) {
 </script>
 
 <form name="form1" method="post" action="<?php echo $base_url; ?>includes/process.inc.php?section=<?php if ($section == "step7") echo "setup"; else echo $section; ?>&amp;action=update&amp;dbTable=<?php echo $styles_db_table; ?>&amp;filter=<?php echo $filter; if ($bid != "default") echo "&amp;bid=".$bid; ?>">
+<input type="hidden" name="token" value ="<?php if (isset($_SESSION['token'])) echo $_SESSION['token']; ?>">
 <table class="table table-responsive table-striped table-bordered" id="sortable">
 <thead>
  <tr>
@@ -153,21 +162,109 @@ function checkUncheckAll(theElement) {
 <input type="hidden" name="relocate" value="<?php echo relocate($base_url."index.php?section=admin&go=styles","default",$msg,$id); ?>">
 <?php } ?>
 </form>
-<?php } ?>
+<?php } ?>  
 
 <?php if (($action == "add") || ($action == "edit")) {
 $style_type_2 = style_type($row_styles['brewStyleType'],"1","bcoe");
 ?>
+
+<script>
+// Check if the entered style/sub-style combination of identifiers are in use
+var style_url = "<?php echo $ajax_url; ?>custom_style.ajax.php";
+var action = "<?php echo $action; ?>";
+
+$("#style-identifier-status").hide();
+
+function checkStyleIdentifier() {
+
+	$("#style-identifier-status").hide();
+
+	var rid1 = $("#brewStyleGroup").val();
+	var rid2 = $("#brewStyleNum").val();
+
+	let url = style_url + "?rid1=" + rid1 + "&rid2=" + rid2;
+
+	<?php if ($action == "edit") { ?>
+	// If editing, establish constants for ajax script to compare against
+	var rid3 = "<?php echo $row_styles['brewStyleGroup']; ?>";
+	var rid4 = "<?php echo $row_styles['brewStyleNum']; ?>";
+	url += "&rid3=" + rid3
+	url += "&rid4=" + rid4
+	<?php } ?>
+
+	if ((rid1) && (rid2)) {
+
+		var disabled = $('#updateStyle').is(':disabled');
+
+		jQuery.ajax({
+			url: url,
+			data: "",
+			type: "POST",
+			success:function(data) {
+				
+				var jsonData = JSON.parse(data);
+
+				if (jsonData.status <= "2") {
+					$('#updateStyle').prop("disabled", true);
+				}
+
+				else {
+					$('#updateStyle').prop("disabled", false);
+				}
+
+				if (jsonData.status <= "3") {
+					$("#style-identifier-status").show();
+					$("#style-identifier-status").html(jsonData.message);
+				}
+
+			},
+			
+			error:function () {
+		
+			}
+		});
+	}
+
+	
+}
+</script>
+
 <form data-toggle="validator" role="form" class="form-horizontal" method="post" action="<?php echo $base_url; ?>includes/process.inc.php?section=<?php echo $section; ?>&amp;action=<?php echo $action; ?>&amp;dbTable=<?php echo $styles_db_table; ?>&amp;go=<?php echo $go; if ($action == "edit") echo "&amp;id=".$id; ?>" id="form1" name="form1">
+<input type="hidden" name="token" value ="<?php if (isset($_SESSION['token'])) echo $_SESSION['token']; ?>">
 <div class="form-group"><!-- Form Group REQUIRED Text Input -->
 	<label for="brewStyle" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Name</label>
 	<div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
 		<div class="input-group has-warning">
 			<!-- Input Here -->
-			<input class="form-control" id="brewStyle" name="brewStyle" type="text" value="<?php if ($action == "edit") echo $row_styles['brewStyle']; ?>" placeholder="" data-error="The custom style category's name is required" autofocus required>
-			<span class="input-group-addon" id="brewStyle-addon2"><span class="fa fa-star"></span></span>
+			<input class="form-control" id="brewStyle" name="brewStyle" type="text" value="<?php if ($action == "edit") echo $row_styles['brewStyle']; ?>" placeholder="" data-error="The custom style's name is required." autofocus required>
+			<span class="input-group-addon" id="brewStyle-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
 		</div>
         <div class="help-block with-errors"></div>
+	</div>
+</div><!-- ./Form Group -->
+<div class="form-group">
+	<label for="brewStyleGroup" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Style Number or Identifier</label>
+	<div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
+		<div class="input-group has-warning">
+			<!-- Input Here -->
+			<input class="form-control" id="brewStyleGroup" name="brewStyleGroup" type="text" value="<?php if ($action == "edit") echo $row_styles['brewStyleGroup']; ?>" placeholder="" data-error="The custom style number or identifier is required." maxlength="3" required onInput="checkStyleIdentifier()" onKeypress="checkStyleIdentifier()">
+			<span class="input-group-addon" id="brewStyle-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
+		</div>
+		<div class="help-block">Provide the overall identifier for the style. Three (3) character limit.</div>
+       	<div class="help-block with-errors"></div>
+	</div>
+</div><!-- ./Form Group -->
+<div class="form-group">
+	<label for="brewStyleNum" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Sub-Style Number or Identifier</label>
+	<div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
+		<div class="input-group has-warning">
+			<!-- Input Here -->
+			<input class="form-control" id="brewStyleNum" name="brewStyleNum" type="text" value="<?php if ($action == "edit") echo $row_styles['brewStyleNum']; ?>" placeholder="" data-error="The custom style category's sub-style identifer is required." maxlength="2" required onInput="checkStyleIdentifier()" onKeypress="checkStyleIdentifier()">
+			<span class="input-group-addon" id="brewStyle-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
+		</div>
+		<div class="help-block">Provide a <strong>unique</strong> identifier for this style. Two (2) character limit.</div>
+       	<div class="help-block with-errors"></div>
+       	<div>Style Status: <span id="style-identifier-status">Awaiting input.</span></div>
 	</div>
 </div><!-- ./Form Group -->
 <div class="form-group"><!-- Form Group REQUIRED Select -->
@@ -350,8 +447,6 @@ $style_type_2 = style_type($row_styles['brewStyleType'],"1","bcoe");
 
 
 <input type="hidden" name="brewStyleOld" value="<?php if ($action == "edit") echo $row_styles['brewStyle'];?>">
-<input type="hidden" name="brewStyleGroup" value="<?php if ($action == "edit") echo $row_styles['brewStyleGroup'];?>">
-<input type="hidden" name="brewStyleNum" value="<?php if ($action == "edit") echo $row_styles['brewStyleNum'];?>" >
 <input type="hidden" name="brewStyleActive" value="<?php if ($action == "edit") echo $row_styles['brewStyleActive']; else echo "Y"; ?>">
 <input type="hidden" name="brewStyleOwn" value="<?php if ($action == "edit") echo $row_styles['brewStyleOwn']; else echo "custom"; ?>">
 <?php if (isset($_SERVER['HTTP_REFERER'])) { ?>
@@ -368,13 +463,8 @@ $style_type_2 = style_type($row_styles['brewStyleType'],"1","bcoe");
 	</div>
 </div>
 </form>
-<?php
-
-// Load Show/Hide
-include (INCLUDES.'form_js.inc.php');
-
-} ?>
-<?php if (($action == "default") && ($filter == "orphans") && ($bid == "default")) { ?>
+<?php } 
+if (($action == "default") && ($filter == "orphans") && ($bid == "default")) { ?>
 <h3>Styles Without a Valid Style Type</h3>
 <?php
 echo orphan_styles();

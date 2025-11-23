@@ -123,22 +123,25 @@ function bos_entry_info($eid,$table_id,$filter) {
 	$return .= $row_entries_1['brewCategorySort']."^";  	// 1
 	$return .= $row_entries_1['brewCategory']."^";  		// 2
 	$return .= $row_entries_1['brewSubCategory']."^";  		// 3
-	$return .= $row_brewer['brewerFirstName']."^";  	// 4
-	$return .= $row_brewer['brewerLastName']."^";  	// 5
+	$return .= $row_brewer['brewerFirstName']."^";  		// 4
+	$return .= $row_brewer['brewerLastName']."^";  			// 5
 	$return .= $row_entries_1['brewJudgingNumber']."^";   	// 6
-	$return .= $row_tables_1['id']."^";  					// 7
-	$return .= $row_tables_1['tableName']."^";   			// 8
-	$return .= $row_tables_1['tableNumber']."^";  			// 9
-	if (isset($row_bos_place_1['scorePlace'])) $return .= $row_bos_place_1['scorePlace']."^";  		// 10
+	if (isset($row_tables_1['id'])) $return .= $row_tables_1['id']."^";  						// 7
 	else $return .= " ^";
-	if (isset($row_bos_place_1['scoreEntry'])) $return .= $row_bos_place_1['scoreEntry']."^";  		// 11
+	if (isset($row_tables_1['tableName'])) $return .= $row_tables_1['tableName']."^";   		// 8
+	else $return .= " ^";
+	if (isset($row_tables_1['tableNumber'])) $return .= $row_tables_1['tableNumber']."^";  		// 9
+	else $return .= " ^";
+	if (isset($row_bos_place_1['scorePlace'])) $return .= $row_bos_place_1['scorePlace']."^";  	// 10
+	else $return .= " ^";
+	if (isset($row_bos_place_1['scoreEntry'])) $return .= $row_bos_place_1['scoreEntry']."^";  	// 11
 	else $return .= " ^";
 	$return .= $row_entries_1['brewName']."^";  			// 12
 	$return .= $row_entries_1['id']."^";   					// 13
 	if (isset($row_bos_place_1['id'])) $return .= $row_bos_place_1['id']."^";   				// 14
 	else $return .= "N^";
-	$return .= $row_entries_1['brewBrewerID']."^"; 				// 15
-	$return .= $row_brewer['brewerBreweryName']; //16
+	$return .= $row_entries_1['brewBrewerID']."^"; 			// 15
+	$return .= $row_brewer['brewerBreweryName']; 			//16
 
 	return $return;
 }
@@ -162,58 +165,33 @@ function style_type_info($type,$suffix="default") {
 function score_style_data($value) {
 
 	require(CONFIG.'config.php');
+	require(LANG.'language.lang.php');
 	mysqli_select_db($connection,$database);
 
-	//if ($_SESSION['prefsStyleSet'] != "BA") {
+	$return = "";
 
-	$query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum,brewStyle,brewStyleType FROM %s WHERE id='%s'", $prefix."styles", $value);
+	/*
+	if (HOSTED) $styles_db_table = "bcoem_shared_styles";
+	else
+	*/
+	$styles_db_table = $prefix."styles";
+
+	/*
+	if (HOSTED) $query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum,brewStyle,brewStyleType FROM %s WHERE id='%s' UNION ALL SELECT brewStyleGroup,brewStyleNum,brewStyle,brewStyleType FROM %s WHERE id='%s'", $prefix."styles", $value, $styles_db_table, $value);
+	else 
+	*/
+	$query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum,brewStyle,brewStyleType FROM %s WHERE id='%s'", $styles_db_table, $value);
 	$styles = mysqli_query($connection,$query_styles) or die (mysqli_error($connection));
 	$row_styles = mysqli_fetch_assoc($styles);
 
-	$return =
-	$row_styles['brewStyleGroup']."^". //0
-	$row_styles['brewStyleNum']."^". //1
-	$row_styles['brewStyle']."^". //2
-	$row_styles['brewStyleType']; //3
-/*
+	if ($row_styles) {
+		$return =
+		$row_styles['brewStyleGroup']."^". //0
+		$row_styles['brewStyleNum']."^". //1
+		$row_styles['brewStyle']."^". //2
+		$row_styles['brewStyleType']; //3
 	}
-
-	else {
-
-		include (INCLUDES.'ba_constants.inc.php');
-
-		$value1 = ($value - 1);
-
-		// Custom Styles
-		if ($value > 500) {
-			$query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum,brewStyle,brewStyleType FROM %s WHERE id='%s'", $prefix."styles", $value);
-			$styles = mysqli_query($connection,$query_styles) or die (mysqli_error($connection));
-			$row_styles = mysqli_fetch_assoc($styles);
-
-			$return =
-			$row_styles['brewStyleGroup']."^". //0
-			$row_styles['brewStyleNum']."^". //1
-			$row_styles['brewStyle']."^"; //2
-
-			if ($row_styles['brewStyleType'] == "") $return .= 1; else $return .= $row_styles['brewStyleType'];
-		}
-
-		else {
-
-			$return = $_SESSION['styles']['data'][$value1]['id']."^"; //0
-			$return .= $_SESSION['styles']['data'][$value1]['id']."^"; //1
-			$return .= $_SESSION['styles']['data'][$value1]['name']."^"; //2
-
-			if (in_array($_SESSION['styles']['data'][$value1]['categoryId'],$ba_beer_categories)) $return .= 1; //3
-			if ((in_array($_SESSION['styles']['data'][$value1]['categoryId'],$ba_mead_cider_categories)) && (in_array($_SESSION['styles']['data'][$value1]['id'],$ba_mead))) $return .= 3; //3
-			if ((in_array($_SESSION['styles']['data'][$value1]['categoryId'],$ba_mead_cider_categories)) && (in_array($_SESSION['styles']['data'][$value1]['id'],$ba_cider))) $return .= 2; //3
-
-		}
-
-	}
-
-	*/
-
+	
 	return $return;
 
 }
@@ -301,7 +279,7 @@ function table_choose($section,$go,$action,$filter,$view,$script_name,$method) {
 	}
 
 	else {
-		if ($method == "thickbox") $class = 'class="hide-loader menuItem" id="modal_window_link"';
+		if ($method == "thickbox") $class = 'class="modal-window-link hide-loader menuItem"';
 		if ($method == "none") $class = 'class="menuItem"';
 
 		$random = random_generator(7,2);
@@ -313,8 +291,8 @@ function table_choose($section,$go,$action,$filter,$view,$script_name,$method) {
 
 		if ($totalRows_tables > 0) {
 			do {
-				if ($filter == "mini_bos") $table_choose .= '<li class="small"><a id="modal_window_link" class="hide-loader" href="'.$script_name.'?section='.$section.'&go='.$go.'&action='.$action.'&filter='.$filter.'&view='.$view.'&id='.$row_tables['id'].'" title="Print '.$row_tables['tableName'].'">'.$row_tables['tableNumber'].': '.$row_tables['tableName'].' (Mini-BOS)</a></li>';
-				else $table_choose .= '<li class="small"><a id="modal_window_link" class="hide-loader" href="'.$script_name.'?section='.$section.'&go='.$go.'&action='.$action.'&filter='.$filter.'&view='.$view.'&id='.$row_tables['id'].'" title="Print '.$row_tables['tableName'].'">'.$row_tables['tableNumber'].': '.$row_tables['tableName'].' </a></li>';
+				if ($filter == "mini_bos") $table_choose .= '<li class="small"><a data-fancybox data-type="iframe" class="modal-window-link hide-loader" href="'.$script_name.'?section='.$section.'&go='.$go.'&action='.$action.'&filter='.$filter.'&view='.$view.'&id='.$row_tables['id'].'" title="Print '.$row_tables['tableName'].'">'.$row_tables['tableNumber'].': '.$row_tables['tableName'].' (Mini-BOS)</a></li>';
+				else $table_choose .= '<li class="small"><a data-fancybox data-type="iframe" class="modal-window-link hide-loader" href="'.$script_name.'?section='.$section.'&go='.$go.'&action='.$action.'&filter='.$filter.'&view='.$view.'&id='.$row_tables['id'].'" title="Print '.$row_tables['tableName'].'">'.$row_tables['tableNumber'].': '.$row_tables['tableName'].' </a></li>';
 			} while ($row_tables = mysqli_fetch_assoc($tables));
 		}
 
@@ -324,16 +302,23 @@ function table_choose($section,$go,$action,$filter,$view,$script_name,$method) {
 
 }
 
+// Apparently unused.
 function style_choose($section,$go,$action,$filter,$view,$script_name,$method) {
 
 	require(CONFIG.'config.php');
 	mysqli_select_db($connection,$database);
 
+	/*
+	if (HOSTED) $styles_db_table = "bcoem_shared_styles";
+	else
+	*/
+	$styles_db_table = $prefix."styles";
+
 	$end = $_SESSION['style_set_category_end'];
 
 	if ($method == "thickbox") { 
 		$suffix = '';
-		$class = 'class="hide-loader menuItem" id="modal_window_link"'; 
+		$class = 'class="modal-window-link hide-loader menuItem"'; 
 	}
 
 	if ($method == "none") { 
@@ -355,12 +340,16 @@ function style_choose($section,$go,$action,$filter,$view,$script_name,$method) {
 		$row = mysqli_fetch_array($result);
 		
 		if ($row['count'] > 0) { 
-			$style_choose .= '<a '.$class.' style="font-size: 0.9em; padding: 1px;" href="'.$script_name.'?section='.$section.'&go='.$go.'&action='.$action.'&filter='.$num.$suffix.'&view='.$view.'" title="Print '.style_convert($i,"1").'">'.$num.' '.style_convert($i,"1").' ('.$row['count'].' entries)</a>'; 
+			$style_choose .= '<a '.$class.' style="font-size: 0.9em; padding: 1px;" href="'.$script_name.'?section='.$section.'&go='.$go.'&action='.$action.'&filter='.$num.$suffix.'&view='.$view.'" title="Print '.style_convert($i,"1",$base_url).'">'.$num.' '.style_convert($i,"1",$base_url).' ('.$row['count'].' entries)</a>'; 
 		}
 
 	}
 
-	$query_styles = sprintf("SELECT brewStyle,brewStyleGroup FROM %s WHERE brewStyleGroup > %s", $prefix."styles",$end);
+	/*
+	if (HOSTED) $query_styles = sprintf("SELECT brewStyle,brewStyleGroup FROM `%s` WHERE brewStyleGroup > '%s' UNION ALL SELECT brewStyle,brewStyleGroup FROM `%s` WHERE brewStyleGroup > '%s'", $styles_db_table, $end, $prefix."styles", $end);
+	else 
+	*/
+	$query_styles = sprintf("SELECT brewStyle,brewStyleGroup FROM `%s` WHERE brewStyleGroup > '%s'", $prefix."styles",$end);
 	$styles = mysqli_query($connection,$query_styles) or die (mysqli_error($connection));
 	$row_styles = mysqli_fetch_assoc($styles);
 	$totalRows_styles = mysqli_num_rows($styles);
@@ -407,9 +396,19 @@ function orphan_styles() {
 	
 	require(CONFIG.'config.php');
 
+	/*
+	if (HOSTED) $styles_db_table = "bcoem_shared_styles";
+	else
+	*/
+	$styles_db_table = $prefix."styles";
+
 	$end = $_SESSION['style_set_category_end'];
 
-	$query_styles = sprintf("SELECT id,brewStyle,brewStyleType FROM %s WHERE brewStyleGroup >= %s", $prefix."styles",$end);
+	/*
+	if (HOSTED) $query_styles = sprintf("SELECT id,brewStyle,brewStyleType WHERE brewStyleGroup >= %s FROM %s UNION ALL SELECT id,brewStyle,brewStyleType FROM %s WHERE brewStyleGroup >= %s;", $styles_db_table, $end, $prefix."styles", $end);
+	else 
+	*/
+	$query_styles = sprintf("SELECT id,brewStyle,brewStyleType FROM %s WHERE brewStyleGroup >= %s;", $prefix."styles",$end);
 	$styles = mysqli_query($connection,$query_styles) or die (mysqli_error($connection));
 	$row_styles = mysqli_fetch_assoc($styles);
 	$totalRows_styles = mysqli_num_rows($styles);
@@ -499,7 +498,7 @@ function score_custom_winning_choose($special_best_info_db_table,$special_best_d
 		
 		$r = "<li class=\"disabled small\"><a href=\"#\">No custom categories have been defined</a></li>";
 		$r .= "<li role=\"separator\" class=\"divider\"></li>";
-		$r .= "<li class=\"small\"><a href=\"".$base_url."index.php?section=admin&amp;go=special_best&amp;action=add\">Add a Custom Style</a></li>";
+		$r .= "<li class=\"small\"><a href=\"".$base_url."index.php?section=admin&amp;go=special_best&amp;action=add\">Add a Custom Category</a></li>";
 
 	}
 
@@ -687,14 +686,14 @@ function admin_help($go,$header_output,$action,$filter) {
 		break;
 	}
 
-	$return = '<p><span class="icon"><img src="'.$base_url.'/images/help.png" /></span><a id="modal_window_link" class="hide-loader" href="http://help.brewcompetition.com/files/'.$page.'.html" title="BCOE&amp;M Help for '.$header_output.'">Help</a></p>';
+	$return = '<p><span class="icon"><img src="'.$base_url.'/images/help.png" /></span><a data-fancybox data-type="iframe" class="modal-window-link hide-loader" href="http://brewingcompetitions.com/'.$page.'.html" title="BCOE&amp;M Help for '.$header_output.'">Help</a></p>';
 	return $return;
 }
 
 function custom_modules($type,$method) {
 	require(CONFIG.'config.php');
 
-	if ($type == "reports") { $type = 1; $modal = "id='modal_window_link' class='hide-loader'"; }
+	if ($type == "reports") { $type = 1; $modal = "class='modal-window-link hide-loader'"; }
 	if ($type == "exports") { $type = 2; $modal = ""; }
 
 	if ($method == 1) {
@@ -890,11 +889,21 @@ function received_entries() {
 	
 	include (CONFIG.'config.php');
 	mysqli_select_db($connection,$database);
+
+	/*
+	if (HOSTED) $styles_db_table = "bcoem_shared_styles";
+	else
+	*/
+	$styles_db_table = $prefix."styles";
 	
 	$style_array = array();
 
-	$query_styles = sprintf("SELECT brewStyle FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom')", $prefix."styles",$_SESSION['prefsStyleSet']);
-	$styles = mysqli_query($connection,$query_styles) or die (mysqli_error($connection));
+	/*
+	if (HOSTED) $query_styles = sprintf("SELECT brewStyle FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') UNION ALL SELECT brewStyle FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom');", $styles_db_table, $_SESSION['prefsStyleSet'], $prefix."styles", $_SESSION['prefsStyleSet']);
+	else 
+	*/
+	$query_styles = sprintf("SELECT brewStyle FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom');", $prefix."styles",$_SESSION['prefsStyleSet']);
+	$styles = mysqli_query($connection,$query_styles);
 	$row_styles = mysqli_fetch_array($styles);
 
 	do { $style_array[] = $row_styles['brewStyle']; } while ($row_styles = mysqli_fetch_array($styles));
@@ -902,7 +911,7 @@ function received_entries() {
 	foreach ($style_array as $style) {
 		$style = mysqli_real_escape_string($connection,$style);
 		$query_entry_count = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewStyle='%s' AND brewReceived='1'", $prefix."brewing", $style);
-		$result = mysqli_query($connection,$query_entry_count) or die (mysqli_error($connection));
+		$result = mysqli_query($connection,$query_entry_count);
 		$row = mysqli_fetch_array($result);
 		if ($row['count'] > 0) $a[] = $style;
 	}
@@ -1003,12 +1012,12 @@ function user_info($uid) {
 	include (CONFIG.'config.php');
 	mysqli_select_db($connection,$database);
 	
-	$query_user1 = sprintf("SELECT id,userLevel FROM %s WHERE id = '%s'", $prefix."users", $uid);
+	$query_user1 = sprintf("SELECT id,userLevel,userAdminObfuscate FROM %s WHERE id = '%s'", $prefix."users", $uid);
 	$user1 = mysqli_query($connection,$query_user1) or die (mysqli_error($connection));
 	$row_user1 = mysqli_fetch_assoc($user1);
 
 	$return = "";
-	if ($row_user1) $return = $row_user1['id']."^".$row_user1['userLevel'];
+	if ($row_user1) $return = $row_user1['id']."^".$row_user1['userLevel']."^".$row_user1['userAdminObfuscate'];
 	
 	return $return;
 
@@ -1173,6 +1182,12 @@ function entry_conflict($bid,$table_styles) {
 	require(CONFIG.'config.php');
 	mysqli_select_db($connection,$database);
 
+	/*
+	if (HOSTED) $styles_db_table = "bcoem_shared_styles";
+	else
+	*/
+	$styles_db_table = $prefix."styles";
+
 	$d = 0;
 
 	if (!empty($table_styles)) {
@@ -1181,6 +1196,10 @@ function entry_conflict($bid,$table_styles) {
 
 		foreach ($b as $style) {
 
+			/*
+			if (HOSTED) $query_style = sprintf("SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s' UNION ALL SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s'", $styles_db_table, $style, $prefix."styles", $style);
+			else 
+			*/
 			$query_style = sprintf("SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s'", $prefix."styles", $style);
 			$style = mysqli_query($connection,$query_style) or die (mysqli_error($connection));
 			$row_style = mysqli_fetch_assoc($style);
@@ -1218,8 +1237,8 @@ function unassign($bid,$location,$round,$tid) {
 	
 	return $r;
 }
-
-function assign_to_table($tid,$bid,$filter,$total_flights,$round,$location,$table_styles,$queued,$random) {
+         
+function assign_to_table($tid,$bid,$filter,$total_flights,$round,$location,$table_styles,$queued,$random,$ind_aff_flag) {
 
 	/**
 	 * Function almalgamates the above functions to output the correct form elements
@@ -1236,7 +1255,10 @@ function assign_to_table($tid,$bid,$filter,$total_flights,$round,$location,$tabl
 	$unavailable = unavailable($bid,$location,$round,$tid);
 
 	$r = "";
-	if (entry_conflict($bid,$table_styles)) $disabled = "disabled"; else $disabled = "";
+	$disabled = "";
+	if (entry_conflict($bid,$table_styles)) $disabled = "disabled"; 
+	if ($ind_aff_flag) $disabled = "disabled"; 
+	
 	if ($filter == "stewards") $role = "S"; else $role = "J";
 
 	$r .= "<section>";
@@ -1457,7 +1479,7 @@ return $r;
 }
 */
 
-function judge_alert($round,$bid,$tid,$location,$likes,$dislikes,$table_styles,$id) {
+function judge_alert($round,$bid,$tid,$location,$likes,$dislikes,$table_styles,$id,$ind_aff_flag) {
 	
 	if (table_round($tid,$round)) {
 		
@@ -1468,8 +1490,13 @@ function judge_alert($round,$bid,$tid,$location,$likes,$dislikes,$table_styles,$
 		if ($unavailable) $r = "bg-purple text-purple|<span class=\"text-purple\"><span class=\"fa fa-check\"></span> <strong>Assigned.</strong> Paricipant is assigned to another table in this round.</span>";
 		
 		if ($entry_conflict) $r = "bg-info text-info|<span class=\"text-info\"><span class=\"fa fa-ban\"></span> <strong>Disabled.</strong> Participant has an entry at this table.</span>";
+
+		if ($ind_aff_flag) {
+			if ($_SESSION['prefsProEdition'] == 1) $r = "bg-info text-info|<span class=\"text-info\"><span class=\"fa fa-ban\"></span> <strong>Disabled.</strong> Participant has a reported organization affiliation at this table.</span>";
+			else $r = "bg-info text-info|<span class=\"text-info\"><span class=\"fa fa-ban\"></span> <strong>Disabled.</strong> Participant has a reported brewing partner or team affiliation at this table.</span>";
+		}
 		
-		if ((!$unavailable) && (!$entry_conflict)) $r = like_dislike($likes,$dislikes,$table_styles);
+		if ((!$unavailable) && (!$entry_conflict) && (!$ind_aff_flag)) $r = like_dislike($likes,$dislikes,$table_styles);
 
 	}
 	
@@ -1506,7 +1533,7 @@ function judge_info($uid) {
 		."^".$row_brewer_info['brewerJudgeCider'];
 	}
 
-	if ($_SESSION['prefsProEdition'] == 1) $r .= "^".$row_brewer_info['brewerAssignment'];
+	$r .= "^".$row_brewer_info['brewerAssignment'];
 
 	if ($_SESSION['jPrefsQueued'] == "N") {
 		

@@ -12,11 +12,6 @@
 if (NHC) $base_url = "";
 else $base_url = $base_url;
 
-// ---------------------------- Globals ------------------------------------------------
-
-$php_version = phpversion();
-$nhc_landing_url = "https://www.brewingcompetition.com";
-
 // ---------------------------- Preflight Checks ---------------------------------------
 require_once (LIB.'preflight.lib.php');
 
@@ -34,67 +29,7 @@ if ($setup_success) {
 
 	// ---------------------------- Check if Valid Section -----------------------------
 	$section_array = array(
-		"default",
-		"rules",
-		"entry",
-		"volunteers",
-		"contact",
-		"pay",
-		"list",
-		"admin",
-		"login",
-		"logout",
-		"check",
-		"brewer",
-		"user",
-		"setup",
-		"judge",
-		"register",
-		"sponsors",
-		"past_winners",
-		"brew",
-		"step1",
-		"step2",
-		"step3",
-		"step4",
-		"step5",
-		"step6",
-		"step7",
-		"step8",
-		"update",
-		"confirm",
-		"delete",
-		"table_cards",
-		"participant_summary",
-		"loc",
-		"sorting",
-		"output_styles",
-		"map",
-		"driving",
-		"scores",
-		"entries",
-		"participants",
-		"emails",
-		"assignments",
-		"bos-mat",
-		"dropoff",
-		"summary",
-		"inventory",
-		"pullsheets",
-		"results",
-		"sorting",
-		"staff",
-		"styles",
-		"promo",
-		"table-cards",
-		"testing",
-		"notes",
-		"qr",
-		"shipping-label",
-		"particpant-entries",
-		"evaluation",
-		"competition",
-		"past-winners"
+		"default", "rules", "entry", "volunteers", "contact", "pay", "list", "admin", "login", "logout", "check", "brewer", "user", "setup", "judge", "register", "sponsors", "past_winners", "brew", "step1", "step2", "step3", "step4", "step5", "step6", "step7", "step8", "update", "confirm", "delete", "table_cards", "participant_summary", "loc", "sorting", "output_styles", "map", "driving", "scores", "entries", "participants", "emails", "assignments", "bos-mat", "dropoff", "summary", "inventory", "pullsheets", "results", "sorting", "staff", "styles", "promo", "table-cards", "testing", "notes", "qr", "shipping-label", "particpant-entries", "evaluation", "competition", "past-winners"
 	);
 
 	// ---------------------------- QR Redirect --------------------------------------
@@ -129,7 +64,7 @@ if ($setup_success) {
 	if (SINGLE) require_once(SSO.'sso.inc.php');
 	require_once (LIB.'common.lib.php');
 	require_once (INCLUDES.'db_tables.inc.php');
-	if (($msg == "16") || ($force_update)) include (UPDATE.'off_schedule_update.php');
+	if ($force_update) include (UPDATE.'run_update.php');
 	require_once (LIB.'help.lib.php');
 	require_once (INCLUDES.'styles.inc.php'); // Establishing session vars depends upon arrays here
 	require_once (DB.'common.db.php');
@@ -139,8 +74,8 @@ if ($setup_success) {
 	require_once (LANG.'language.lang.php');
 	require_once (INCLUDES.'headers.inc.php');
 	require_once (INCLUDES.'scrubber.inc.php');
-	if ($_SESSION['prefsSEF'] == "Y") $sef = "true";
-	else $sef = "false";
+	if ($_SESSION['prefsSEF'] == "Y") $sef = TRUE;
+	else $sef = FALSE;
 
 	if ($no_updates_needed) $_SESSION['currentVersion'] = 1;
 	else $_SESSION['currentVersion'] = 0;
@@ -243,11 +178,10 @@ if ($setup_success) {
 				'prefsCheck' => 'N',
 				'prefsCheckPayee' => NULL,
 				'prefsTransFee' => 'Y',
-				'prefsGoogle' => NULL,
 				'prefsGoogleAccount' => '|',
 				'prefsSponsors' => 'N',
 				'prefsSponsorLogos' => 'N',
-				'prefsSponsorLogoSize' => '250',
+				'prefsSelectedStyles' => NULL,
 				'prefsCompLogoSize' => '300',
 				'prefsDisplayWinners' => 'Y',
 				'prefsWinnerDelay' => '1616974200',
@@ -349,7 +283,7 @@ if ($setup_success) {
 				'id' => '1',
 				'contestName' => 'Baseline Data Installation',
 				'contestHost' => 'Baseline',
-				'contestHostWebsite' => 'http://www.brewcompetition.com',
+				'contestHostWebsite' => 'http://www.brewingcompetitions.com',
 				'contestHostLocation' => 'Denver, CO',
 				'contestRegistrationOpen' => '1438322400',
 				'contestRegistrationDeadline' => '1483253940',
@@ -394,7 +328,7 @@ if ($setup_success) {
 
 		}
 
-		if ($row_contest_info_check['id'] != "1") {
+		if (($row_contest_info_check) && ($row_contest_info_check['id'] != "1")) {
 
 			$update_table = $prefix."contest_info";
 			$data = array('id' => 1);
@@ -426,10 +360,42 @@ if ($setup_success) {
 	if ($bool == 1) $timezone_offset = number_format(($_SESSION['prefsTimeZone'] + 1.000),0);
 	else $timezone_offset = number_format($_SESSION['prefsTimeZone'],0);
 
-	//  ---------------------------- Load Theme ----------------------------
+	// ---------------------------- Globals ------------------------------------------------
 
-	if (!isset($_SESSION['prefsTheme'])) $theme = $base_url."css/default.min.css";
-	else $theme = $base_url."css/".$_SESSION['prefsTheme'].".min.css";
+	$php_version = phpversion();
+
+	$ajax_url = $base_url."ajax/";
+
+	$js_url = $base_url."js_includes/";
+	if (HOSTED) $js_url = "https://brewingcompetitions.com/_bcoem_shared/js_includes/";
+
+	$images_url = $base_url."images/";
+	if (HOSTED) $images_url = "https://brewingcompetitions.com/_bcoem_shared/images/";
+
+	$css_url = $base_url."css/";
+	if (HOSTED) $css_url = "https://brewingcompetitions.com/_bcoem_shared/css/";
+
+	$js_app_url = $js_url."app.min.js";
+	$js_eval_url = $js_url."eval_checks.min.js";
+	$css_common_url = $css_url."common.min.css";
+
+	if (!isset($_SESSION['prefsTheme'])) $theme = $css_url."default.min.css";
+	else $theme = $css_url.$_SESSION['prefsTheme'].".min.css";
+
+	if ((DEBUG) || (TESTING)) {
+	   
+	    $css_common_url = str_replace(".min", "", $css_common_url);
+	    $theme = str_replace(".min", "", $theme);
+	    
+	    if (strpos($base_url, 'test.brewingcompetitions.com') !== false) {
+	        $js_app_url = $base_url."js_source/app.js";
+	        $js_eval_url = $base_url."js_source/eval_checks.js";
+	    }
+	    
+	    $js_app_url .= "?t=".time();
+	    $js_eval_url .= "?t=".time();
+	    
+	}
 
 } // end if ($setup_success);
 ?>

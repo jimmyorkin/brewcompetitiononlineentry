@@ -6,42 +6,13 @@
  *
  */
 
-/* ---------------- PUBLIC Pages Rebuild Info ---------------------
-
-Beginning with the 1.3.0 release, an effort was begun to separate the programming
-layer from the presentation layer for all scripts with this header.
-
-All Public pages have certain variables in common that build the page:
-
-	$warningX = any warnings
-
-	$primary_page_info = any information related to the page
-
-	$header1_X = an <h2> header on the page
-	$header2_X = an <h3> subheader on the page
-
-	$page_infoX = the bulk of the information on the page.
-	$help_page_link = link to the appropriate page on help.brewcompetition.com
-	$print_page_link = the "Print This Page" link
-	$competition_logo = display of the competition's logo
-
-	$labelX = the various labels in a table or on a form
-	$messageX = various messages to display
-
-	$print_page_link = "<p><span class='icon'><img src='".$base_url."images/printer.png' border='0' alt='Print' title='Print' /></span><a id='modal_window_link' class='data' href='".$base_url."output/print.php?section=".$section."&amp;action=print' title='Print'>Print This Page</a></p>";
-	$competition_logo = "<img src='".$base_url."user_images/".$_SESSION['contestLogo']."' width='".$_SESSION['prefsCompLogoSize']."' style='float:right; padding: 5px 0 5px 5px' alt='Competition Logo' title='Competition Logo' />";
-
-Declare all variables empty at the top of the script. Add on later...
-	$warning1 = "";
-	$primary_page_info = "";
-	$header1_1 = "";
-	$page_info1 = "";
-	$header1_2 = "";
-	$page_info2 = "";
-
-	etc., etc., etc.
-
- * ---------------- END Rebuild Info --------------------- */
+// Redirect if directly accessed
+if ((!isset($_SESSION['prefs'.$prefix_session])) || ((isset($_SESSION['prefs'.$prefix_session])) && (!isset($base_url)))) {
+    $redirect = "../../index.php?section=contact";
+    $redirect_go_to = sprintf("Location: %s", $redirect);
+    header($redirect_go_to);
+    exit();
+}
 
 include (DB.'contacts.db.php');
 
@@ -94,8 +65,8 @@ if ($_SESSION['prefsContact'] == "Y") {
     	$label6 = "CAPTCHA";
 
     	if ($msg == "1") {
-            if ($_SESSION['prefsEmailCC'] == 0) $message1 = sprintf("<p>%s <a href='".build_public_url("contact","default","default","default",$sef,$base_url)."'>%s</a></p>",$contact_text_002,$contact_text_003); 
-    		else $message1 = sprintf("<p><a href='".build_public_url("contact","default","default","default",$sef,$base_url)."'>%s</a></p>",$contact_text_003);
+            if ($_SESSION['prefsEmailCC'] == 0) $message1 = sprintf("<p>%s <a href='".build_public_url("contact","default","default","default",$sef,$base_url,"default")."'>%s</a></p>",$contact_text_002,$contact_text_003); 
+    		else $message1 = sprintf("<p><a href='".build_public_url("contact","default","default","default",$sef,$base_url,"default")."'>%s</a></p>",$contact_text_003);
     		echo $message1;
     	}
 
@@ -115,6 +86,7 @@ $(document).ready(function() {
 });
 </script>
         <form id="submit-form" data-toggle="validator" role="form" class="form-horizontal hide-loader-form-submit" name="form1" method="post" action="<?php echo $base_url; ?>includes/process.inc.php?dbTable=<?php echo $contacts_db_table; ?>&action=email">
+        <input type="hidden" name="token" value ="<?php if (isset($_SESSION['token'])) echo $_SESSION['token']; ?>">
         	<div class="form-group">
             	<label for="" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label"><?php echo $label1; ?></label>
                 <div class="col-lg-10 col-md-9 col-sm-8 col-xs-12">
@@ -130,8 +102,8 @@ $(document).ready(function() {
                 	<div class="input-group has-warning">
                     	<span class="input-group-addon" id="from_name-addon1"><span class="fa fa-user"></span></span>
                 		<!-- Input Here -->
-                		<input id="from-name" class="form-control no-spam" name="from_name" type="text" size="35" value="<?php if ($msg == "2") echo $_COOKIE['from_name']; ?>" autofocus required>
-                        <span class="input-group-addon" id="from_name-addon2"><span class="fa fa-star"></span></span>
+                		<input id="from-name" class="form-control no-spam" name="from_name" type="text" size="35" value="<?php if (($msg == "2") && (isset($_COOKIE['from_name']))) echo $_COOKIE['from_name']; ?>" autofocus required>
+                        <span class="input-group-addon" id="from_name-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
                     </div>
                     <div class="help-block with-errors"></div>
                 </div>
@@ -142,8 +114,8 @@ $(document).ready(function() {
                 	<div class="input-group has-warning">
                     	<span class="input-group-addon" id="from_email-addon3">@</span>
                 		<!-- Input Here -->
-                		<input id="from-email" class="form-control no-spam" name="from_email" type="email" size="35" value="<?php if ($msg == "2") echo $_COOKIE['from_email']; ?>" required>
-                        <span class="input-group-addon" id="from_email-addon2"><span class="fa fa-star"></span></span>
+                		<input id="from-email" class="form-control no-spam" name="from_email" type="email" size="35" value="<?php if (($msg == "2") && (isset($_COOKIE['from_email']))) echo $_COOKIE['from_email']; ?>" required>
+                        <span class="input-group-addon" id="from_email-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
                     </div>
                     <div class="help-block with-errors"></div>
                 </div>
@@ -154,8 +126,8 @@ $(document).ready(function() {
                 	<div class="input-group has-warning">
                     	<span class="input-group-addon" id="subject-addon5"><span class="fa fa-info-circle"></span></span>
                 		<!-- Input Here -->
-                		<input id="subject" class="form-control no-spam" name="subject" type="text" value="<?php if ($msg == "2") echo $_COOKIE['subject']; ?>" required>
-                        <span class="input-group-addon" id="subject-addon2"><span class="fa fa-star"></span></span>
+                		<input id="subject" class="form-control no-spam" name="subject" type="text" value="<?php if (($msg == "2") && (isset($_COOKIE['subject']))) echo $_COOKIE['subject']; ?>" required>
+                        <span class="input-group-addon" id="subject-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
                     </div>
                     <div class="help-block with-errors"></div>
                 </div>
@@ -166,8 +138,8 @@ $(document).ready(function() {
                 	<div class="input-group has-warning">
                     	<span class="input-group-addon" id="message-addon7"><span class="fa fa-pencil"></span></span>
                 		<!-- Input Here -->
-                		<textarea id="message" class="form-control no-spam" name="message" rows="6" required><?php if ($msg == "2") echo $_COOKIE['message']; ?></textarea>
-                        <span class="input-group-addon" id="message-addon2"><span class="fa fa-star"></span></span>
+                		<textarea id="message" class="form-control no-spam" name="message" rows="6" required><?php if (($msg == "2") && (isset($_COOKIE['message']))) echo $_COOKIE['message']; ?></textarea>
+                        <span class="input-group-addon" id="message-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
                     </div>
                     <div class="help-block with-errors"></div>
                 </div>
@@ -189,7 +161,9 @@ $(document).ready(function() {
                   	<button id="form-submit-button" name="submit" type="submit" class="btn btn-primary" ><?php echo $label_send_message; ?> <span class="fa fa-send"></span> </button>
                 </div>
             </div><!-- Form Group -->
-
+            <div class="alert alert-warning" style="margin-top: 10px;" id="form-submit-button-disabled-msg-required">
+                <?php echo sprintf("<p><i class=\"fa fa-exclamation-triangle\"></i> <strong>%s</strong> %s</p>",$form_required_fields_00,$form_required_fields_01); ?>
+            </div>
         <?php if (isset($_SERVER['HTTP_REFERER'])) { ?>
         <input type="hidden" name="relocate" value="<?php echo relocate($_SERVER['HTTP_REFERER'],"default",$msg,$id); ?>">
         <?php } else { ?>

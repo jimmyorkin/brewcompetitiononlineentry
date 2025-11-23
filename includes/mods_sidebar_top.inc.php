@@ -1,10 +1,4 @@
 <?php 
-
-/*
-Checked Single
-2016-06-06
-*/
-
 if ($totalRows_mods > 0) {
 	if ($go != "mods") {
 		foreach ($mods_display as $mod_id) {

@@ -1,4 +1,5 @@
-<?php if ($go == "default") { ?>
+<?php 
+if ($go == "default") {  ?>
 <script>
 var judging_end = moment.tz("<?php echo $judging_end; ?>","<?php echo get_timezone($_SESSION['prefsTimeZone']); ?>");
 var label_weeks = "<?php echo strtolower($label_weeks); ?>";
@@ -47,6 +48,7 @@ $("#next-session-open").countdown(next_session_open.toDate(), function(event) {
     }
 });
 </script>
+<!-- Modal: Next Session Open -->
 <div class="modal fade" id="next-session-open-modal" tabindex="-1" role="dialog" aria-labelledby="next-session-open-modal-label">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -66,7 +68,7 @@ $("#next-session-open").countdown(next_session_open.toDate(), function(event) {
 </div>
 <?php } ?>
 <?php if ($go == "scoresheet") { ?>
-<!-- Modal: 15 Minutes Elapsed Warning -->
+<!-- Modal: 15 Minutes Elapsed Warning
 <div class="modal fade" id="eval-courtesy-warning-15" tabindex="-1" role="dialog" aria-labelledby="eval-courtesy-warning-15-label">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -83,6 +85,7 @@ $("#next-session-open").countdown(next_session_open.toDate(), function(event) {
     </div>
   </div>
 </div>
+-->
 <script>
 var elapsedTimeStart = Date.now();
 setInterval(function() {
@@ -98,13 +101,17 @@ setInterval(function() {
   $("#elapsed-time").html(elapsedTimeDisp);
   if ((elapsedTime > 600) && (elapsedTime < 900)) {
     $("#elapsed-time-p").attr("class", "text-warning");
+    $("#warning-indicator-icon").show();
   }
-// BBO disabling the 15 minute warning popup message  
-//  if ((elapsedTime >= 900) && (elapsedTime < 901)) {
-//    $("#eval-courtesy-warning-15").modal('show');
-//  }
+  if ((elapsedTime >= 900) && (elapsedTime < 901)) {
+    // $("#eval-courtesy-warning-15").modal('show');
+    $("#courtesy-alert-warning-15").show('fast');
+    $("#courtesy-alert-warning-15-header").attr("class", "text-danger");
+    $("#warning-indicator-icon").show();
+  }
   if (elapsedTime >= 900) {
     $("#elapsed-time-p").attr("class", "text-danger");
+    $("#warning-indicator-icon").show();
   }
 }, 1);
 // session_end var defined in index.php

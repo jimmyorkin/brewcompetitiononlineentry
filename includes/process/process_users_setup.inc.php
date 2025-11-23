@@ -18,8 +18,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && (((isset($_SESSION['loginUsername'])) &
 	$username = strtolower($_POST['user_name']);
 	$username = filter_var($username,FILTER_SANITIZE_EMAIL);
 	
-	$userQuestionAnswer = $purifier->purify($_POST['userQuestionAnswer']);
-	$userQuestionAnswer = filter_var($userQuestionAnswer,FILTER_SANITIZE_STRING,FILTER_FLAG_STRIP_HIGH|FILTER_FLAG_STRIP_LOW);
+	$userQuestionAnswer = $purifier->purify(sterilize($_POST['userQuestionAnswer']));
 
 	if (strstr($username,'@'))  {
 
@@ -30,6 +29,9 @@ if ((isset($_SERVER['HTTP_REFERER'])) && (((isset($_SESSION['loginUsername'])) &
 		$hasher_question = new PasswordHash(8, false);
 		$hash_question = $hasher_question->HashPassword($userQuestionAnswer);
 
+		$userAdminObfuscate = 1;
+		if ($_POST['userLevel'] == 0) $userAdminObfuscate = 0;
+
 		$update_table = $prefix."users";
 		$data = array(
 			'user_name' => $username,
@@ -37,7 +39,8 @@ if ((isset($_SERVER['HTTP_REFERER'])) && (((isset($_SESSION['loginUsername'])) &
 			'password' => $hash,
 			'userQuestion' => sterilize($_POST['userQuestion']),
 			'userQuestionAnswer' => $hash_question,
-			'userCreated' =>  $db_conn->now()
+			'userCreated' =>  date('Y-m-d H:i:s', time()),
+			'userAdminObfuscate' => $userAdminObfuscate
 		);
 
 		$result = $db_conn->insert ($update_table, $data);

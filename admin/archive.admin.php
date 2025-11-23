@@ -62,6 +62,7 @@ foreach ($style_sets as $style_set) {
     </div><!-- ./button group -->
 </div>
 <form data-toggle="validator" role="form" id="formfield" class="form-horizontal" action="<?php echo $base_url; ?>includes/process.inc.php?action=archive&go=<?php echo $action; if ($action == "edit") echo "&filter=".$row_archive['archiveSuffix']."&id=".$id; ?>" method="post" name="form1">
+<input type="hidden" name="token" value ="<?php if (isset($_SESSION['token'])) echo $_SESSION['token']; ?>">
 <input type="hidden" name="action" value="add_form" />
 <div class="bcoem-admin-element hidden-print">
 <?php if ($action == "edit") echo "<p class=\"alert alert-warning\"><i class=\"fa fa-lg fa-exclamation-circle\"></i> ".$archive_text_017."</p>"; else echo "<p>".$archive_text_010."</p>"; ?>
@@ -73,7 +74,7 @@ foreach ($style_sets as $style_set) {
 		<div class="input-group has-warning">
 			<!-- Input Here -->
 			<input class="form-control" id="archiveSuffix" name="archiveSuffix" type="text" placeholder="<?php echo date('Y'); ?> or Q2<?php echo date('Y'); ?>, etc." pattern="^[a-zA-Z0-9]+$" autofocus required value="<?php if ($action == "edit") echo $row_archive['archiveSuffix']; ?>">
-			<span class="input-group-addon" id="mod_name-addon2"><span class="fa fa-star"></span></span>
+			<span class="input-group-addon" id="mod_name-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
 		</div>
 		<span class="help-block with-errors"></span>
         <span id="helpBlock" class="help-block"><?php echo $archive_text_011; ?></span>
@@ -180,7 +181,7 @@ foreach ($style_sets as $style_set) {
                 <input type="radio" name="archiveWinnerMethod" value="<?php echo $key; ?>" id="archiveWinnerMethod_<?php echo $key; ?>" <?php if ($row_archive['archiveWinnerMethod'] == $key) echo "CHECKED"; if (!$results_data) echo " DISABLED"; ?>> <?php echo $value; ?>
             </label>
             <?php } ?>
-            <span id="helpBlock" class="help-block"><?php if (!$results_data) echo $archive_text_022; else { echo $archive_text_020; ?> <a href="<?php echo build_public_url("past-winners",$row_archive['archiveSuffix'],"default","default",$sef,$base_url); ?>" target="_blank"><?php echo $label_view; ?> <i class="fa fa-external-link"></i></a>.<?php } ?></span>
+            <span id="helpBlock" class="help-block"><?php if (!$results_data) echo $archive_text_022; else { echo $archive_text_020; ?> <a href="<?php echo build_public_url("past-winners",$row_archive['archiveSuffix'],"default","default",$sef,$base_url,"default"); ?>" target="_blank"><?php echo $label_view; ?> <i class="fa fa-external-link"></i></a>.<?php } ?></span>
         </div>
     </div>
 </div><!-- ./Form Group -->
@@ -277,7 +278,7 @@ foreach ($style_sets as $style_set) {
     <th width="12%"><?php echo $table_header4; ?></th>
     <th width="12%"><?php echo $table_header5; ?></th>
     <th width="12%"><?php echo $table_header6; ?></th>
-    <th width="12%" class="hidden-xs hidden-sm"><?php echo $label_admin_winner_display; ?> <a tabindex="0" type="button" role="button" data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto top" data-container="body" data-content="<?php echo $archive_text_019; if ($_SESSION['prefsProEdition'] == 0) { ?> Select the <span class='fa fa-lg fa-file-excel'></span> icon to download a CSV of winner data.<?php } ?>"><span class="fa fa-lg fa-question-circle"></span></th>
+    <th width="12%" class="hidden-xs hidden-sm"><?php echo $label_admin_winner_display; ?> <a class="hide-loader" tabindex="0" type="button" role="button" data-toggle="popover" data-html="true" data-trigger="hover" data-placement="auto top" data-container="body" data-content="<?php echo $archive_text_019; if ($_SESSION['prefsProEdition'] == 0) { ?> Select the <span class='fa fa-lg fa-file-excel'></span> icon to download a CSV of winner data.<?php } ?>"><span class="fa fa-lg fa-question-circle"></span></th>
     <th><?php echo $table_header7; ?></th>
 </thead>
 <tbody>
@@ -346,7 +347,7 @@ foreach ($style_sets as $style_set) {
         echo yes_no($row_archive['archiveDisplayWinners'],$base_url,1);
         if (($row_archive['archiveDisplayWinners'] == "Y") && ($_SESSION['prefsProEdition'] == 0)) {
         ?>
-        &nbsp;<a target="_blank" data-toggle="tooltip" data-placement="top" title="Download a CSV of this archive's winner data." href="<?php echo $base_url; ?>output/export.output.php?section=entries&amp;go=csv&amp;filter=<?php echo $row_archive['archiveSuffix']; ?>&amp;tb=circuit&amp;sort=<?php echo $row_archive['archiveSuffix']; ?>" target="_blank"><span class="fa fa-lg fa-file-excel"></span></a>
+        &nbsp;<a target="_blank" data-toggle="tooltip" data-placement="top" title="Download a CSV of this archive's winner data." href="<?php echo $base_url; ?>includes/output.inc.php?section=export-entries&amp;go=csv&amp;filter=<?php echo $row_archive['archiveSuffix']; ?>&amp;tb=circuit&amp;sort=<?php echo $row_archive['archiveSuffix']; ?>" target="_blank"><span class="fa fa-lg fa-file-excel"></span></a>
         <?php } ?>
     </td>
     <td>

@@ -1,7 +1,7 @@
-<?php 
-    if ($tb != "default") {
-        echo "<style>body {font-size:13px;}.descriptor {font-size:.85em;}.footer-descriptor{font-size:.85em;}</style>";
-    }
+<?php
+if ($tb != "default") {
+     echo "<style>body {font-size:13px;}.descriptor {font-size:.85em;}.footer-descriptor{font-size:.85em;}</style>";
+}
 ?>
 <div class="row">
 	<!-- Main Body Left Column -->

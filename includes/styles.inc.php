@@ -1,6 +1,13 @@
 <?php
-
 /**
+ * UPDATE June 13, 2023
+ * - Deprecated BJCP 2015
+ * - Made the style end number 49 for each style set (makes first custom style 50)
+ *   - This is to avoid any issues in case admins change style sets yet
+ *     want to keep the custom styles. 50 is a "safe" number to start those styles.
+ * 
+ * **********************************
+ * 
  * If you would like to add a custom style set for your competition, you
  * will need to import the style set's actual data into the styles table in the
  * BCOE&M database (style name, OG, FG, etc.).
@@ -12,12 +19,8 @@
  * There are various ways to import style data into the styles database. An easy
  * way is by filling out a comma-separated-value (CSV) file with relevant data
  * points. Common spreadsheet applications can open, edit, and save CSV files,
- * which can then be imported into the MySQL DB via online applications such as
+ * which can then be imported into the DB via online applications such as
  * phpMyAdmin, etc.
- *
- * Full directions for input of style set data and an available download of a 
- * CSV template with the correct column headings are can be found here:
- * https://www.brewcompetition.com/add-a-custom-style-set
  * 
  * In a future version, a GUI interface will be provided for building these 
  * necessary data points and mass import of styles. For now, this will provide
@@ -59,7 +62,8 @@ $style_sets = array(
 	array(
 		
 		// REQUIRED. The next incremental *whole* number, NO leading zero.
-		"id" => 6,
+		// ids 0-20 reserved for system use
+		"id" => 21,
 		
 		// REQUIRED. Style name for system use, with NO SPACES. 
 		// Must EXACTLY MATCH value of the brewStyleVersion column 
@@ -133,8 +137,8 @@ $style_sets = array(
 		"style_set_cider" => array(),
 		
 		// REQURIED. MUST BE A 2-DIGIT WHOLE NUMBER WITH LEADING ZERO. NOT ALPHANUMERIC. 
-		// The number of last category in the style set. If none or alpha, use "01" (leave as is).
-		"style_set_category_end" => "01"
+		// The number of last category in the style set. If none or alpha, use "49" (leave as is).
+		"style_set_category_end" => "49"
 	),
 
  */
@@ -143,6 +147,8 @@ $style_sets = array(
  * ------------------------------------------------------------------------------
  * Built-in style set master information arrays.
  * DO NOT EDIT BELOW THIS LINE.
+ * BJCP 2008 Deprecated in version 2.4.0
+ * BJCP 2015 Deprecated in version 2.6.0
  * ------------------------------------------------------------------------------
  */
 
@@ -189,10 +195,8 @@ $style_sets = array(
 		"style_set_beer_end" => "23",
 		"style_set_mead" => array("24","25","26"),
 		"style_set_cider" => array("27","28"),
-		"style_set_category_end" => "28"
+		"style_set_category_end" => "49"
 	),
-
-	*/
 
 	array(
 		"id" => 1,
@@ -248,8 +252,10 @@ $style_sets = array(
 		"style_set_beer_end" => "34",
 		"style_set_mead" => array("M1","M2","M3","M4"),
 		"style_set_cider" => array("C1","C2"),
-		"style_set_category_end" => "34"
+		"style_set_category_end" => "49"
 	),
+
+	*/
 
 	array(
 		"id" => 2,
@@ -305,7 +311,7 @@ $style_sets = array(
 		"style_set_beer_end" => "34",
 		"style_set_mead" => array("M1","M2","M3","M4"),
 		"style_set_cider" => array("C1","C2"),
-		"style_set_category_end" => "34"
+		"style_set_category_end" => "49"
 	),
 
 	array(
@@ -335,7 +341,7 @@ $style_sets = array(
 		"style_set_beer_end" => "11",
 		"style_set_mead" => array("12"),
 		"style_set_cider" => array("12"),
-		"style_set_category_end" => "14"
+		"style_set_category_end" => "49"
 	),
 
 	array(
@@ -371,7 +377,7 @@ $style_sets = array(
 		"style_set_beer_end" => "18",
 		"style_set_mead" => array("19"),
 		"style_set_cider" => array("20"),
-		"style_set_category_end" => "20"
+		"style_set_category_end" => "49"
 	),
 
 	array(
@@ -407,7 +413,7 @@ $style_sets = array(
 		"style_set_beer_end" => "18",
 		"style_set_mead" => array("19"),
 		"style_set_cider" => array("20"),
-		"style_set_category_end" => "20"
+		"style_set_category_end" => "49"
 	),
 
 	array(
@@ -432,7 +438,7 @@ $style_sets = array(
 		"style_set_beer_end" => "0",
 		"style_set_mead" => array(),
 		"style_set_cider" => array("C1","C2","C3","C4","C5","C6","C7","C8","C9"),
-		"style_set_category_end" => "0"
+		"style_set_category_end" => "49"
 	)
 
 );

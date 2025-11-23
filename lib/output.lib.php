@@ -22,24 +22,31 @@ function location_count($location_id) {
 	include (CONFIG.'config.php');
 	mysqli_select_db($connection,$database);
 
+	$location_count = 0;
+	$uid = array();
+
 	$query_dropoff = sprintf("SELECT uid FROM %s WHERE brewerDropOff='%s'",$prefix."brewer",$location_id);
 	$dropoff = mysqli_query($connection,$query_dropoff) or die (mysqli_error($connection));
 	$row_dropoff = mysqli_fetch_assoc($dropoff);
 	$totalRows_dropoff = mysqli_num_rows($dropoff);
 
-	do { $uid[] = $row_dropoff['uid']; } while ($row_dropoff = mysqli_fetch_assoc($dropoff));
+	if ($row_dropoff) {
+		
+		do { $uid[] = $row_dropoff['uid']; } while ($row_dropoff = mysqli_fetch_assoc($dropoff));
 
-	foreach ($uid as $brewBrewerID) {
+		foreach ($uid as $brewBrewerID) {
 
-		$query_dropoffs = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewBrewerID='%s'",$prefix."brewing",$brewBrewerID);
-		$dropoffs = mysqli_query($connection,$query_dropoffs) or die (mysqli_error($connection));
-		$row_dropoffs = mysqli_fetch_assoc($dropoffs);
+			$query_dropoffs = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewBrewerID='%s'",$prefix."brewing",$brewBrewerID);
+			$dropoffs = mysqli_query($connection,$query_dropoffs) or die (mysqli_error($connection));
+			$row_dropoffs = mysqli_fetch_assoc($dropoffs);
 
-		$location_count[] = $row_dropoffs['count'];
+			$location_count += $row_dropoffs['count'];
 
+		}
+	
 	}
 
-	return array_sum($location_count);
+	return $location_count;
 }
 
 function dropoff_location_info($location_id) {
@@ -140,7 +147,7 @@ function filename($input) {
 }
 
 // --------------------------------------------------------
-// The following applies to /output/entry.output.php
+// The following applies to entry.output.php
 // --------------------------------------------------------
 
 function pay_to_print($prefs_pay,$entry_paid) {
@@ -149,10 +156,8 @@ function pay_to_print($prefs_pay,$entry_paid) {
 	elseif ($prefs_pay == "N") return TRUE;
 }
 
-
-
 // --------------------------------------------------------
-// The following applies to /output/labels.php
+// The following applies to labels.output.php
 // --------------------------------------------------------
 
 function truncate($string, $your_desired_width, $append="") {
@@ -244,7 +249,7 @@ function total_sessions() {
 	include (CONFIG.'config.php');
 	mysqli_select_db($connection,$database);
 
-	$query_sessions = sprintf("SELECT COUNT(*) as 'count' FROM %s", $prefix."judging_locations");
+	$query_sessions = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE judgingLocType < 2", $prefix."judging_locations");
 	$sessions = mysqli_query($connection,$query_sessions) or die (mysqli_error($connection));
 	$row_sessions = mysqli_fetch_assoc($sessions);
 
@@ -383,21 +388,34 @@ function judge_points($user_id,$judge_max_points) {
 	do {
 
 		if ($row_judging['judgingLocType'] < 2) {
+			
 			// Get date and determine 24 hour window where it falls based upon the time zone
 			$timestamp_curr_day_midnight = strtotime(date("Y-m-d", $row_judging['judgingDate']));
 			$timestamp_next_day_midnight = $timestamp_curr_day_midnight + (60 * 60 * 24);
 			$possible_judging_days[] = $timestamp_curr_day_midnight;
 
-			$query_assignments = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE bid='%s' AND assignLocation='%s' AND assignment='J'", $prefix."judging_assignments", $user_id, $row_judging['id']);
+			/**
+			 * Edited the query below to only take into account Round 1 of the assignment. 
+			 * Tables can only be assigned to a single session.
+			 * Tables/flights can only be assigned to a single round. 
+			 * There will always be a round 1 for all tables/flights.
+			 * Reference Issue #1483 on GitHub.
+			 * @see https://github.com/geoffhumphrey/brewcompetitiononlineentry/issues/1483
+			 */
+
+			$query_assignments = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE bid='%s' AND assignLocation='%s' AND assignment='J' AND assignRound <= '1'", $prefix."judging_assignments", $user_id, $row_judging['id']);
 	    $assignments = mysqli_query($connection,$query_assignments) or die (mysqli_error($connection));
 	    $row_assignments = mysqli_fetch_assoc($assignments);
 
 	    if ($row_assignments['count'] > 0) {
+				
 				$days_judged[] = array (
 					"day_midnight" => $timestamp_curr_day_midnight,
 					"points" => $row_assignments['count'] * 0.5,
 				);
+
 			}
+
 		}
 
 	} while ($row_judging = mysqli_fetch_assoc($judging));
@@ -466,8 +484,17 @@ function steward_points($user_id) {
 			$timestamp_curr_day_midnight = strtotime(date("Y-m-d", $row_judging['judgingDate']));
 			$timestamp_next_day_midnight = $timestamp_curr_day_midnight + (60 * 60 * 24);
 			$possible_judging_days[] = $timestamp_curr_day_midnight;
+
+			/**
+			 * Edited the query below to only take into account Round 1 of the assignment. 
+			 * Tables can only be assigned to a single session.
+			 * Tables/flights can only be assigned to a single round. 
+			 * There will always be a round 1 for all tables/flights.
+			 * Reference Issue #1483 on GitHub.
+			 * @see https://github.com/geoffhumphrey/brewcompetitiononlineentry/issues/1483
+			 */
 		
-			$query_assignments = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE bid='%s' AND assignLocation='%s' AND assignment='S';", $prefix."judging_assignments", $user_id, $row_judging['id']);
+			$query_assignments = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE bid='%s' AND assignLocation='%s' AND assignment='S' AND assignRound <= '1';", $prefix."judging_assignments", $user_id, $row_judging['id']);
 	    $assignments = mysqli_query($connection,$query_assignments) or die (mysqli_error($connection));
 	    $row_assignments = mysqli_fetch_assoc($assignments);
 
@@ -476,6 +503,7 @@ function steward_points($user_id) {
 	    if ($row_assignments['count'] > 0) {
 				$days_stewarded[] = $timestamp_curr_day_midnight;
 			}
+		
 		}
 
 	} while ($row_judging = mysqli_fetch_assoc($judging));
@@ -544,8 +572,11 @@ function check_flight_number($entry_id,$flight,$method) {
   $flights = mysqli_query($connection,$query_flights) or die (mysqli_error($connection));
   $row_flights = mysqli_fetch_assoc($flights);
 
-	if (($method == 0) && ($row_flights['flightNumber'] == $flight)) $r = $row_flights['flightRound'];
-	if ($method == 1) $r = $row_flights['flightNumber'];
+  if ($row_flights) {
+  	if (($method == 0) && ($row_flights['flightNumber'] == $flight)) $r = $row_flights['flightRound'];
+  	if ($method == 1) $r = $row_flights['flightNumber'];
+  }
+	
 	return $r;
 
 }

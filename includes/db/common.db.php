@@ -4,18 +4,37 @@ $today = time();
 $url = parse_url($_SERVER['PHP_SELF']);
 mysqli_select_db($connection,$database);
 
-if (check_setup($prefix."`system`",$database)) $query_version1 = sprintf("SELECT * FROM %s WHERE id='1'", $prefix."`system`");
-else  $query_version1 = sprintf("SELECT * FROM %s WHERE id='1'", $prefix."bcoem_sys");
-$version1 = mysqli_query($connection,$query_version1) or die (mysqli_error($connection));
-$row_version1 = mysqli_fetch_assoc($version1);
-$version = $row_version1['version'];
+$version = "";
+
+if (check_setup($prefix."system",$database)) {
+	$query_version1 = sprintf("SELECT * FROM %s WHERE id='1'", $prefix."`system`");
+	$version1 = mysqli_query($connection,$query_version1) or die (mysqli_error($connection));
+	$row_version1 = mysqli_fetch_assoc($version1);
+	$version = $row_version1['version'];
+}
+
+if (check_setup($prefix."bcoem_sys",$database)) {
+	$query_version1 = sprintf("SELECT * FROM %s WHERE id='1'", $prefix."bcoem_sys");
+	$version1 = mysqli_query($connection,$query_version1) or die (mysqli_error($connection));
+	$row_version1 = mysqli_fetch_assoc($version1);
+	$version = $row_version1['version'];
+}
+
+if (empty($version)) {
+	session_unset();
+	session_destroy();
+	session_write_close();
+	$redirect = $base_url."setup.php?section=step0";
+	$redirect = prep_redirect_link($redirect);
+	$redirect_go_to = sprintf("Location: %s", $redirect);
+	header($redirect_go_to);
+}
 
 // Provide a variable to signify that the session has been set
 $_SESSION['session_set_'.$prefix_session] = $prefix_session;
 
 // Check to see if the session_set variable is corrupted or hijacked. If so, destroy the session and reset.
 if (((!empty($_SESSION['session_set_'.$prefix_session])) && ($_SESSION['session_set_'.$prefix_session] != $prefix_session)) || ((!isset($_SESSION['session_set_'.$prefix_session])) || (empty($_SESSION['session_set_'.$prefix_session])))) {
-
 	session_unset();
 	session_destroy();
 	session_write_close();
@@ -23,7 +42,6 @@ if (((!empty($_SESSION['session_set_'.$prefix_session])) && ($_SESSION['session_
 	session_start();
 	session_regenerate_id(true);
 	$_SESSION['session_set_'.$prefix_session] = $prefix_session;
-
 }
 
 if (($section != "update") && (empty($_SESSION['dataCheck'.$prefix_session]))) {
@@ -71,7 +89,7 @@ if ((!isset($_SESSION['prefs'.$prefix_session])) || (empty($_SESSION['prefs'.$pr
 		if ($totalRows_prefs > 0) {
 			foreach ($row_prefs as $key => $value) {
 				if ($key != "id") $_SESSION[$key] = $value;
-			}	
+			}
 		}
 
 		if (SINGLE) $query_judging_prefs = sprintf("SELECT * FROM %s WHERE id='%s'", $prefix."judging_preferences",$_SESSION['comp_id']);
@@ -120,6 +138,10 @@ if ((!isset($_SESSION['prefs'.$prefix_session])) || (empty($_SESSION['prefs'.$pr
 
 			include(INCLUDES.'ba_constants.inc.php');
 
+			/*
+			if (HOSTED) $query_ba_style = sprintf("SELECT * FROM `bcoem_shared_styles` WHERE brewStyleVersion='BA' UNION ALL SELECT * FROM `%s` WHERE brewStyleVersion='BA'", $prefix."styles");
+			else 
+			*/
 			$query_ba_style = sprintf("SELECT * FROM %s WHERE brewStyleVersion='BA'", $prefix."styles");
 			$ba_style = mysqli_query($connection,$query_ba_style) or die (mysqli_error($connection));
 			$row_ba_style = mysqli_fetch_assoc($ba_style);
@@ -353,20 +375,71 @@ if ((check_update("flightPlanning", $prefix."judging_flights")) && ((!isset($_SE
 
 }
 
-if ($section != "update") {
+if ((check_update("prefsShowBestBrewer", $prefix."preferences")) && ($section != "update")) {
+	
 	// Some limits and dates may need to be changed by admin and propagated instantly to all users
 	// These will be called on every page load instead of being stored in a session variable
-	$query_limits = sprintf("SELECT prefsStyleSet, prefsEntryLimit, prefsUserEntryLimit, prefsSpecialCharLimit, prefsUserSubCatLimit, prefsUSCLEx, prefsUSCLExLimit, prefsEntryLimitPaid, prefsShowBestBrewer, prefsShowBestClub FROM %s WHERE id='1'", $prefix."preferences");
+	$query_limits = sprintf("SELECT prefsStyleSet, prefsEntryLimit, prefsUserEntryLimit, prefsSpecialCharLimit, prefsUserSubCatLimit, prefsUSCLEx, prefsUSCLExLimit, prefsEntryLimitPaid, prefsShowBestBrewer, prefsShowBestClub, prefsUserEntryLimitDates FROM %s WHERE id='1'", $prefix."preferences");
 	$limits = mysqli_query($connection,$query_limits) or die (mysqli_error($connection));
 	$row_limits = mysqli_fetch_assoc($limits);
+
+	$incremental = FALSE;
+
+	$real_overall_user_entry_limit = "";
+	if (!empty($row_limits['prefsUserEntryLimit'])) $real_overall_user_entry_limit = $row_limits['prefsUserEntryLimit'];
+
+	if (!empty($row_limits['prefsUserEntryLimitDates'])) {
+
+		$incremental = TRUE;	    
+	    $incremental_limits = json_decode($row_limits['prefsUserEntryLimitDates'],true);
+
+	    $limit_date_1 = "";
+	    $limit_date_2 = "";
+	    $limit_date_3 = "";
+	    $limit_date_4 = "";
+
+	    $current_limit = 0;
+
+	    if (isset($_SESSION['contestEntryOpen'])) {
+
+	    	if ((isset($incremental_limits[1]['limit-number'])) && (isset($incremental_limits[1]['limit-days']))) {
+	    		$limit_date_1 = $_SESSION['contestEntryOpen'] + ($incremental_limits[1]['limit-days'] * 86400);
+	    		if (time() <= $limit_date_1) $current_limit = 1;	
+	    	}
+
+	    	if ((isset($incremental_limits[2]['limit-number'])) && (isset($incremental_limits[2]['limit-days']))) {
+	    		$limit_date_2 = $_SESSION['contestEntryOpen'] + ($incremental_limits[2]['limit-days'] * 86400);
+	    		if ((time() > $limit_date_1) && (time() <= $limit_date_2)) $current_limit = 2;    	
+	    	}
+
+	    	if ((isset($incremental_limits[3]['limit-number'])) && (isset($incremental_limits[3]['limit-days']))) {
+	    		$limit_date_3 = $_SESSION['contestEntryOpen'] + ($incremental_limits[3]['limit-days'] * 86400);
+	    		if ((time() > $limit_date_2) && (time() <= $limit_date_3)) $current_limit = 3;	    	
+	    	}
+
+	    	if ((isset($incremental_limits[4]['limit-number'])) && (isset($incremental_limits[4]['limit-days']))) {
+	    		$limit_date_4 = $_SESSION['contestEntryOpen'] + ($incremental_limits[4]['limit-days'] * 86400);
+	    		if ((time() > $limit_date_3) && (time() <= $limit_date_4)) $current_limit = 4;	
+	    	}
+
+	    	if ($current_limit == 0) $row_limits['prefsUserEntryLimit'] = $real_overall_user_entry_limit;
+	    	elseif ($current_limit == 1) $row_limits['prefsUserEntryLimit'] = $incremental_limits[1]['limit-number']; 
+	    	elseif ($current_limit == 2) $row_limits['prefsUserEntryLimit'] = $incremental_limits[2]['limit-number'];
+	    	elseif ($current_limit == 3) $row_limits['prefsUserEntryLimit'] = $incremental_limits[3]['limit-number']; 
+	    	elseif ($current_limit == 4) $row_limits['prefsUserEntryLimit'] = $incremental_limits[4]['limit-number'];
+
+	    }
+
+	}
 
 	$query_judge_limits = sprintf("SELECT jprefsCapJudges,jprefsCapStewards FROM %s WHERE id='1'", $prefix."judging_preferences");
 	$judge_limits = mysqli_query($connection,$query_judge_limits) or die (mysqli_error($connection));
 	$row_judge_limits = mysqli_fetch_assoc($judge_limits);
 
-	$query_contest_dates = sprintf("SELECT contestCheckInPassword, contestRegistrationOpen, contestRegistrationDeadline, contestJudgeOpen, contestJudgeDeadline, contestEntryOpen, contestEntryDeadline, contestShippingOpen, contestShippingDeadline, contestDropoffOpen, contestDropoffDeadline FROM %s WHERE id=1", $prefix."contest_info");
+	$query_contest_dates = sprintf("SELECT contestCheckInPassword, contestRegistrationOpen, contestRegistrationDeadline, contestJudgeOpen, contestJudgeDeadline, contestEntryOpen, contestEntryDeadline, contestShippingOpen, contestShippingDeadline, contestDropoffOpen, contestDropoffDeadline, contestEntryEditDeadline FROM %s WHERE id=1", $prefix."contest_info");
 	$contest_dates = mysqli_query($connection,$query_contest_dates) or die (mysqli_error($connection));
 	$row_contest_dates = mysqli_fetch_assoc($contest_dates);
+
 }
 
 // Only used for initial setup of installation

@@ -49,12 +49,65 @@ if ((isset($_SERVER['HTTP_REFERER'])) && (((isset($_SESSION['loginUsername'])) &
 
 		if ($_SESSION['prefsEval'] == 1) {
 
+			if (!check_update("jPrefsMinWords", $prefix."judging_preferences")) {
+
+				$sql = sprintf("ALTER TABLE `%s` 
+				ADD `jPrefsMinWords` int(3) NULL DEFAULT NULL AFTER `jPrefsBottleNum`;
+				", $prefix."judging_preferences");
+				
+				$db_conn->rawQuery($sql);
+				if ($db_conn->getLastErrno() !== 0) {
+					$error_output[] = $db_conn->getLastError();
+					$errors = TRUE;
+				}
+
+			}		
+
+			if (!check_update("jPrefsJudgingOpen", $prefix."judging_preferences")) {
+
+				$sql = sprintf("ALTER TABLE `%s` 
+				ADD `jPrefsJudgingOpen` int(15) NULL DEFAULT NULL AFTER `jPrefsMinWords`;
+				", $prefix."judging_preferences");
+				
+				$db_conn->rawQuery($sql);
+				if ($db_conn->getLastErrno() !== 0) {
+					$error_output[] = $db_conn->getLastError();
+					$errors = TRUE;
+				}
+
+			}
+
+			if (!check_update("jPrefsJudgingClosed", $prefix."judging_preferences")) {
+
+				$sql = sprintf("ALTER TABLE `%s` 
+				ADD `jPrefsJudgingClosed` int(15) NULL DEFAULT NULL AFTER `jPrefsJudgingOpen`;
+				", $prefix."judging_preferences");
+				
+				$db_conn->rawQuery($sql);
+				if ($db_conn->getLastErrno() !== 0) {
+					$error_output[] = $db_conn->getLastError();
+					$errors = TRUE;
+				}
+
+			}
+
 			if (!check_update("jPrefsScoresheet", $prefix."judging_preferences")) {
 
 				$sql = sprintf("ALTER TABLE `%s` 
-				ADD `jPrefsJudgingOpen` int(15) NULL DEFAULT NULL AFTER `jPrefsBottleNum`, 
-				ADD `jPrefsJudgingClosed` int(15) NULL DEFAULT NULL AFTER `jPrefsJudgingOpen`, 
-				ADD `jPrefsScoresheet` tinyint(2) NULL DEFAULT NULL AFTER `jPrefsJudgingClosed`, 
+				ADD `jPrefsScoresheet` tinyint(2) NULL DEFAULT NULL AFTER `jPrefsJudgingClosed`;
+				", $prefix."judging_preferences");
+				
+				$db_conn->rawQuery($sql);
+				if ($db_conn->getLastErrno() !== 0) {
+					$error_output[] = $db_conn->getLastError();
+					$errors = TRUE;
+				}
+
+			}
+
+			if (!check_update("jPrefsScoreDispMax", $prefix."judging_preferences")) {
+
+				$sql = sprintf("ALTER TABLE `%s` 
 				ADD `jPrefsScoreDispMax` tinyint(2) NULL DEFAULT NULL COMMENT 'Maximum disparity of entry scores between judges' AFTER `jPrefsScoresheet`;
 				", $prefix."judging_preferences");
 				
@@ -133,12 +186,9 @@ if ((isset($_SERVER['HTTP_REFERER'])) && (((isset($_SESSION['loginUsername'])) &
 
 			if (HOSTED) {
 
-				if (strpos($_SERVER['SERVER_NAME'],"brewcomp.com") !== false) $server = "brewcomp.com";
-				elseif (strpos($_SERVER['SERVER_NAME'],"brewcompetition.com") !== false) $server = "brewcompetition.com";
-				else $server = "brewcompetition.com";
+				$server = "brewingcompetitions.com";
 
-				// For hosted version: email prost@brewcompetition.com to alert when setup has been completed.
-				$to_email = "prost@brewcompetition.com";
+				$to_email = $default_to."@brewingcompetitions.com";
 				$to_email = mb_convert_encoding($to_email, "UTF-8");
 				$to_email_formatted = "BCOEM Admin <".$to_email.">";
 

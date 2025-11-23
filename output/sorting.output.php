@@ -1,8 +1,19 @@
 <?php 
+
+// Redirect if directly accessed without authenticated session
+if ((!isset($_SESSION['loginUsername'])) || ((isset($_SESSION['loginUsername'])) && ($_SESSION['userLevel'] > 1))) {
+    $redirect = "../../403.php";
+    $redirect_go_to = sprintf("Location: %s", $redirect);
+    header($redirect_go_to);
+    exit();
+}
+
 $section = "sorting";
 include (DB.'styles.db.php');
 
-do { $a[] = $row_styles['brewStyleGroup']; } while ($row_styles = mysqli_fetch_assoc($styles));
+do { 
+	$a[] = $row_styles['brewStyleGroup']; 
+} while ($row_styles = mysqli_fetch_assoc($styles));
 
 if ($_SESSION['prefsStyleSet'] == "BA") {
 	include (INCLUDES.'ba_constants.inc.php');
@@ -23,8 +34,8 @@ if ($totalRows_entries > 0) {
 	if ($totalRows_entries == 1) $total_entries = $totalRows_entries." Entry"; else $total_entries = $totalRows_entries." Entries";
 	
 	if (($_SESSION['prefsStyleSet'] == "BA") && ($style < 28))  $title = sprintf("%s<br><small><em class=\"text-muted\">%s</em></small>", $ba_category_names[$style], $total_entries);
-	elseif (($_SESSION['prefsStyleSet'] == "BA") && ($style > 28))  $title = sprintf("%s<br><small><em class=\"text-muted\">%s</em></small>", style_convert($style,1), $total_entries);
-	else $title = sprintf("%s %s: %s<br><small><em class=\"text-muted\">%s</em></small>", $label_category, ltrim($style,"0"), style_convert($style,1), $total_entries);
+	elseif (($_SESSION['prefsStyleSet'] == "BA") && ($style > 28))  $title = sprintf("%s<br><small><em class=\"text-muted\">%s</em></small>", style_convert($style,1,$base_url), $total_entries);
+	else $title = sprintf("%s %s: %s<br><small><em class=\"text-muted\">%s</em></small>", $label_category, ltrim($style,"0"), style_convert($style,1,$base_url), $total_entries);
 	
 	
 ?>

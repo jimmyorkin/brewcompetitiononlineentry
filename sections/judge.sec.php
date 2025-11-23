@@ -5,10 +5,22 @@
  *              judging information. 
  * 
  */
+
+/*
+// Redirect if directly accessed without authenticated session
+if ((!isset($_SESSION['loginUsername'])) || ((isset($_SESSION['loginUsername'])) && (!isset($base_url)))) {
+    $redirect = "../../403.php";
+    $redirect_go_to = sprintf("Location: %s", $redirect);
+    header($redirect_go_to);
+    exit();
+}
+*/
+
 include (DB.'brewer.db.php');
 include (DB.'styles.db.php'); 
 ?>
 <form id="submit-form" action="<?php echo $base_url; ?>includes/process.inc.php?action=edit&amp;dbTable=<?php echo $brewer_db_table; ?>&amp;go=<?php echo $go; ?>&amp;id=<?php echo $row_brewer['id']; ?>" method="POST" name="form1">
+<input type="hidden" name="token" value ="<?php if (isset($_SESSION['token'])) echo $_SESSION['token']; ?>">
 <table class="dataTable">
 <?php include ('judge_info.sec.php'); ?>
 <tr>
@@ -32,7 +44,8 @@ include (DB.'styles.db.php');
 <input type="hidden" name="brewerSteward"  value="<?php echo $row_brewer['brewerSteward']; ?>" />
 <input type="hidden" name="brewerJudgeLocation"  value="<?php echo $row_brewer['brewerJudgeLocation']; ?>" />
 <input type="hidden" name="brewerStewardLocation"  value="<?php echo $row_brewer['brewerStewardLocation']; ?>" />
-<input type="hidden" name="brewerAHA"  value="<?php echo $row_brewer['brewerAHA']; ?>" />
+<input type="hidden" name="brewerAHA" value="<?php echo $row_brewer['brewerAHA']; ?>" />
+<input type="hidden" name="brewerMHP" value="<?php echo $row_brewer['brewerMHP']; ?>" />
 <?php if ($go != "judge") { ?>
 <input type="hidden" name="brewerJudgeID"  value="<?php echo $row_brewer['brewerJudgeID']; ?>" />
 <input type="hidden" name="brewerJudgeRank"  value="<?php echo $row_brewer['brewerJudgeRank']; ?>" />

@@ -9,6 +9,17 @@ require_once (LIB.'update.lib.php');
 require_once (INCLUDES.'db_tables.inc.php');
 require_once (LIB.'help.lib.php');
 
+ini_set('display_errors', 0); // Change to 0 for prod; change to 1 for testing.
+ini_set('display_startup_errors', 0); // Change to 0 for prod; change to 1 for testing.
+error_reporting(0); // Change to error_reporting(0) for prod; change to E_ALL for testing.
+
+$ajax_url = $base_url."ajax/";
+$js_url = $base_url."js_includes/";
+$images_url = $base_url."images/";
+$css_url = $base_url."css/";
+$js_app_url = $js_url."app.min.js";
+$css_common_url = $css_url."common.min.css";
+
 // Check if bcoem_sys is there. If not, change.
 if (table_exists($prefix."system")) {
 	$query_sys = sprintf("RENAME TABLE `%s` TO `%s`",$prefix."system",$prefix."bcoem_sys");
@@ -77,7 +88,7 @@ if (file_exists($filename)) {
 			if (($current_version != $version) || (($current_version == $version) && ($version_date < $current_version_date))) {
 
 				if ($action == "default") {
-				$update_alerts .= "<div class=\"alert alert-danger\"><span class=\"fa fa-lg fa-exlamation-circle text-danger\"></span> <strong>Before running this script</strong>, make sure that you have uploaded <strong>ALL</strong> of the necessary version ".$current_version_display." files to your installation's root folder on your webserver and <strong>BACKED UP</strong> your MySQL database.</div>";
+				$update_alerts .= "<div class=\"alert alert-danger\"><span class=\"fa fa-lg fa-exlamation-circle text-danger\"></span> <strong>Before running this script</strong>, make sure that you have uploaded <strong>ALL</strong> of the necessary version ".$current_version_display." files to your installation's root folder on your webserver and <strong>BACKED UP</strong> your database.</div>";
 
 				$update_body .= "<p class=\"lead\">";
 				$update_body .= "This script will update your BCOE&amp;M database from its current version, ";
@@ -102,7 +113,7 @@ if (file_exists($filename)) {
 					      </div>
 					      <div class=\"modal-body\">
 					        <p>Are you sure you want to start the update?</p>
-					        <p>Before doing so, make sure that you have <a href=\"https://comodosslstore.com/resources/phpmyadmin-backup-database\" target=\"_blank\">created a backup</a> of up your MySQL database.</p>
+					        <p>Before doing so, make sure that you have <a href=\"https://comodosslstore.com/resources/phpmyadmin-backup-database\" target=\"_blank\">created a backup</a> of up your database.</p>
 					        <p>This function will update your current installation and cannot be stopped once begun.</p>
 					        <p class=\"text-primary\"><strong>Please note that the update may take some time to complete, so patience is warranted!</strong></p>
 					      </div>
@@ -269,7 +280,7 @@ if (file_exists($filename)) {
 
 						if (session_status() == PHP_SESSION_NONE) {
 							$_SESSION['update_complete'] = 1;
-							if (isset($output_off_sched_update)) $_SESSION['update_summary'] = $output_errors.$output_off_sched_update;
+							if (isset($output_run_update)) $_SESSION['update_summary'] = $output_errors.$output_run_update;
 							if ((isset($error_output)) && ($error_count == 1)) $_SESSION['update_errors'] = 1;
 							else $_SESSION['update_errors'] = 0;
 						}
@@ -377,23 +388,19 @@ else {
 
 	    <!-- Load TinyMCE / https://www.tinymce.com/ -->
 		<script src="https://cdn.tinymce.com/4/tinymce.min.js"></script>
-		<script src="<?php echo $base_url;?>js_includes/tinymce-init.min.js"></script>
+		<script src="<?php echo $js_url; ?>tinymce-init.min.js"></script>
 
 		<!-- Load Bootstrap DateTime Picker / http://eonasdan.github.io/bootstrap-datetimepicker/ -->
 	    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.37/css/bootstrap-datetimepicker.min.css" />
 	    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.11.1/moment-with-locales.min.js"></script>
 	    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.37/js/bootstrap-datetimepicker.min.js"></script>
-	    <script src="<?php echo $base_url;?>js_includes/date-time.min.js"></script>
 
         <!-- Load Font Awesome / https://fortawesome.github.io/Font-Awesome -->
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
 
         <!-- Load BCOE&M Custom Theme CSS - Contains Bootstrap overrides and custom classes -->
-        <link rel="stylesheet" type="text/css" href="<?php echo $base_url; ?>css/common.min.css">
-        <link rel="stylesheet" type="text/css" href="<?php echo $base_url; ?>css/default.min.css" />
-
-        <!-- Load BCOE&M Custom JS -->
-    	<script src="<?php echo $base_url; ?>js_includes/bcoem_custom.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="<?php echo $css_url; ?>common.min.css">
+        <link rel="stylesheet" type="text/css" href="<?php echo $css_url; ?>default.min.css" />
 
     	<script type="text/javascript">
     		$(document).ready(function() {
@@ -478,5 +485,6 @@ else {
     </footer><!-- ./footer -->
 	<!-- ./ Footer -->
 
+	<script src="<?php echo $js_url; ?>app.min.js"></script>
 </body>
 </html>

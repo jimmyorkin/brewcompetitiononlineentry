@@ -1,4 +1,5 @@
 <?php 
+
 $scoresheet_display = array();
 $archive_suffix = "";
 

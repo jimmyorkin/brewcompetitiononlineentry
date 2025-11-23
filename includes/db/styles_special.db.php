@@ -1,4 +1,9 @@
 <?php
+/*
+if (HOSTED) $styles_db_table = "bcoem_shared_styles";
+else
+*/
+$styles_db_table = $prefix."styles";
 
 $add_edit_entry_modals = "";
 $special_beer = array();
@@ -162,6 +167,10 @@ else $styleSet = $_SESSION['prefsStyleSet'];
  * - Optional Info ($optional_info_styles array already exists in constants)
  */
 
+/* 
+if (HOSTED) $query_required_optional = sprintf("SELECT * FROM %s WHERE (brewStyleVersion = '%s' OR brewStyleOwn = 'custom') UNION ALL SELECT * FROM %s WHERE (brewStyleVersion = '%s' OR brewStyleOwn = 'custom')", $styles_db_table, $_SESSION['prefsStyleSet'], $prefix."styles", $_SESSION['prefsStyleSet']);
+else
+*/
 $query_required_optional = sprintf("SELECT * FROM %s WHERE (brewStyleVersion = '%s' OR brewStyleOwn = 'custom')", $styles_db_table, $_SESSION['prefsStyleSet']);
 $required_optional = mysqli_query($connection,$query_required_optional) or die (mysqli_error($connection));
 $row_required_optional = mysqli_fetch_assoc($required_optional);
@@ -171,6 +180,7 @@ $req_special_ing_styles = array();
 $req_strength_styles = array();
 $req_sweetness_styles = array();
 $req_carb_styles = array();
+$req_pouring = array();
 
 $cider_sweetness_custom_styles = array();
 $mead_sweetness_custom_styles = array();
@@ -179,6 +189,7 @@ do {
 
 	$style_id = ltrim($row_required_optional['brewStyleGroup'],"0")."-".$row_required_optional['brewStyleNum'];
 
+	if ($row_required_optional['brewStyleType'] == 1) $req_pouring[] = $style_id;
 	if ($row_required_optional['brewStyleReqSpec'] == 1) $req_special_ing_styles[] = $style_id;
 	if ($row_required_optional['brewStyleStrength'] == 1) $req_strength_styles[] = $style_id;
 	if ($row_required_optional['brewStyleSweet'] == 1) $req_sweetness_styles[] = $style_id;

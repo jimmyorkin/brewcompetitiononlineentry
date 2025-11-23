@@ -1,4 +1,13 @@
 <?php
+
+// Redirect if directly accessed without authenticated session
+if ((!isset($_SESSION['loginUsername'])) || ((isset($_SESSION['loginUsername'])) && (strpos($section, "step") === FALSE) && ($_SESSION['userLevel'] > 0))) {
+    $redirect = "../../403.php";
+    $redirect_go_to = sprintf("Location: %s", $redirect);
+    header($redirect_go_to);
+    exit();
+}
+
 if (empty($row_judging_prefs['jPrefsScoresheet'])) $judging_scoresheet = 1;
 elseif (!isset($_SESSION['jPrefsScoresheet'])) $judging_scoresheet = 1;
 else $judging_scoresheet = $_SESSION['jPrefsScoresheet'];
@@ -25,6 +34,7 @@ if ($_SESSION['prefsEval'] == 1) {
 
 ?>
 <form data-toggle="validator" role="form" class="form-horizontal" method="post" action="<?php echo $base_url; ?>includes/process.inc.php?section=<?php if ($section == "step8") echo "setup"; else echo $section; ?>&amp;action=edit&amp;dbTable=<?php echo $judging_preferences_db_table; ?>&amp;id=1" name="form1">
+<input type="hidden" name="token" value ="<?php if (isset($_SESSION['token'])) echo $_SESSION['token']; ?>">
 <?php if ($section != "step8") { ?>
 <p class="lead"><?php echo $_SESSION['contestName'].": Set Judging/Competition Organization Preferences"; ?></p>
 <div class="bcoem-admin-element hidden-print">
@@ -104,13 +114,13 @@ if ($_SESSION['prefsEval'] == 1) {
                 <input type="radio" name="jPrefsScoresheet" value="3" id="jPrefsScoresheet_1" rel="" <?php if ($judging_scoresheet == "3") echo "CHECKED"; ?>/> BJCP Structured Scoresheet (Beer, Mead, and Cider Only)
             </label>
         </div>
-        <!-- 
+
         <div class="radio">
             <label>
                 <input type="radio" name="jPrefsScoresheet" value="4" id="jPrefsScoresheet_1" rel="" <?php if ($judging_scoresheet == "4") echo "CHECKED"; ?>/> NW Cider Cup Structured Scoresheet (Cider Only)
             </label>
         </div>
-        -->
+
         <span id="helpBlock" class="help-block">
         <div class="btn-group" role="group" aria-label="queuedModal">
             <div class="btn-group" role="group">
@@ -136,9 +146,7 @@ if ($_SESSION['prefsEval'] == 1) {
                 <p>The <strong>BJCP Checklist Scoresheet</strong> is "a quick checklist-based beer scoresheet covering perhaps 80% of the sensory information necessary for any beer." This is only for use in <a href="https://bjcp.org/docs/Beer_checklist.pdf" target="_blank">evaluating beer entries</a>; Mead, Cider, and other style types utilize the Classic Scoresheet.</p>
                 <p>The <strong>BJCP Structured Scoresheet</strong> is a revised and updated version of the Checklist Scoresheet that features sliding scales (none to high) for aroma, appearance, flavor, and mouthfeel to "reduce the time [judges] spend writing out intensity levels." Considered experimental, these scoresheets were introduced at the National Homebrew Competition in 2018 and used again in 2019 to great success. While not officially adopted by the BJCP, their use has been increasing in local competitions. Available for Beer, Mead, and Cider. All other style types utilize the Full Scoresheet.</p>
                 <p>More information about BJCP scoresheets can be found on the <a class="hide-loader" href="https://www.bjcp.org/competition-center/" target="_blank">BJCP's Competition Center</a>.</p>
-                <!-- 
                 <p>The <strong>NW Cider Cup Structured Scoresheet</strong> was developed for use in the NW Cider Cup (formerly Portland International Cider Cup) according the specifications of the <a href="https://www.nwcider.com/" target="_blank">Northwest Cider Association</a>. Cider only. Beer and Mead styles utilize the BJCP Structured Scoresheet; all other style types utilize the Full Scoresheet.</p> 
-                -->
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
@@ -198,7 +206,7 @@ if ($_SESSION['prefsEval'] == 1) {
 <div class="form-group"><!-- Form Group REQUIRED Text Input -->
     <label for="jPrefsJudgingOpen" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Judging Open Date and Time</label>
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
-        <input class="form-control" id="jPrefsJudgingOpen" name="jPrefsJudgingOpen" type="text" value="<?php echo $judging_open_date; ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" required>
+        <input class="form-control date-time-picker-system" id="jPrefsJudgingOpen" name="jPrefsJudgingOpen" type="text" value="<?php echo $judging_open_date; ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" required>
         <div id="helpBlock" class="help-block">Indicate when judges will be allowed access to their Judging Dashboard to add entry evaluations.  Typically, the open date begins the day and time the first judging session begins.
             <?php if ($suggested_open) echo "<br><span class=\"text-warning\" style=\"margin-bottom:5px;\">* The date and time above is suggested and is the system default. It is the the earliest judging session's start time.</span>";  ?>
         </div>
@@ -207,7 +215,7 @@ if ($_SESSION['prefsEval'] == 1) {
 <div class="form-group"><!-- Form Group REQUIRED Text Input -->
     <label for="jPrefsJudgingClosed" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Judging Close Date and Time</label>
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
-        <input class="form-control" id="jPrefsJudgingClosed" name="jPrefsJudgingClosed" type="text" size="20" value="<?php echo $judging_close_date; ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" required>
+        <input class="form-control date-time-picker-system" id="jPrefsJudgingClosed" name="jPrefsJudgingClosed" type="text" size="20" value="<?php echo $judging_close_date; ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" required>
         <div id="helpBlock" class="help-block">The closing date and time is the absolute latest judges will be allowed to enter evaluations and scores.
             <?php if ($suggested_close) echo "<br><span class=\"text-warning\" style=\"margin-bottom:5px;\">* The date and time above is suggested and is the system default. It is the <u>last</u> judging session's start time + 8 hours.</span>"; ?>
             <div style="margin-top: 5px;" class="btn-group" role="group" aria-label="judgingWindowModal">

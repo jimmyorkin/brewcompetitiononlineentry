@@ -20,19 +20,28 @@ if ($_SESSION['prefsEval'] == 1) {
 
 }
 
+/*
+$now = time();
+$midnight_tomorrow = new \DateTime();
+$midnight_tomorrow->setTimestamp($now)->modify('tomorrow')->setTime(0,0);
+$eleven_fifty_nine = ($midnight_tomorrow->format('U') - 60);
+$eleven_fifty_nine = getTimeZoneDateTime($_SESSION['prefsTimeZone'], $eleven_fifty_nine, $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system");
+*/
+
 ?>
 <p class="lead"><?php echo $_SESSION['contestName']." Competition-Related Dates"; ?></p>
 <p>All competition-related dates for various functions are listed below. Useful when resetting the software for another competition instance after archiving or purging or to adjust any function's date/time for the current competition iteration.</p>
 <form data-toggle="validator" role="form" class="form-horizontal" method="post" action="<?php echo $base_url; ?>includes/process.inc.php?action=dates&amp;dbTable=default">
+<input type="hidden" name="token" value ="<?php if (isset($_SESSION['token'])) echo $_SESSION['token']; ?>">
 <h3>Entry-Related</h3>
 <div class="form-group"><!-- Form Group REQUIRED Text Input -->
     <label for="contestEntryOpen" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Entry Window Open</label>
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
         <!-- Input Here -->
         <div class="input-group has-warning">
-            <input class="form-control" id="contestEntryOpen" name="contestEntryOpen" type="text" value="<?php if ($section != "step4") echo
+            <input class="form-control date-time-picker-system" id="contestEntryOpen" name="contestEntryOpen" type="text" value="<?php if ($section != "step4") echo
     getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_contest_dates['contestEntryOpen'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system"); ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" required>
-            <span class="input-group-addon" id="contestHost-addon2"><span class="fa fa-star"></span></span>
+            <span class="input-group-addon" id="contestHost-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
         </div>
     </div>
 </div><!-- ./Form Group -->
@@ -42,18 +51,30 @@ if ($_SESSION['prefsEval'] == 1) {
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
         <!-- Input Here -->
         <div class="input-group has-warning">
-            <input class="form-control" id="contestEntryDeadline" name="contestEntryDeadline" type="text" size="20" value="<?php if ($section != "step4") echo
+            <input class="form-control date-time-picker-system" id="contestEntryDeadline" name="contestEntryDeadline" type="text" size="20" value="<?php if ($section != "step4") echo
     getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_contest_dates['contestEntryDeadline'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system"); ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" required>
-            <span class="input-group-addon" id="contestHost-addon2"><span class="fa fa-star"></span></span>
+            <span class="input-group-addon" id="contestHost-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
         </div>
+        <span id="helpBlock" class="help-block">This date is only for restriction of adding <strong>new</strong> entries. Existing entries will be able to be edited beyond this date &ndash; until the drop-off/shipping deadlines &ndash; unless a specific entry editing close date is provided below.</span>
     </div>
 </div><!-- ./Form Group -->
+
+<div class="form-group">
+    <label for="contestEntryEditDeadline" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Entry Edit Close Date</label>
+    <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">   
+        <div class="input-group">
+            <input class="form-control date-time-picker-system" id="contestEntryEditDeadline" name="contestEntryEditDeadline" type="text" size="20" value="<?php if (($section != "step4") && (isset($row_contest_dates['contestEntryEditDeadline'])) && (!empty($row_contest_dates['contestEntryEditDeadline']))) echo
+    getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_contest_dates['contestEntryEditDeadline'], $_SESSION['prefsDateFormat'], $_SESSION['prefsTimeFormat'], "system", "date-time-system"); ?>" placeholder="<?php echo $current_date." ".$current_time; ?>">
+            <span id="helpBlock" class="help-block">If you wish to restrict editing of any exisiting entry's information by non-admin participants, provide a close date here. For example, this could allow competition staff to prepare for sorting prior to the entry drop-off/shipment closure dates.</span>
+        </div>
+    </div>
+</div>
 
 <div class="form-group"><!-- Form Group REQUIRED Text Input -->
     <label for="contestDropoffOpen" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Drop-Off Window Open</label>
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
         <!-- Input Here -->
-            <input class="form-control" id="contestDropoffOpen" name="contestDropoffOpen" type="text" value="<?php if (($section != "step4") && ((isset($row_contest_dates['contestDropoffOpen'])) && ($row_contest_dates['contestDropoffOpen'] > 0))) echo
+            <input class="form-control date-time-picker-system" id="contestDropoffOpen" name="contestDropoffOpen" type="text" value="<?php if (($section != "step4") && ((isset($row_contest_dates['contestDropoffOpen'])) && ($row_contest_dates['contestDropoffOpen'] > 0))) echo
     getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_contest_dates['contestDropoffOpen'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system"); ?>" placeholder="<?php echo $current_date." ".$current_time; ?>">
     </div>
 </div><!-- ./Form Group -->
@@ -62,7 +83,7 @@ if ($_SESSION['prefsEval'] == 1) {
     <label for="contestDropoffDeadline" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Drop-Off Window Close</label>
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
         <!-- Input Here -->
-            <input class="form-control" id="contestDropoffDeadline" name="contestDropoffDeadline" type="text" value="<?php if (($section != "step4") && ((isset($row_contest_dates['contestDropoffDeadline'])) && ($row_contest_dates['contestDropoffDeadline'] > 0))) echo
+            <input class="form-control date-time-picker-system" id="contestDropoffDeadline" name="contestDropoffDeadline" type="text" value="<?php if (($section != "step4") && ((isset($row_contest_dates['contestDropoffDeadline'])) && ($row_contest_dates['contestDropoffDeadline'] > 0))) echo
     getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_contest_dates['contestDropoffDeadline'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system"); ?>" placeholder="<?php echo $current_date." ".$current_time; ?>">
     </div>
 </div><!-- ./Form Group -->
@@ -71,7 +92,7 @@ if ($_SESSION['prefsEval'] == 1) {
     <label for="contestShippingOpen" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Shipping Window Open</label>
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
         <!-- Input Here -->
-            <input class="form-control" id="contestShippingOpen" name="contestShippingOpen" type="text" value="<?php if (($section != "step4") && ((isset($row_contest_dates['contestShippingOpen'])) && ($row_contest_dates['contestShippingOpen'] > 0))) echo
+            <input class="form-control date-time-picker-system" id="contestShippingOpen" name="contestShippingOpen" type="text" value="<?php if (($section != "step4") && ((isset($row_contest_dates['contestShippingOpen'])) && ($row_contest_dates['contestShippingOpen'] > 0))) echo
     getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_contest_dates['contestShippingOpen'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system"); ?>" placeholder="<?php echo $current_date." ".$current_time; ?>">
     </div>
 </div><!-- ./Form Group -->
@@ -80,7 +101,7 @@ if ($_SESSION['prefsEval'] == 1) {
     <label for="contestShippingDeadline" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Shipping Window Close</label>
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
         <!-- Input Here -->
-        <input class="form-control" id="contestShippingDeadline" name="contestShippingDeadline" type="text" value="<?php if (($section != "step4") && ((isset($row_contest_dates['contestShippingDeadline'])) && ($row_contest_dates['contestShippingDeadline'] > 0))) echo
+        <input class="form-control date-time-picker-system" id="contestShippingDeadline" name="contestShippingDeadline" type="text" value="<?php if (($section != "step4") && ((isset($row_contest_dates['contestShippingDeadline'])) && ($row_contest_dates['contestShippingDeadline'] > 0))) echo
     getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_contest_dates['contestShippingDeadline'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system"); ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" >
     </div>
 </div><!-- ./Form Group -->
@@ -91,9 +112,9 @@ if ($_SESSION['prefsEval'] == 1) {
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
         <!-- Input Here -->
         <div class="input-group has-warning">
-            <input class="form-control" id="contestRegistrationOpen" name="contestRegistrationOpen" type="text" value="<?php if ($section != "step4") echo
+            <input class="form-control date-time-picker-system" id="contestRegistrationOpen" name="contestRegistrationOpen" type="text" value="<?php if ($section != "step4") echo
     getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_contest_dates['contestRegistrationOpen'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system"); ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" required>
-            <span class="input-group-addon" id="contestHost-addon2"><span class="fa fa-star"></span></span>
+            <span class="input-group-addon" id="contestHost-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
         </div>
         <span id="helpBlock" class="help-block with-errors">The date and time when general entrants are able to create an account.</span>
     </div>
@@ -105,9 +126,9 @@ if ($_SESSION['prefsEval'] == 1) {
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
         <!-- Input Here -->
         <div class="input-group has-warning">
-            <input class="form-control" id="contestRegistrationDeadline" name="contestRegistrationDeadline" type="text" size="20" value="<?php if ($section != "step4") echo
+            <input class="form-control date-time-picker-system" id="contestRegistrationDeadline" name="contestRegistrationDeadline" type="text" size="20" value="<?php if ($section != "step4") echo
     getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_contest_dates['contestRegistrationDeadline'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system"); ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" required>
-            <span class="input-group-addon" id="contestHost-addon2"><span class="fa fa-star"></span>
+            <span class="input-group-addon" id="contestHost-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span>
         </div>
         <span id="helpBlock" class="help-block with-errors">The deadline for general entrants to create an account.</span>
     </div>
@@ -118,9 +139,9 @@ if ($_SESSION['prefsEval'] == 1) {
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
         <!-- Input Here -->
         <div class="input-group has-warning">
-            <input class="form-control" id="contestJudgeOpen" name="contestJudgeOpen" type="text" value="<?php if ($section != "step4") echo
+            <input class="form-control date-time-picker-system" id="contestJudgeOpen" name="contestJudgeOpen" type="text" value="<?php if ($section != "step4") echo
     getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_contest_dates['contestJudgeOpen'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system"); ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" required>
-            <span class="input-group-addon" id="contestHost-addon2"><span class="fa fa-star"></span></span>
+            <span class="input-group-addon" id="contestHost-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
         </div>
         <span id="helpBlock" class="help-block with-errors">The date and time when judges and stewards are able to create an account and indicate their session preferences.</span>
     </div>
@@ -131,9 +152,9 @@ if ($_SESSION['prefsEval'] == 1) {
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
         <!-- Input Here -->
         <div class="input-group has-warning">
-            <input class="form-control" id="contestJudgeDeadline" name="contestJudgeDeadline" type="text" size="20" value="<?php if ($section != "step4") echo
+            <input class="form-control date-time-picker-system" id="contestJudgeDeadline" name="contestJudgeDeadline" type="text" size="20" value="<?php if ($section != "step4") echo
     getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_contest_dates['contestJudgeDeadline'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system"); ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" required>
-            <span class="input-group-addon" id="contestHost-addon2"><span class="fa fa-star"></span></span>
+            <span class="input-group-addon" id="contestHost-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
         </div>
         <span id="helpBlock" class="help-block with-errors">The deadline for judges and stewards to create an account and indicate their session preferences.</span>
     </div>
@@ -144,7 +165,7 @@ if ($_SESSION['prefsEval'] == 1) {
 <div class="form-group"><!-- Form Group REQUIRED Text Input -->
     <label for="jPrefsJudgingOpen" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Open</label>
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
-        <input class="form-control" id="jPrefsJudgingOpen" name="jPrefsJudgingOpen" type="text" value="<?php echo $judging_open_date; ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" required>
+        <input class="form-control date-time-picker-system" id="jPrefsJudgingOpen" name="jPrefsJudgingOpen" type="text" value="<?php echo $judging_open_date; ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" required>
         <div id="helpBlock" class="help-block">Indicate when judges will be allowed access to their Judging Dashboard to add entry evaluations.  Typically, the open date begins the day and time the first judging session begins.
             <?php if ($suggested_open) echo "<br><span class='text-warning' style=\"margin-bottom:5px;\">* The date and time above is suggested and is the system default. It is the the earliest judging session's start time.</span>";  ?>
         </div>
@@ -153,7 +174,7 @@ if ($_SESSION['prefsEval'] == 1) {
 <div class="form-group"><!-- Form Group REQUIRED Text Input -->
     <label for="jPrefsJudgingClosed" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Close</label>
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
-        <input class="form-control" id="jPrefsJudgingClosed" name="jPrefsJudgingClosed" type="text" size="20" value="<?php echo $judging_close_date; ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" required>
+        <input class="form-control date-time-picker-system" id="jPrefsJudgingClosed" name="jPrefsJudgingClosed" type="text" size="20" value="<?php echo $judging_close_date; ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" required>
         <div id="helpBlock" class="help-block">The closing date and time is the absolute latest judges will be allowed to enter or edit their evaluations and scores.
             <?php if ($suggested_close) echo "<br><span class='text-warning' style=\"margin-bottom:5px;\">* The date and time above is suggested and is the system default. It is the <u>last</u> judging session's start time + 8 hours.</span>"; ?>
             <div style="margin-top:5px" class="btn-group bcoem-admin-element" role="group" aria-label="judgingWindowModal">
@@ -219,8 +240,8 @@ $judging_session_js = "";
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
         <div class="input-group date has-warning">
             <!-- Input Here -->
-            <input class="form-control" id="judgingDate-<?php echo $row_judging_locs['id']; ?>" name="judgingDate<?php echo $row_judging_locs['id']; ?>" type="text" value="<?php echo $judging_date; ?>" placeholder="" required>
-            <span class="input-group-addon"><span class="fa fa-star"></span></span>
+            <input class="form-control date-time-picker-system" id="judgingDate-<?php echo $row_judging_locs['id']; ?>" name="judgingDate<?php echo $row_judging_locs['id']; ?>" type="text" value="<?php echo $judging_date; ?>" placeholder="" required>
+            <span class="input-group-addon" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
         </div>
         <span class="help-block">Provide a start date and time for the session.<br>Session type is set to <strong><?php echo $session_type; ?></strong>. To change the type or other information, <a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=judging&amp;action=edit&amp;id=<?php echo $row_judging_locs['id']; ?>">edit the <?php echo $row_judging_locs['judgingLocName']; ?> session</a>.</span>
     </div>
@@ -231,8 +252,8 @@ $judging_session_js = "";
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
         <div class="input-group date has-warning">
             <!-- Input Here -->
-            <input class="form-control" id="judgingDateEnd-<?php echo $row_judging_locs['id']; ?>" name="judgingDateEnd<?php echo $row_judging_locs['id']; ?>" type="text" value="<?php echo $judging_end_date; ?>" placeholder="">
-            <span class="input-group-addon"><span class="fa fa-star"></span></span>
+            <input class="form-control date-time-picker-system" id="judgingDateEnd-<?php echo $row_judging_locs['id']; ?>" name="judgingDateEnd<?php echo $row_judging_locs['id']; ?>" type="text" value="<?php echo $judging_end_date; ?>" placeholder="">
+            <span class="input-group-addon" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
         </div>
         <span class="help-block">For a distributed session, it is required that you provide an end date and time that will serve as a deadline for judges to submit their evaluations.</span>
     </div>
@@ -255,8 +276,6 @@ if ($totalRows_judging > 0) {
         $judging_date .= getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_judging['judgingDate'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system");
         if (!empty($row_judging['judgingDateEnd'])) $judging_end_date .= getTimeZoneDateTime($_SESSION['prefsTimeZone'], $row_judging['judgingDateEnd'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system");
 
-        $judging_session_js .= "$('#judgingDate-".$row_judging['id']."').datetimepicker({format: 'YYYY-MM-DD hh:mm A'}); $('#judgingDateEnd-".$row_judging['id']."').datetimepicker({format: 'YYYY-MM-DD hh:mm A'}); ";
-
         if ($row_judging['judgingLocType'] == 2) {
         $non_judging_count += 1;
 
@@ -267,8 +286,8 @@ if ($totalRows_judging > 0) {
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
         <div class="input-group date has-warning">
             <!-- Input Here -->
-            <input class="form-control" id="judgingDate-<?php echo $row_judging['id']; ?>" name="judgingDate<?php echo $row_judging['id']; ?>" type="text" value="<?php echo $judging_date; ?>" placeholder="" required>
-            <span class="input-group-addon"><span class="fa fa-star"></span></span>
+            <input class="form-control date-time-picker-system" id="judgingDate-<?php echo $row_judging['id']; ?>" name="judgingDate<?php echo $row_judging['id']; ?>" type="text" value="<?php echo $judging_date; ?>" placeholder="" required>
+            <span class="input-group-addon" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
         </div>
         <span class="help-block">Provide a start date and time for the session.</span>
     </div>
@@ -285,7 +304,7 @@ if ($non_judging_count == 0) echo "<p>No non-judging sessions have been defined.
 <div class="form-group"><!-- Form Group NOT REQUIRED Text Input -->
     <label for="prefsWinnerDelay" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Display Date and Time</label>
     <div class="col-lg-6 col-md-4 col-sm-8 col-xs-12">
-            <input class="form-control" id="prefsWinnerDelay" name="prefsWinnerDelay" type="text" value="<?php if ((isset($_SESSION['prefsWinnerDelay'])) && ($_SESSION['prefsWinnerDelay'] > 0)) echo getTimeZoneDateTime($_SESSION['prefsTimeZone'], $_SESSION['prefsWinnerDelay'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system"); ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" >
+            <input class="form-control date-time-picker-system" id="prefsWinnerDelay" name="prefsWinnerDelay" type="text" value="<?php if ((isset($_SESSION['prefsWinnerDelay'])) && ($_SESSION['prefsWinnerDelay'] > 0)) echo getTimeZoneDateTime($_SESSION['prefsTimeZone'], $_SESSION['prefsWinnerDelay'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system"); ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" >
         <span id="helpBlock" class="help-block">Date and time when the system will display winners. If a date and time are specified, winner display will be enabled. If the date and time are removed or blank, winner display will be disabled.</span>
         <div class="help-block with-errors"></div>
     </div>
@@ -296,7 +315,7 @@ if ($non_judging_count == 0) echo "<p>No non-judging sessions have been defined.
     <label for="contestAwardsLocDate" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Date and Time</label>
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
         <!-- Input Here -->
-            <input class="form-control" id="contestAwardsLocDate" name="contestAwardsLocDate" type="text" value="<?php if (($section != "step4") && ((isset($_SESSION['contestAwardsLocTime'])) && ($_SESSION['contestAwardsLocTime'] > 0))) echo getTimeZoneDateTime($_SESSION['prefsTimeZone'], $_SESSION['contestAwardsLocTime'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system"); ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" >
+            <input class="form-control date-time-picker-system" id="contestAwardsLocDate" name="contestAwardsLocDate" type="text" value="<?php if (($section != "step4") && ((isset($_SESSION['contestAwardsLocTime'])) && ($_SESSION['contestAwardsLocTime'] > 0))) echo getTimeZoneDateTime($_SESSION['prefsTimeZone'], $_SESSION['contestAwardsLocTime'], $_SESSION['prefsDateFormat'],  $_SESSION['prefsTimeFormat'], "system", "date-time-system"); ?>" placeholder="<?php echo $current_date." ".$current_time; ?>" >
         <span id="helpBlock" class="help-block">Provide even if the date of judging is the same.</span>
     </div>
 </div><!-- ./Form Group -->
@@ -309,10 +328,4 @@ if ($non_judging_count == 0) echo "<p>No non-judging sessions have been defined.
     </div>
 </div>
 <input type="hidden" name="relocate" value="<?php echo relocate($base_url."index.php?section=admin","default",$msg,$id); ?>">
-
 </form>
-<script type="text/javascript">
-    $(document).ready(function() {
-        <?php echo $judging_session_js; ?>
-    });
-</script>

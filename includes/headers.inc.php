@@ -21,7 +21,8 @@ switch($section) {
 
 	case "default":
 	case "past-winners":
-		$header_output = $_SESSION['contestName'];
+		if (isset($_SESSION['contestName'])) $header_output = $_SESSION['contestName'];
+		else $header_output = "";
 
 		if (($filter != "default") && ($section == "past-winners")) $header_output .= ": ".$label_past_winners." &ndash; ".$filter;
 
@@ -179,6 +180,7 @@ switch($section) {
 		else $header_output = $label_edit_entry;
 		
 		switch ($msg) {
+			case "1": $output = sprintf("<strong>%s</strong>",$header_text_005); break;
 			case "2": $output = sprintf("<strong>%s</strong><br>",$header_text_006); break;
 			case "3": $output = sprintf("<strong>%s</strong> %s<br>",$header_text_007,$header_text_008); break;
 			case "4": $output = sprintf("<strong>%s</strong><br>",$header_text_108); break;
@@ -622,7 +624,7 @@ switch($section) {
 		elseif ($msg == "34") $output = sprintf("<strong>%s</strong>",$header_text_110);
 		elseif ($msg == "35") $output = sprintf("<strong>%s</strong>",$header_text_111);
 		elseif ($msg == "36") $output = sprintf("<strong>%s</strong>",$header_text_115);
-		elseif ($msg == "37") $output = sprintf("<strong>%s</strong> %s","Please Note!", "Accepted BA Styles have been cleared. Please go to Admin > Competition Preparation > Manage Styles Accepted to define your competition's accepted styles.");
+		elseif ($msg == "37") $output = sprintf("<strong>%s</strong> %s","Please Note!", "Since your style set has changed, by default, all styles have been marked as active. Review and update below the styles your competition will and will not accept.");
 		elseif ($msg == "755") $output = sprintf("<strong>%s</strong> ",$header_text_094,$header_text_095);
 		else $output = "";
 	break;

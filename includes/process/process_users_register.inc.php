@@ -20,31 +20,26 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 
 	require(PROCESS.'process_brewer_info.inc.php');
 
-	$username = strtolower($_POST['user_name']);
-	$username = filter_var($username,FILTER_SANITIZE_EMAIL);
-
-	$userQuestionAnswer = $purifier->purify($_POST['userQuestionAnswer']);
-	$userQuestionAnswer = filter_var($userQuestionAnswer,FILTER_SANITIZE_STRING,FILTER_FLAG_STRIP_HIGH|FILTER_FLAG_STRIP_LOW);
-	
+	$username = filter_var(strtolower($_POST['user_name']),FILTER_SANITIZE_EMAIL);
+	$username2 = filter_var(strtolower($_POST['user_name2']),FILTER_SANITIZE_EMAIL);
+	$userQuestionAnswer = $purifier->purify(sterilize($_POST['userQuestionAnswer']));
 	$hasher_question = new PasswordHash(8, false);
 	$hash_question = $hasher_question->HashPassword($userQuestionAnswer);
 
-	$username2 = strtolower($_POST['user_name2']);
-	$username2 = filter_var($username2,FILTER_SANITIZE_EMAIL);
-
-	setcookie("userQuestion", $_POST['userQuestion'], 0, "/");
+	setcookie("userQuestion", sterilize($_POST['userQuestion']), 0, "/");
 	setcookie("userQuestionAnswer", $userQuestionAnswer, 0, "/");
 	setcookie("brewerFirstName", $first_name, 0, "/");
 	setcookie("brewerLastName", $last_name, 0, "/");
 	setcookie("brewerAddress", $address, 0, "/");
 	setcookie("brewerCity", $city, 0, "/");
-	setcookie("brewerState", sterilize($_POST['brewerState']), 0, "/");
+	setcookie("brewerState", sterilize($state_province), 0, "/");
 	setcookie("brewerZip", sterilize($_POST['brewerZip']), 0, "/");
-	setcookie("brewerCountry", $_POST['brewerCountry'], 0, "/");
+	setcookie("brewerCountry", sterilize($_POST['brewerCountry']), 0, "/");
 	setcookie("brewerPhone1", $brewerPhone1, 0, "/");
 	setcookie("brewerPhone2", $brewerPhone2, 0, "/");
 	setcookie("brewerClubs", $brewerClubs, 0, "/");
 	setcookie("brewerAHA", $brewerAHA, 0, "/");
+	setcookie("brewerMHP", $brewerMHP, 0, "/");
 	setcookie("brewerStaff", sterilize($_POST['brewerStaff']), 0, "/");
 	setcookie("brewerSteward", $brewerSteward, 0, "/");
 	setcookie("brewerJudge", $brewerJudge, 0, "/");
@@ -52,7 +47,7 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 	setcookie("brewerJudgeLocation", $location_pref1, 0, "/");
 	setcookie("brewerStewardLocation", $location_pref2, 0, "/");
 	setcookie("brewerBreweryName", $brewerBreweryName, 0, "/");
-	setcookie("brewerBreweryTTB", $brewerBreweryTTB, 0, "/");
+	setcookie("brewerBreweryTTB", $brewerBreweryTTB, 0, "/"); // $brewerBreweryTTB var is incoprorated into $brewerBreweryInfo array.
 	setcookie("brewerJudgeID", $brewerJudgeID, 0, "/");
 	setcookie("brewerProAm", $brewerProAm, 0, "/");
 
@@ -115,7 +110,7 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 				$redirect = prep_redirect_link($redirect);
 				$redirect_go_to = sprintf("Location: %s", $redirect);
 
-				} else {
+			} else {
 
 				// Add the user's creds to the "users" table			
 				$hasher = new PasswordHash(8, false);
@@ -124,6 +119,9 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 				$hasher_question = new PasswordHash(8, false);
 				$hash_question = $hasher_question->HashPassword(sterilize($userQuestionAnswer));
 
+				$userAdminObfuscate = 1;
+				if ($_POST['userLevel'] == 0) $userAdminObfuscate = 0;
+
 				$update_table = $prefix."users";
 				$data = array(
 					'user_name' => $username,
@@ -131,8 +129,10 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 					'password' => $hash,
 					'userQuestion' => sterilize($_POST['userQuestion']),
 					'userQuestionAnswer' => $hash_question,
-					'userCreated' =>  $db_conn->now()
+					'userCreated' =>  date('Y-m-d H:i:s', time()),
+					'userAdminObfuscate' => $userAdminObfuscate
 				);
+				//print_r($data);
 				$result = $db_conn->insert ($update_table, $data);
 				if (!$result) {
 					$error_output[] = $db_conn->getLastError();
@@ -151,7 +151,7 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 					'brewerLastName' => blank_to_null($last_name),
 					'brewerAddress' => blank_to_null($address),
 					'brewerCity' => blank_to_null($city),
-					'brewerState' => blank_to_null($state),
+					'brewerState' => blank_to_null($state_province),
 					'brewerZip' => blank_to_null($purifier->purify($_POST['brewerZip'])),
 					'brewerCountry' => blank_to_null($purifier->purify($_POST['brewerCountry'])),
 					'brewerPhone1' => blank_to_null($brewerPhone1),
@@ -169,14 +169,13 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 					'brewerStewardLocation' => blank_to_null($location_pref2),
 					'brewerJudgeWaiver' => blank_to_null($brewerJudgeWaiver),
 					'brewerAHA' => blank_to_null($brewerAHA),
+					'brewerMHP' => blank_to_null($brewerMHP),
 					'brewerProAm' => blank_to_null($brewerProAm),
 					'brewerDropOff' => blank_to_null($brewerDropOff),
 					'brewerBreweryName' => blank_to_null($brewerBreweryName),
-					'brewerBreweryTTB' => blank_to_null($brewerBreweryTTB)
+					'brewerBreweryInfo' => blank_to_null($brewerBreweryInfo),
+					'brewerAssignment' => blank_to_null($brewerAssignment)
 				);
-
-				print_r($data);
-
 
 				$result = $db_conn->insert ($update_table, $data);
 				if (!$result) {
@@ -191,7 +190,7 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 				echo $last_name."<br>";
 				echo $address."<br>";
 				echo $city."<br>";
-				echo $state."<br>";
+				echo $state_province."<br>";
 				echo $purifier->purify($_POST['brewerZip'])."<br>";
 				echo $purifier->purify($_POST['brewerCountry'])."<br>";
 				echo $brewerPhone1."<br>";
@@ -205,7 +204,7 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 				echo $location_pref1."<br>";
 				echo $location_pref2."<br>";
 				echo $brewerBreweryName."<br>";
-				echo $brewerBreweryTTB."<br>";
+				echo $brewerBreweryInfo."<br>";
 				echo $brewerJudgeID."<br>";
 				echo $brewerProAm."<br>";
 				echo $brewerJudgeWaiver."<br>";
@@ -301,8 +300,7 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 					$subject = mb_convert_encoding($subject, "UTF-8");
 
 					$from_email = (!isset($mail_default_from) || trim($mail_default_from) === '') ? "noreply@".$url : $mail_default_from;
-					if (strpos($url, 'brewcomp.com') !== false) $from_email = "noreply@brewcomp.com";
-					elseif (strpos($url, 'brewcompetition.com') !== false) $from_email = "noreply@brewcompetition.com";
+					if (strpos($url, 'brewingcompetitions.com') !== false) $from_email = $default_from."@brewingcompetitions.com";
 					$from_email = mb_convert_encoding($from_email, "UTF-8");
 					
 					$from_name = html_entity_decode($_SESSION['contestName']);
@@ -316,7 +314,7 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 					else $message .= sprintf("<p>%s</p>",$register_text_039);
 					$message .= "<table cellpadding='5' border='0'>";
 					if (isset($_POST['brewerBreweryName'])) $message .= sprintf("<tr><td valign='top'><strong>%s:</strong></td><td valign='top'>%s</td></tr>",$label_organization,sterilize($_POST['brewerBreweryName']));
-					if (isset($_POST['brewerBreweryTTB'])) 	$message .= sprintf("<tr><td valign='top'><strong>%s:</strong></td><td valign='top'>%s</td></tr>",$label_ttb,sterilize($_POST['brewerBreweryTTB']));
+					if (!empty($brewerBreweryTTB)) 	$message .= sprintf("<tr><td valign='top'><strong>%s:</strong></td><td valign='top'>%s</td></tr>",$label_ttb,sterilize($brewerBreweryTTB));
 					$message .= sprintf("<tr><td valign='top'><strong>%s:</strong></td><td valign='top'>%s</td></tr>",$label_name,$first_name." ".$last_name);
 					$message .= sprintf("<tr><td valign='top'><strong>%s (%s):</strong></td><td valign='top'>%s</td></tr>",$label_username,$label_email,$username);
 					$message .= sprintf("<tr><td valign='top'><strong>%s:</strong></td><td valign='top'>%s</td></tr>",$label_security_question,sterilize($_POST['userQuestion']));
@@ -334,6 +332,7 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 
 						if (!empty($brewerClubs)) $message .= sprintf("<tr><td valign='top'><strong>%s:</strong></td><td valign='top'>%s</td></tr>",$label_club,$brewerClubs);
 						if (!empty($brewerAHA)) $message .= sprintf("<tr><td valign='top'><strong>%s:</strong></td><td valign='top'>%s</td></tr>",$label_aha_number,$brewerAHA);
+						if (!empty($brewerMHP)) $message .= sprintf("<tr><td valign='top'><strong>%s:</strong></td><td valign='top'>%s</td></tr>",$label_mhp_number,$brewerMHP);
 						$message .= sprintf("<tr><td valign='top'><strong>%s:</strong></td><td valign='top'>%s</td></tr>",$label_staff,$brewerStaff1);
 						$message .= sprintf("<tr><td valign='top'><strong>%s:</strong></td><td valign='top'>%s</td></tr>",$label_judge,$brewerJudge1);
 						$message .= sprintf("<tr><td valign='top'><strong>%s:</strong></td><td valign='top'>%s</td></tr>",$label_steward,$brewerSteward1);
@@ -450,7 +449,7 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 
 				} // end if ($filter == "admin")
 
-			} // end if ($totalRows_userCheck > 0)
+			} // end if ($totalRows_userCheck > 0) else
 
 		} // if (strstr($username,'@'))
 

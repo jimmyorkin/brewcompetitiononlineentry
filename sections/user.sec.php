@@ -6,6 +6,16 @@
  * 
  */
 
+/*
+// Redirect if directly accessed without authenticated session
+if ((!isset($_SESSION['loginUsername'])) || ((isset($_SESSION['loginUsername'])) && (!isset($base_url)))) {
+    $redirect = "../../403.php";
+    $redirect_go_to = sprintf("Location: %s", $redirect);
+    header($redirect_go_to);
+    exit();
+}
+*/
+
 // Verify if current user is authorized to make changes to the user account
 
 $edit_enable = FALSE;
@@ -41,10 +51,11 @@ if ($action == "username") {
 
 ?>
 <?php if ($action == "username") { ?>
-<script src="<?php echo $base_url; ?>js_includes/registration_checks.min.js"></script>
+<script src="<?php echo $js_url; ?>registration_checks.min.js"></script>
 <?php } // end if ($action == "username") ?>
 <p class="lead"><?php echo $lead_msg; ?></p>
-<form id="submit-form" data-toggle="validator" role="form" class="form-horizontal hide-loader-form-submit"  action="<?php echo $base_url; ?>includes/process.inc.php?section=<?php echo $section; ?>&amp;go=<?php echo $action; ?>&amp;action=edit&amp;dbTable=<?php echo $users_db_table; ?>&amp;filter=<?php echo $filter; ?>&amp;id=<?php if ($filter == "admin") echo $row_brewer['uid']; else echo $_SESSION['user_id']; ?>" method="POST" name="form1">
+<form id="submit-form" data-toggle="validator" role="form" class="form-horizontal hide-loader-form-submit" action="<?php echo $base_url; ?>includes/process.inc.php?section=<?php echo $section; ?>&amp;go=<?php echo $action; ?>&amp;action=edit&amp;dbTable=<?php echo $users_db_table; ?>&amp;filter=<?php echo $filter; ?>&amp;id=<?php if ($filter == "admin") echo $row_brewer['uid']; else echo $_SESSION['user_id']; ?>" method="POST" name="form1">
+<input type="hidden" name="token" value ="<?php if (isset($_SESSION['token'])) echo $_SESSION['token']; ?>">
 <input name="user_name_old" type="hidden" value="<?php if ($filter == "admin") echo $row_brewer['brewerEmail']; else echo $_SESSION['user_name']; ?>">
 <input type="hidden" name="userEdit" value="<?php echo $edit_user_enable; ?>">
 <?php if (isset($_SERVER['HTTP_REFERER'])) { ?>
@@ -60,7 +71,7 @@ if ($action == "username") {
                 <!-- Input Here -->
                 <span class="input-group-addon" id="user_name-addon1"><span class="fa fa-envelope"></span></span>
                 <input class="form-control" id="user_name" name="user_name" type="email" onBlur="checkAvailability()" onchange="AjaxFunction(this.value);" placeholder="" data-error="<?php echo $user_text_000; ?>" required>
-                <span class="input-group-addon" id="user_name-addon2"><span class="fa fa-star"></span></span>
+                <span class="input-group-addon" id="user_name-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
             </div>
             <div class="help-block with-errors"></div>
             <div id="msg_email"></div>
@@ -87,6 +98,9 @@ if ($action == "username") {
 			<button id="form-submit-button" name="submit" type="submit" class="btn btn-primary" ><?php echo $label_change_email; ?></button>
 		</div>
 	</div><!-- Form Group -->
+    <div class="alert alert-warning" style="margin-top: 10px;" id="form-submit-button-disabled-msg-required">
+        <?php echo sprintf("<p><i class=\"fa fa-exclamation-triangle\"></i> <strong>%s</strong> %s</p>",$form_required_fields_00,$form_required_fields_01); ?>
+    </div>
 <?php } ?>
 <?php if ($action == "password") { ?>
 <script type="text/javascript">
@@ -122,7 +136,7 @@ if ($action == "username") {
                 <!-- Input Here -->
                 <span class="input-group-addon" id="passwordOld-addon1"><span class="fa fa-key"></span></span>
                 <input class="form-control" name="passwordOld" type="password" placeholder="" id="passwordOld" data-error="<?php echo $user_text_001; ?>" required>
-                <span class="input-group-addon" id="passwordOld-addon2"><span class="fa fa-star"></span></span>
+                <span class="input-group-addon" id="passwordOld-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
             </div>
             <div class="help-block with-errors"></div>
         </div>
@@ -135,7 +149,7 @@ if ($action == "username") {
                 <!-- Input Here -->
                 <span class="input-group-addon" id="password-addon1"><span class="fa fa-key"></span></span>
                 <input class="form-control" name="password" type="password" placeholder="" id="newPassword" data-error="<?php echo $user_text_002; ?>" required>
-                <span class="input-group-addon" id="password-addon2"><span class="fa fa-star"></span></span>
+                <span class="input-group-addon" id="password-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
             </div>
             <div class="help-block with-errors"></div>
         </div>
@@ -155,7 +169,9 @@ if ($action == "username") {
 			<button id="form-submit-button" name="submit" type="submit" class="btn btn-primary" ><?php echo $label_change_password; ?></button>
 		</div>
 	</div><!-- Form Group -->
-
+    <div class="alert alert-warning" style="margin-top: 10px;" id="form-submit-button-disabled-msg-required">
+        <?php echo sprintf("<p><i class=\"fa fa-exclamation-triangle\"></i> <strong>%s</strong> %s</p>",$form_required_fields_00,$form_required_fields_01); ?>
+    </div>
 
 <?php } ?>
 </form>

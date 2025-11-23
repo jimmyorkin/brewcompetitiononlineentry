@@ -6,42 +6,13 @@
  *
  */
 
-/* ---------------- PUBLIC Pages Rebuild Info ---------------------
-
-Beginning with the 1.3.0 release, an effort was begun to separate the programming
-layer from the presentation layer for all scripts with this header.
-
-All Public pages have certain variables in common that build the page:
-
-	$warningX = any warnings
-
-	$primary_page_info = any information related to the page
-
-	$header1_X = an <h2> header on the page
-	$header2_X = an <h3> subheader on the page
-
-	$page_infoX = the bulk of the information on the page.
-	$help_page_link = link to the appropriate page on help.brewcompetition.com
-	$print_page_link = the "Print This Page" link
-	$competition_logo = display of the competition's logo
-
-	$labelX = the various labels in a table or on a form
-	$messageX = various messages to display
-
-	$print_page_link = "<p><span class='icon'><img src='".$base_url."images/printer.png' border='0' alt='Print' title='Print' /></span><a id='modal_window_link' class='data' href='".$base_url."output/print.php?section=".$section."&amp;action=print' title='Print'>Print This Page</a></p>";
-	$competition_logo = "<img src='".$base_url."user_images/".$_SESSION['contestLogo']."' width='".$_SESSION['prefsCompLogoSize']."' style='float:right; padding: 5px 0 5px 5px' alt='Competition Logo' title='Competition Logo' />";
-
-Declare all variables empty at the top of the script. Add on later...
-	$warning1 = "";
-	$primary_page_info = "";
-	$header1_1 = "";
-	$page_info1 = "";
-	$header1_2 = "";
-	$page_info2 = "";
-
-	etc., etc., etc.
-
- * ---------------- END Rebuild Info --------------------- */
+// Redirect if directly accessed
+if ((!isset($_SESSION['prefs'.$prefix_session])) || ((isset($_SESSION['prefs'.$prefix_session])) && (!isset($base_url)))) {
+    $redirect = "../../index.php?section=entry";
+    $redirect_go_to = sprintf("Location: %s", $redirect);
+    header($redirect_go_to);
+    exit();
+}
 
 include (DB.'dropoff.db.php');
 include (DB.'judging_locations.db.php');
@@ -91,6 +62,8 @@ $anchor_links_nav = "";
 $anchor_links = array();
 $anchor_top = "<p class=\"hidden-print\"><a href=\"#top-page\">".$label_top." <span class=\"fa fa-arrow-circle-up\"></span></a></p>";
 
+$contestRulesJSON = json_decode($row_contest_info['contestRules'],true);
+
 // Registration Window
 if (!$logged_in) {
 	$anchor_links[] = $label_account_registration;
@@ -100,7 +73,7 @@ if (!$logged_in) {
 	elseif (($registration_open == 2) && ($judge_window_open == 1)) $page_info2 .= sprintf("%s <strong class=\"text-success\">%s</strong> %s %s.", $entry_info_text_006,$entry_info_text_007,$entry_info_text_008, $judge_closed);
 	else $page_info2 .= sprintf("<p>%s</p>",$entry_info_text_009);
 }
-else $page_info2 .= sprintf("<p class=\"lead\">%s %s! <small><a href=\"%s\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"%s\">%s</a></small></p>",$entry_info_text_010,$_SESSION['brewerFirstName'],build_public_url("list","default","default","default",$sef,$base_url),$entry_info_text_011,$entry_info_text_012);
+else $page_info2 .= sprintf("<p class=\"lead\">%s %s! <small><a href=\"%s\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"%s\">%s</a></small></p>",$entry_info_text_010,$_SESSION['brewerFirstName'],build_public_url("list","default","default","default",$sef,$base_url,"default"),$entry_info_text_011,$entry_info_text_012);
 
 if ($show_entries) {
 	// Entry Window
@@ -126,23 +99,87 @@ if ($show_entries) {
 		$page_info4 .= $anchor_top;
 
 		// Entry Limit
-		if (!empty($row_limits['prefsEntryLimit'])) {
+		if ((!empty($row_limits['prefsEntryLimit'])) || (!empty($style_type_limits_display))) {
 			$anchor_links[] = $label_entry_limit;
 			$anchor_name = str_replace(" ", "-", $label_entry_limit);
+			
 			$header1_5 .= sprintf("<a class=\"anchor-offset\" name=\"%s\"></a><h2>%s</h2>",strtolower($anchor_name),$label_entry_limit);
-			$page_info5 .= sprintf("<p>%s %s %s</p>",$entry_info_text_019,$row_limits['prefsEntryLimit'],$entry_info_text_020);
+			if (!empty($row_limits['prefsEntryLimit'])) $page_info5 .= sprintf("<p>%s %s %s</p>",$entry_info_text_019,$row_limits['prefsEntryLimit'],$entry_info_text_020);
 			if (!empty($row_limits['prefsEntryLimitPaid'])) $page_info5 .= sprintf("<p>%s %s <strong>%s</strong> %s</p>",$entry_info_text_019,$row_limits['prefsEntryLimitPaid'],strtolower($label_paid),$entry_info_text_020);
+			if (!empty($style_type_limits_display)) {
+				$page_info5 .= "<p>".$entry_info_text_053."</p>";
+				$page_info5 .= "<ul>";
+				foreach($style_type_limits_display as $key => $value) {
+					if ($value > 0) {
+						if (array_key_exists($key,$style_types_translations)) $page_info5 .= "<li>".ucfirst($style_types_translations[$key])." &ndash; ".$value."</li>";
+						else $page_info5 .= "<li>".ucfirst($key)." &ndash; ".$value."</li>";
+					}
+				}
+				$page_info5 .= "</ul>";
+			}
 			$page_info5 .= $anchor_top;
 		}
 
-		if ((!empty($row_limits['prefsUserEntryLimit'])) || (!empty($row_limits['prefsUserSubCatLimit'])) || (!empty($row_limits['prefsUSCLExLimit']))) {
+		if ((!empty($row_limits['prefsUserEntryLimit'])) || (!empty($row_limits['prefsUserSubCatLimit'])) || (!empty($row_limits['prefsUSCLExLimit'])) || ($incremental)) {
+			
 			$anchor_links[] = $label_entry_per_entrant;
 			$anchor_name = str_replace(" ", "-", $label_entry_per_entrant);
 			$header1_16 .= sprintf("<a class=\"anchor-offset\" name=\"%s\"></a><h2>%s</h2>",strtolower($anchor_name),$label_entry_per_entrant);
 
-			if (!empty($row_limits['prefsUserEntryLimit'])) {
-				if ($row_limits['prefsUserEntryLimit'] == 1) $page_info16 .= sprintf("<p>%s %s %s.</p>",$entry_info_text_021,$row_limits['prefsUserEntryLimit'],$entry_info_text_022);
-				else $page_info16 .= sprintf("<p>%s %s %s.</p>",$entry_info_text_021,$row_limits['prefsUserEntryLimit'],$entry_info_text_023);
+			if ($incremental) {
+
+				$page_info16 .= "<table class='table table-bordered'>";
+				$page_info16 .= "<thead>";
+				$page_info16 .= sprintf("<tr><th>%s</th><th>%s</th></tr>",$label_limit,ucwords($sidebar_text_027));
+				$page_info16 .= "</thead>";
+				$page_info16 .= "<tbody>";
+				if (time() < $limit_date_1) $page_info16 .= "<tr class='bg-info text-primary'>";
+				else  $page_info16 .= "<tr>";
+				$page_info16 .= sprintf("<td>%s %s</td><td>%s</td>",$incremental_limits[1]['limit-number'], $label_entries, getTimeZoneDateTime($_SESSION['prefsTimeZone'], $limit_date_1, $_SESSION['prefsDateFormat'], $_SESSION['prefsTimeFormat'], "$sidebar_date_format", "date-time"));
+				$page_info16 .= "</tr>";
+				
+				if (!empty($limit_date_2)) {
+					if ($current_limit == 2) $page_info16 .= "<tr class='bg-info text-primary'>";
+					else $page_info16 .= "<tr>";
+					$page_info16 .= sprintf("<td>%s %s</td><td>%s</td>",$incremental_limits[2]['limit-number'], $label_entries, getTimeZoneDateTime($_SESSION['prefsTimeZone'], $limit_date_2, $_SESSION['prefsDateFormat'], $_SESSION['prefsTimeFormat'], "$sidebar_date_format", "date-time"));
+					$page_info16 .= "</tr>";
+				}
+
+				if (!empty($limit_date_3)) {
+					if ($current_limit == 3) $page_info16 .= "<tr class='bg-info text-primary'>";
+					else $page_info16 .= "<tr>";
+					$page_info16 .= sprintf("<td>%s %s</td><td>%s</td>",$incremental_limits[3]['limit-number'], $label_entries, getTimeZoneDateTime($_SESSION['prefsTimeZone'], $limit_date_3, $_SESSION['prefsDateFormat'], $_SESSION['prefsTimeFormat'], "$sidebar_date_format", "date-time"));
+					$page_info16 .= "</tr>";
+				}
+
+				if (!empty($limit_date_4)) {
+					if ($current_limit == 4) $page_info16 .= "<tr class='bg-info text-primary'>";
+					else $page_info16 .= "<tr>";
+					$page_info16 .= sprintf("<td>%s %s</td><td>%s</td>",$incremental_limits[4]['limit-number'], $label_entries, getTimeZoneDateTime($_SESSION['prefsTimeZone'], $limit_date_4, $_SESSION['prefsDateFormat'], $_SESSION['prefsTimeFormat'], "$sidebar_date_format", "date-time"));
+					$page_info16 .= "</tr>";
+				}
+
+				if (!empty($real_overall_user_entry_limit)) {	
+					if ($current_limit == 0) $page_info16 .= "<tr class='bg-info text-primary'>";
+					else $page_info16 .= "<tr>";
+					$page_info16 .= sprintf("<td>%s %s</td><td>%s</td>",$real_overall_user_entry_limit, $label_entries, $entry_closed);
+					$page_info16 .= "</tr>";
+				}
+
+				$page_info16 .= "</tbody>";
+				$page_info16 .= "</table>";
+
+			}
+
+			else {
+
+				if (!empty($row_limits['prefsUserEntryLimit'])) {
+
+					if ($row_limits['prefsUserEntryLimit'] == 1) $page_info16 .= sprintf("<p>%s %s %s.</p>",$entry_info_text_021,$row_limits['prefsUserEntryLimit'],$entry_info_text_022);
+					else $page_info16 .= sprintf("<p>%s %s %s.</p>",$entry_info_text_021,$row_limits['prefsUserEntryLimit'],$entry_info_text_023);
+
+				}
+
 			}
 
 			if (!empty($row_limits['prefsUserSubCatLimit'])) {
@@ -184,7 +221,7 @@ if ($show_entries) {
 			if ($_SESSION['prefsCash'] == "Y") $page_info6 .= sprintf("<li>%s</li>",$entry_info_text_032);
 			if ($_SESSION['prefsCheck'] == "Y") $page_info6 .= sprintf("<li>%s <em>%s</em></li>",$entry_info_text_033,$_SESSION['prefsCheckPayee']);
 			if ($_SESSION['prefsPaypal'] == "Y") $page_info6 .= sprintf("<li>%s</li>",$entry_info_text_034);
-			//if ($_SESSION['prefsGoogle'] == "Y") $page_info6 .= "<li>Google Wallet</li>";
+			if (($_SESSION['prefsCash'] == "N") && ($_SESSION['prefsCheck'] == "N") && ($_SESSION['prefsPaypal'] == "N")) $page_info6 .= "<li>".$entry_info_text_055."</li>";
 			$page_info6 .= "</ul>";
 			$page_info6 .= $anchor_top;
 
@@ -250,6 +287,10 @@ else $page_info8 .= sprintf("<p>%s</p>",$entry_info_text_046);
 
 $style_set = $_SESSION['style_set_short_name'];
 
+if ($_SESSION['prefsStyleSet'] == "NWCiderCup") {
+	$label_styles_accepted = $label_categories_accepted;
+	$label_judging_styles = $label_judging_categories;
+}
 $anchor_links[] = $label_judging_styles;
 $anchor_name = str_replace(" ", "-", $label_judging_styles);
 
@@ -264,65 +305,70 @@ $styles_columns = 3;   // number of columns
 $styles_hloopRow1 = 0; // first row flag
 
 	do {
-		if (($styles_endRow == 0) && ($styles_hloopRow1++ != 0)) $page_info8 .= "<tr>";
 
-		$page_info8 .= "<td width=\"33%\">";
+		if (array_key_exists($row_styles['id'], $styles_selected)) {
 
-		$style_number = style_number_const($row_styles['brewStyleGroup'],$row_styles['brewStyleNum'],$_SESSION['style_set_display_separator'],0);
+			if (($styles_endRow == 0) && ($styles_hloopRow1++ != 0)) $page_info8 .= "<tr>";
 
-		if (!empty($row_styles['brewStyleEntry'])) {
+			$page_info8 .= "<td width=\"33%\">";
 
-			$page_info8 .= "<a href=\"#\" data-toggle=\"modal\" data-target=\"#custom-modal-".$row_styles['id']."\" title=\"".$entry_info_text_045."\">".$style_number." ".$row_styles['brewStyle']."</a>";
+			$style_number = style_number_const($row_styles['brewStyleGroup'],$row_styles['brewStyleNum'],$_SESSION['style_set_display_separator'],0);
 
-			$style_info_modal_body = "";
+			if (!empty($row_styles['brewStyleEntry'])) {
 
-			$brewStyleInfo = str_replace("<p>","",$row_styles['brewStyleInfo']);
-			$brewStyleInfo = str_replace("</p>","",$brewStyleInfo);
+				$page_info8 .= "<a href=\"#\" data-toggle=\"modal\" data-target=\"#custom-modal-".$row_styles['id']."\" title=\"".$entry_info_text_045."\">".$style_number." ".$row_styles['brewStyle']."</a>";
 
-			$brewStyleEntry = str_replace("<p>","",$row_styles['brewStyleEntry']);
-			$brewStyleEntry = str_replace("</p>","",$brewStyleEntry);
+				$style_info_modal_body = "";
 
-			if (!empty($row_styles['brewStyleInfo'])) $style_info_modal_body .= "<p>".$brewStyleInfo."</p>";
-			if (!empty($row_styles['brewStyleEntry'])) $style_info_modal_body .= "<p><strong class=\"text-primary\">".$label_entry_info.":</strong> ".$brewStyleEntry."</p>";
+				$brewStyleInfo = str_replace("<p>","",$row_styles['brewStyleInfo']);
+				$brewStyleInfo = str_replace("</p>","",$brewStyleInfo);
 
-			$style_info_modals .= "<div class=\"modal fade\" id=\"custom-modal-".$row_styles['id']."\" tabindex=\"-1\" role=\"dialog\" aria-labelledby=\"assignment-modal-label-".$row_styles['brewStyleNum']."\">\n";
-			$style_info_modals .= "\t<div class=\"modal-dialog modal-lg\" role=\"document\">\n";
-			$style_info_modals .= "\t\t<div class=\"modal-content\">\n";
-			$style_info_modals .= "\t\t\t<div class=\"modal-header bcoem-admin-modal\">\n";
-			$style_info_modals .= "\t\t\t\t<button type=\"button\" class=\"close\" data-dismiss=\"modal\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button>\n";
-			$style_info_modals .= "\t\t\t\t<h4 class=\"modal-title\" id=\"assignment-modal-label-".ltrim($row_styles['brewStyleGroup'], "0").$row_styles['brewStyleNum']."\">Info for ".$row_styles['brewStyle']."</h4>\n";
-			$style_info_modals .= "\t\t\t</div><!-- ./modal-header -->\n";
-			$style_info_modals .= "\t\t\t<div class=\"modal-body\">\n";
-			$style_info_modals .= "\t\t\t\t".$style_info_modal_body."\n";
-			$style_info_modals .= "\t\t\t</div><!-- ./modal-body -->\n";
-			$style_info_modals .= "\t\t\t<div class=\"modal-footer\">\n";
-			$style_info_modals .= "\t\t\t\t<button type=\"button\" class=\"btn btn-danger\" data-dismiss=\"modal\">Close</button>\n";
-			$style_info_modals .= "\t\t\t</div><!-- ./modal-footer -->\n";
-			$style_info_modals .= "\t\t</div><!-- ./modal-content -->\n";
-			$style_info_modals .= "\t</div><!-- ./modal-dialog -->\n";
-			$style_info_modals .= "</div><!-- ./modal -->\n";
+				$brewStyleEntry = str_replace("<p>","",$row_styles['brewStyleEntry']);
+				$brewStyleEntry = str_replace("</p>","",$brewStyleEntry);
 
-		}
+				if (!empty($row_styles['brewStyleInfo'])) $style_info_modal_body .= "<p>".$brewStyleInfo."</p>";
+				if (!empty($row_styles['brewStyleEntry'])) $style_info_modal_body .= "<p><strong class=\"text-primary\">".$label_entry_info.":</strong> ".$brewStyleEntry."</p>";
 
-		else {
-			$page_info8 .= $style_number." ".$row_styles['brewStyle'];
-		}
+				$style_info_modals .= "<div class=\"modal fade\" id=\"custom-modal-".$row_styles['id']."\" tabindex=\"-1\" role=\"dialog\" aria-labelledby=\"assignment-modal-label-".$row_styles['brewStyleNum']."\">\n";
+				$style_info_modals .= "\t<div class=\"modal-dialog modal-lg\" role=\"document\">\n";
+				$style_info_modals .= "\t\t<div class=\"modal-content\">\n";
+				$style_info_modals .= "\t\t\t<div class=\"modal-header bcoem-admin-modal\">\n";
+				$style_info_modals .= "\t\t\t\t<button type=\"button\" class=\"close\" data-dismiss=\"modal\" aria-label=\"Close\"><span aria-hidden=\"true\">&times;</span></button>\n";
+				$style_info_modals .= "\t\t\t\t<h4 class=\"modal-title\" id=\"assignment-modal-label-".ltrim($row_styles['brewStyleGroup'], "0").$row_styles['brewStyleNum']."\">Info for ".$row_styles['brewStyle']."</h4>\n";
+				$style_info_modals .= "\t\t\t</div><!-- ./modal-header -->\n";
+				$style_info_modals .= "\t\t\t<div class=\"modal-body\">\n";
+				$style_info_modals .= "\t\t\t\t".$style_info_modal_body."\n";
+				$style_info_modals .= "\t\t\t</div><!-- ./modal-body -->\n";
+				$style_info_modals .= "\t\t\t<div class=\"modal-footer\">\n";
+				$style_info_modals .= "\t\t\t\t<button type=\"button\" class=\"btn btn-danger\" data-dismiss=\"modal\">Close</button>\n";
+				$style_info_modals .= "\t\t\t</div><!-- ./modal-footer -->\n";
+				$style_info_modals .= "\t\t</div><!-- ./modal-content -->\n";
+				$style_info_modals .= "\t</div><!-- ./modal-dialog -->\n";
+				$style_info_modals .= "</div><!-- ./modal -->\n";
 
-		if ($row_styles['brewStyleOwn'] == "custom") $page_info8 .= " (Custom Style)";
+			}
 
-		if ($row_styles['brewStyleReqSpec'] == 1) $page_info8 .= " <span class=\"fa fa-check-circle text-orange\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"".$entry_info_text_048."\"></span>";
+			else {
+				$page_info8 .= $style_number." ".$row_styles['brewStyle'];
+			}
 
-		if ($row_styles['brewStyleStrength'] == 1) $page_info8 .= " <span class=\"fa fa-check-circle text-purple\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"".$entry_info_text_049."\"></span>";
+			if ($row_styles['brewStyleOwn'] == "custom") $page_info8 .= " (Custom Style)";
 
-		if ($row_styles['brewStyleCarb'] == 1) $page_info8 .= " <span class=\"fa fa-check-circle text-teal\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"".$entry_info_text_050."\"></span>";
+			if ($row_styles['brewStyleReqSpec'] == 1) $page_info8 .= " <span class=\"fa fa-check-circle text-orange\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"".$entry_info_text_048."\"></span>";
 
-		if ($row_styles['brewStyleSweet'] == 1) $page_info8 .= " <span class=\"fa fa-check-circle text-gold\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"".$entry_info_text_051."\"></span>";
+			if ($row_styles['brewStyleStrength'] == 1) $page_info8 .= " <span class=\"fa fa-check-circle text-purple\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"".$entry_info_text_049."\"></span>";
 
-		$page_info8 .= "</td>";
-		$styles_endRow++;
+			if ($row_styles['brewStyleCarb'] == 1) $page_info8 .= " <span class=\"fa fa-check-circle text-teal\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"".$entry_info_text_050."\"></span>";
 
-		if ($styles_endRow >= $styles_columns) {
-			$styles_endRow = 0;
+			if ($row_styles['brewStyleSweet'] == 1) $page_info8 .= " <span class=\"fa fa-check-circle text-gold\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"".$entry_info_text_051."\"></span>";
+
+			$page_info8 .= "</td>";
+			$styles_endRow++;
+
+			if ($styles_endRow >= $styles_columns) {
+				$styles_endRow = 0;
+			}
+
 		}
 
 	} while ($row_styles = mysqli_fetch_assoc($styles));
@@ -364,10 +410,13 @@ if ($show_entries) {
 
 	// Shipping Locations
 	if (((isset($_SESSION['contestShippingAddress'])) && ($shipping_window_open < 2)) && ($_SESSION['prefsShipping'] == 1)) {
+
+		if (!empty($shipping_open)) $entry_info_text_001 = "&mdash;";
+
 		$anchor_links[] = $label_shipping_info;
 		$anchor_name = str_replace(" ", "-", $label_shipping_info);
 		$header1_10 .= sprintf("<a class=\"anchor-offset\" name=\"%s\"></a><h2>%s</h2>",strtolower($anchor_name),$label_shipping_info);
-		$page_info10 .= sprintf("<p>%s <strong class=\"text-success\">%s</strong> %s <strong class=\"text-success\">%s</strong>.</p>",$entry_info_text_036,$shipping_open,$entry_info_text_001,$shipping_closed);
+		if (!empty($row_contest_dates['contestShippingDeadline'])) $page_info10 .= sprintf("<p>%s <strong class=\"text-success\">%s</strong> %s <strong class=\"text-success\">%s</strong>.</p>",$entry_info_text_036,$shipping_open,$entry_info_text_001,$shipping_closed);
 		$page_info10 .= sprintf("<p>%s</p>",$entry_info_text_037);
 		$page_info10 .= "<p>";
 		$page_info10 .= $_SESSION['contestShippingName'];
@@ -375,21 +424,35 @@ if ($show_entries) {
 		$page_info10 .= $_SESSION['contestShippingAddress'];
 		$page_info10 .= "</p>";
 		$page_info10 .= sprintf("<h3>%s</h3>",$label_packing_shipping);
-		$page_info10 .= sprintf("<p>%s</p>",$entry_info_text_038);
-		$page_info10 .= sprintf("<p>%s</p>",$entry_info_text_039);
-		$page_info10 .= sprintf("<p>%s</p>",$entry_info_text_040);
-		$page_info10 .= sprintf("<p>%s</p>",$entry_info_text_041);
+
+		if ((ENABLE_MARKDOWN) && (!is_html($contestRulesJSON['competition_packing_shipping']))) {
+			$page_info10 .= Parsedown::instance()
+							->setBreaksEnabled(true) # enables automatic line breaks
+							->text($contestRulesJSON['competition_packing_shipping']); 
+		}
+		else $page_info10 .= $contestRulesJSON['competition_packing_shipping'];
+
 		/**
 		 * Removing USPS instructions. No need to include with global usage of application.
 		 * For 3.0, make a user-definied field to utilize.
 		 * $page_info10 .= sprintf("<p>%s</p>",$entry_info_text_042);
 		 * @fixes https://github.com/geoffhumphrey/brewcompetitiononlineentry/issues/1125
 		 */
+
+		/*
+		$page_info10 .= sprintf("<p>%s</p>",$entry_info_text_038);
+		$page_info10 .= sprintf("<p>%s</p>",$entry_info_text_039);
+		$page_info10 .= sprintf("<p>%s</p>",$entry_info_text_040);
+		$page_info10 .= sprintf("<p>%s</p>",$entry_info_text_041);
+		*/
 		$page_info10 .= $anchor_top;
 	}
 
 	// Drop-Off
 	if ((($totalRows_dropoff > 0) && ($dropoff_window_open < 2)) && ($_SESSION['prefsDropOff'] == 1)) {
+
+		if (!empty($dropoff_open)) $entry_info_text_001 = "&mdash;";
+
 		if ($totalRows_dropoff == 1) {
 			$anchor_links[] = $label_drop_off;
 			$anchor_name = str_replace(" ", "-", $label_drop_off);
@@ -400,7 +463,7 @@ if ($show_entries) {
 			$anchor_name = str_replace(" ", "-", $label_drop_offs);
 			$header1_11 .= sprintf("<a class=\"anchor-offset\" name=\"%s\"></a><h2>%s</h2>",strtolower($anchor_name),$label_drop_offs);
 		}
-		$page_info11 .= sprintf("<p>%s <strong class=\"text-success\">%s</strong> %s <strong class=\"text-success\">%s</strong>.</p>",$entry_info_text_043,$dropoff_open,$entry_info_text_001,$dropoff_closed);
+		if (!empty($row_contest_dates['contestDropoffDeadline'])) $page_info11 .= sprintf("<p>%s <strong class=\"text-success\">%s</strong> %s <strong class=\"text-success\">%s</strong>.</p>",$entry_info_text_043,$dropoff_open,$entry_info_text_001,$dropoff_closed);
 		$page_info11 .= "<p>".$dropoff_qualifier_text_001."</p>";
 		do {
 
@@ -536,15 +599,17 @@ if ($show_entries) {
 
 // Show rules if winner display is active (moved from default page)
 if (($judging_past == 0) && ($registration_open == 2) && ($entry_window_open == 2)) {
+	
 	$anchor_links[] = $label_rules;
 	$anchor_name = str_replace(" ", "-", $label_rules);
 	$header1_17 .= sprintf("<a class=\"anchor-offset\" name=\"%s\"></a><h2>%s</h2>",strtolower($anchor_name),$label_rules);
-	if ((ENABLE_MARKDOWN) && (!is_html($row_contest_info['contestRules']))) {
+
+	if ((ENABLE_MARKDOWN) && (!is_html($contestRulesJSON['competition_rules']))) {
 		$page_info17 .= Parsedown::instance()
 						->setBreaksEnabled(true) # enables automatic line breaks
-						->text($row_contest_rules['contestRules']); 
+						->text($contestRulesJSON['competition_rules']); 
 	}
-	else $page_info17 .= $row_contest_rules['contestRules'];
+	else $page_info17 .= $contestRulesJSON['competition_rules'];
 	$page_info17 .= $anchor_top;
 }
 

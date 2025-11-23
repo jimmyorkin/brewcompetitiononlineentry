@@ -1,4 +1,7 @@
-<?php 
+<?php
+
+include(LIB.'output.lib.php');
+
 $eid = "";
 $uid = "";
 $style = "";
@@ -28,6 +31,12 @@ $other_judge_consensus_scores = "";
 $other_judge_previous_consensus = array();
 $my_consensus_score = "";
 $evalPosition = "";
+
+/*
+if (HOSTED) $styles_db_table = "bcoem_shared_styles";
+else
+*/
+$styles_db_table = $prefix."styles";
 
 /**
  * Default judge range is 7 points, a commonly accepted
@@ -169,7 +178,15 @@ if ($action == "add") {
   $row_entry_info = mysqli_fetch_assoc($entry_info);
   $totalRows_entry_info = mysqli_num_rows($entry_info);
 
-  if ($totalRows_entry_info > 0) $query_style = sprintf("SELECT * FROM %s WHERE brewStyleGroup = '%s' AND brewStyleNum = '%s' AND brewStyleVersion='%s'", $prefix."styles", $row_entry_info['brewCategorySort'], $row_entry_info['brewSubCategory'], $_SESSION['prefsStyleSet']);
+  if ($totalRows_entry_info > 0) {
+    
+    /*
+    if (HOSTED) $query_style = sprintf("SELECT * FROM %s WHERE brewStyleGroup = '%s' AND brewStyleNum = '%s' AND brewStyleVersion='%s' UNION ALL SELECT * FROM %s WHERE brewStyleGroup = '%s' AND brewStyleNum = '%s' AND brewStyleVersion='%s'", $styles_db_table, $row_entry_info['brewCategorySort'], $row_entry_info['brewSubCategory'], $_SESSION['prefsStyleSet'], $prefix."styles", $row_entry_info['brewCategorySort'], $row_entry_info['brewSubCategory'], $_SESSION['prefsStyleSet']);
+    else
+    */
+    $query_style = sprintf("SELECT * FROM %s WHERE brewStyleGroup = '%s' AND brewStyleNum = '%s' AND brewStyleVersion='%s'", $prefix."styles", $row_entry_info['brewCategorySort'], $row_entry_info['brewSubCategory'], $_SESSION['prefsStyleSet']);
+  }
+
 }
 
 /**
@@ -204,7 +221,13 @@ if ($action == "edit") {
     $row_entry_info = mysqli_fetch_assoc($entry_info);
     $totalRows_entry_info = mysqli_num_rows($entry_info);
     
-    if ($totalRows_entry_info > 0) $query_style = sprintf("SELECT * FROM %s WHERE id='%s'", $prefix."styles", $style);
+    if ($totalRows_entry_info > 0) {
+      /*
+      if (HOSTED) $query_style = sprintf("SELECT * FROM %s WHERE id='%s' UNION ALL SELECT * FROM %s WHERE id='%s'", $styles_db_table, $style, $prefix."styles", $style);
+      else 
+      */
+      $query_style = sprintf("SELECT * FROM %s WHERE id='%s'", $prefix."styles", $style);
+    }
 
   }
 
@@ -260,9 +283,11 @@ if ($entry_found) {
   elseif ($row_style['brewStyleType'] == 3) $mead = TRUE;
   else $beer = TRUE;
 
-  if (($judging_scoresheet == 4) && ($cider)) {
+  if ($judging_scoresheet == 4) {
+    $cider = TRUE;
     $nw_cider = TRUE;
-    $scoresheet_version .= " &ndash; ".$_SESSION['style_set_long_name'];
+    if ($sort == 4) $scoresheet_version .= " &ndash; Northwest Cider Cup";
+    else $scoresheet_version .= " &ndash; ".$_SESSION['style_set_long_name'];
   }
 
   // If style is Cider (2) or Mead (3), only use full scoresheet instad of checklist
@@ -296,9 +321,12 @@ if ($entry_found) {
   }
 
   // Build entry info display
+  $entry_info_html .= "<h3>".$label_info." <a role=\"button\" id=\"show-hide-entry-info-btn\" data-toggle=\"collapse\" href=\"#scoresheet-entry-info\" aria-controls=\"scoresheet-entry-info\"><i id=\"toggle-icon-entry-info\" class=\"fa fa-chevron-circle-down\"></i></a></h3>";
+
+  $entry_info_html .= "<section class=\"collapse in\" id=\"scoresheet-entry-info\">";
   $entry_info_html .= "<div class=\"alert alert-teal\">";
   $entry_info_html .= "<div class=\"row bcoem-admin-element\">";
-  $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$label_entry_number."</strong></div>";
+  $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$label_number."</strong></div>";
   $entry_info_html .= "<div class=\"col col-lg-9 col-md-8 col-sm-8 col-xs-12\">".$number."</div>";
   $entry_info_html .= "</div>";
 
@@ -386,6 +414,13 @@ if ($entry_found) {
     $entry_info_html .= "</div>";
   }
 
+  if (!empty($row_entry_info['brewMead3'])) {
+    $entry_info_html .= "<div class=\"row bcoem-admin-element\">";
+    $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$label_strength."</strong></div>";
+    $entry_info_html .= "<div class=\"col col-lg-9 col-md-8 col-sm-8 col-xs-12\">".$row_entry_info['brewMead3']."</div>";
+    $entry_info_html .= "</div>";
+  }
+
   if (!empty($row_entry_info['brewMead2'])) {
     $entry_info_html .= "<div class=\"row bcoem-admin-element\">";
     $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$label_sweetness."</strong></div>";
@@ -393,10 +428,17 @@ if ($entry_found) {
     $entry_info_html .= "</div>";
   }
 
-  if (!empty($row_entry_info['brewMead3'])) {
+  if (($_SESSION['prefsStyleSet'] == "NWCiderCup") && (!empty($row_entry_info['brewSweetnessLevel']))) {
     $entry_info_html .= "<div class=\"row bcoem-admin-element\">";
-    $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$label_strength."</strong></div>";
-    $entry_info_html .= "<div class=\"col col-lg-9 col-md-8 col-sm-8 col-xs-12\">".$row_entry_info['brewMead3']."</div>";
+    $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$label_final_gravity."</strong></div>";
+    $entry_info_html .= "<div class=\"col col-lg-9 col-md-8 col-sm-8 col-xs-12\">".$row_entry_info['brewSweetnessLevel']."</div>";
+    $entry_info_html .= "</div>";
+  }
+
+  if (!empty($row_entry_info['brewABV'])) {
+    $entry_info_html .= "<div class=\"row bcoem-admin-element\">";
+    $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$label_abv."</strong></div>";
+    $entry_info_html .= "<div class=\"col col-lg-9 col-md-8 col-sm-8 col-xs-12\">".number_format($row_entry_info['brewABV'],1)."&#37;</div>";
     $entry_info_html .= "</div>";
   }
 
@@ -407,10 +449,40 @@ if ($entry_found) {
     $entry_info_html .= "</div>";
   }
 
+  if ((!empty($row_entry_info['brewPouring'])) && ((!empty($row_entry_info['brewStyleType'])) && ($row_entry_info['brewStyleType'] == 1))) {
+    
+    $pouring_arr = json_decode($row_entry_info['brewPouring'],true);
+
+    $entry_info_html .= "<div class=\"row bcoem-admin-element\">";
+    $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$label_pouring."</strong></div>";
+    $entry_info_html .= "<div class=\"col col-lg-9 col-md-8 col-sm-8 col-xs-12\">".$pouring_arr['pouring']."</div>";
+    $entry_info_html .= "</div>";
+
+    if ((isset($pouring_arr['pouring_notes'])) && (!empty($pouring_arr['pouring_notes'])))  {
+      $entry_info_html .= "<div class=\"row bcoem-admin-element\">";
+      $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$label_pouring_notes."</strong></div>";
+      $entry_info_html .= "<div class=\"col col-lg-9 col-md-8 col-sm-8 col-xs-12\">".$pouring_arr['pouring_notes']."</div>";
+      $entry_info_html .= "</div>";
+    }
+
+    $entry_info_html .= "<div class=\"row bcoem-admin-element\">";
+    $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$label_rouse_yeast."</strong></div>";
+    $entry_info_html .= "<div class=\"col col-lg-9 col-md-8 col-sm-8 col-xs-12\">".$pouring_arr['pouring_rouse']."</div>";
+    $entry_info_html .= "</div>";
+
+  }
+
   if (!empty($row_entry_info['brewStaffNotes'])) {
     $entry_info_html .= "<div class=\"row bcoem-admin-element\">";
-    $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$label_notes."</strong></div>";
+    $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$label_notes." &ndash; ".$label_staff."</strong></div>";
     $entry_info_html .= "<div class=\"col col-lg-9 col-md-8 col-sm-8 col-xs-12\">".$row_entry_info['brewStaffNotes']."</div>";
+    $entry_info_html .= "</div>";
+  }
+
+  if (!empty($row_entry_info['brewAdminNotes'])) {
+    $entry_info_html .= "<div class=\"row bcoem-admin-element\">";
+    $entry_info_html .= "<div class=\"col col-lg-3 col-md-4 col-sm-4 col-xs-12\"><strong>".$label_notes." &ndash; ".$label_admin_short."</strong></div>";
+    $entry_info_html .= "<div class=\"col col-lg-9 col-md-8 col-sm-8 col-xs-12\">".$row_entry_info['brewAdminNotes']."</div>";
     $entry_info_html .= "</div>";
   }
 
@@ -460,7 +532,8 @@ if ($entry_found) {
   // Sticky score
   $sticky_score_tally = "<div id=\"sticky-score\" class=\"pull-right\">";
   $sticky_score_tally .= "<div class=\"pull-right\" style=\"display:block; font-size: 1.5em; padding-right: 5px;  margin-bottom: 15px;\">";
-  $sticky_score_tally .= "<a style=\"padding-top: 5px; font-size: .75em\"\" id=\"show-hide-status-btn\" data-toggle=\"collapse\" href=\"#scoring-guide-status\" aria-controls=\"scoring-guide-status\"><span id=\"toggle-icon\" class=\"fa fa-chevron-circle-up\"></span></a>";
+  $sticky_score_tally .= "<i style=\"padding: 5px 5px 0 0; font-size: .75em\"\" id=\"warning-indicator-icon\" class=\"fa fa-exclamation-triangle text-danger\"></i>";
+  $sticky_score_tally .= "<a role=\"button\" style=\"padding-top: 5px; font-size: .75em\"\" id=\"show-hide-status-btn\" data-toggle=\"collapse\" href=\"#scoring-guide-status\" aria-controls=\"scoring-guide-status\"><span id=\"toggle-icon\" class=\"fa fa-chevron-circle-up\"></span></a>";
   $sticky_score_tally .= "</div>";
   
   if (!$nw_cider) { 
@@ -473,9 +546,46 @@ if ($entry_found) {
   
   $sticky_score_tally .= "<section position: absolute; width: 100%; background-color: rgba(220,220,220,0.80);\" id=\"scoring-guide-status\" class=\"well sticky-glow collapse in\">";
   
-  $sticky_score_tally .= "<p><span id=\"elapsed-time-p\"><i class=\"fa fa-clock\"></i> <strong>".$label_elapsed_time.": <span id=\"elapsed-time\"></span></strong></span><br><small id=\"session-end-eval-p\">".$label_auto_log_out." <span id=\"session-end-eval\"></span></small>";
+  if (!$nw_cider) {
+
+    $sticky_score_tally .= "<p style=\"margin-bottom: 0; padding-bottom: 5px;\"><i class=\"fa fa-info-circle\"></i> <strong>".$label_status." &ndash; ".$label_admin_scores."</strong></p>";
+    $sticky_score_tally .= "<div class=\"row small\">";
+    $sticky_score_tally .= "<div class=\"col col-xs-10\"><i id=\"score-icon-aroma-status\" class=\"fa text-danger fa-times-circle\"></i> ".truncate($label_aroma,"10","")."</div><div class=\"col col-xs-2 pull-right\"><span id=\"score-aroma-status\"></span></div>";
+    $sticky_score_tally .= "</div>";
+    $sticky_score_tally .= "<div class=\"row small\">";
+    $sticky_score_tally .= "<div class=\"col col-xs-10\"><i id=\"score-icon-appearance-status\" class=\"fa text-danger fa-times-circle\"></i> ".truncate($label_appearance,"10","")."</div><div class=\"col col-xs-2 pull-right\"><span id=\"score-appearance-status\"></span></div>";
+    $sticky_score_tally .= "</div>";
+    $sticky_score_tally .= "<div class=\"row small\">";
+    $sticky_score_tally .= "<div class=\"col col-xs-10\"><i id=\"score-icon-flavor-status\" class=\"fa text-danger fa-times-circle\"></i> ".truncate($label_flavor,"10","")."</div><div class=\"col col-xs-2 pull-right\"><span id=\"score-flavor-status\"></span></div>";
+    $sticky_score_tally .= "</div>";
+    if ($beer) {
+      $sticky_score_tally .= "<div class=\"row small\">";
+      $sticky_score_tally .= "<div class=\"col col-xs-10\"><i id=\"score-icon-mouthfeel-status\" class=\"fa text-danger fa-times-circle\"></i> ".truncate($label_mouthfeel,"10","")."</div><div class=\"col col-xs-2 pull-right\"><span id=\"score-mouthfeel-status\"></span></div>";
+      $sticky_score_tally .= "</div>";
+    }
+    $sticky_score_tally .= "<div class=\"row small\">";
+    $sticky_score_tally .= "<div class=\"col col-xs-10\"><i id=\"score-icon-overall-status\" class=\"fa text-danger fa-times-circle\"></i> ".truncate($label_overall_impression,"10","")."</div><div class=\"col col-xs-2 pull-right\"><span id=\"score-overall-status\"></span></div>";
+    $sticky_score_tally .= "</div>";
+    $sticky_score_tally .= "<div class=\"row small\">";
+    $sticky_score_tally .= "<div class=\"col col-xs-10\"><i id=\"score-icon-consensus-status\" class=\"fa text-danger fa-times-circle\"></i> ".truncate($label_assigned_score,"10","")."</div><div class=\"col col-xs-2 pull-right\"><span id=\"score-consensus-status\"></span></div>";
+    $sticky_score_tally .= "</div>";
+
+  }
+
+  // Elapsed time
+  $sticky_score_tally .= "<p style=\"margin-top: 15px; margin-bottom: 0; padding-bottom: 10px;\"><span id=\"elapsed-time-p\"><i class=\"fa fa-clock\"></i> <strong>".$label_elapsed_time.": <span id=\"elapsed-time\"></span></strong></span><br><small id=\"session-end-eval-p\">".$label_auto_log_out." <span id=\"session-end-eval\"></span></small>";
+  $sticky_score_tally .= "</p>";
+
+  // 15-minute courtesy warning.
+  $sticky_score_tally .= "<p id=\"courtesy-alert-warning-15\">";
+  $sticky_score_tally .= "<span id=\"courtesy-alert-warning-15-header\"><i class=\"fa fa-exclamation-circle\"></i> <strong>".$label_please_note."<span id=\"elapsed-time\"></strong></span>";
+  $sticky_score_tally .= "<br>";
+  $sticky_score_tally .= "<small>";
+  $sticky_score_tally .= $evaluation_info_071;
+  $sticky_score_tally .= "</small>";
   $sticky_score_tally .= "</p>";
   
+  // Show score range and consensus statuses if scored previously
   if ($scored_previously) {
     $sticky_score_tally .= "<p style=\"padding-top: 10px;\">";
     $sticky_score_tally .= "<i id=\"scoring-guide-status-icon\" class=\"fa fa-chevron-circle-right\"></i> <span id=\"scoring-guide-status-msg\"><strong>".$label_score_range_status."</strong></span>";
@@ -514,10 +624,11 @@ else {
   $scoresheet_version = "";
 }
 
+$entry_info_html .= "</section>";
+
 // Sub-nav Buttons
 if ($eval_source == 0) $eval_nav_buttons .= "<div style=\"margin: 0 5px 15px 0;\" class=\"btn-group hidden-print\" role=\"group\"><a class=\"btn btn-block btn-default\" href=\"".$base_url."index.php?section=evaluation&amp;go=default&amp;filter=default&amp;view=admin\"><span class=\"fa fa-chevron-circle-left\"></span> ".$label_admin.": ".$label_evaluations."</a></div>";
 $eval_nav_buttons .= "<div style=\"margin-bottom: 15px;\" class=\"btn-group hidden-print\" role=\"group\"><button class=\"btn btn-block btn-default\"  data-toggle=\"modal\" data-target=\"#unsaved-modal\"><span class=\"fa fa-chevron-circle-left\"></span> ".$label_judging_dashboard."</button></div>";
-//$eval_nav_buttons .= "<div style=\"margin-bottom: 15px;\" class=\"btn-group hidden-print\" role=\"group\"><a class=\"btn btn-block btn-default\" href=\"".build_public_url("evaluation","default","default","default",$sef,$base_url)."\"><span class=\"fa fa-chevron-circle-left\"></span> ".$label_judging_dashboard."</a></div>";
 if ($eval_prevent_edit) $header_elements .= sprintf("<p>%s</p>",$header_text_104);
 ?>
 <!-- Unsaved Data Modal -->
@@ -526,14 +637,14 @@ if ($eval_prevent_edit) $header_elements .= sprintf("<p>%s</p>",$header_text_104
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        <h4 class="modal-title" id="unsaved-modal-label">Caution: Possible Data Loss</h4>
+        <h4 class="modal-title" id="unsaved-modal-label">Caution &ndash; Possible Data Loss</h4>
       </div>
       <div class="modal-body">
         <?php echo sprintf("<p>%s</p><p>%s</p><p>%s</p>",$evaluation_info_073,$evaluation_info_074,$evaluation_info_075); ?>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-danger" data-dismiss="modal"><?php echo $label_close; ?></button>
-        <a class="btn btn-primary" href="<?php echo build_public_url("evaluation","default","default","default",$sef,$base_url); ?>"><?php echo $label_judging_dashboard; ?></a>
+        <a class="btn btn-primary" onclick="localStorage.clear();" href="<?php echo build_public_url("evaluation","default","default","default",$sef,$base_url,"default"); ?>"><?php echo $label_judging_dashboard; ?></a>
       </div>
     </div><!-- /.modal-content -->
   </div><!-- /.modal-dialog -->
@@ -542,7 +653,9 @@ if ($eval_prevent_edit) $header_elements .= sprintf("<p>%s</p>",$header_text_104
 <!-- https://github.com/seiyria/bootstrap-slider -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/bootstrap-slider.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/css/bootstrap-slider.min.css" />
+
 <script>
+
 var judgeScores = <?php echo json_encode($judge_scores); ?>;
 var consensusScores = <?php echo json_encode($consensus_scores); ?>;
 var score_range = <?php echo $score_range; ?>;
@@ -564,32 +677,172 @@ var score_range_caution_output = "<span class=\"text-danger\"><strong>" + score_
 var score_range_ok = "<?php echo $label_score_range_ok; ?>";
 var score_range_ok_text = "<?php echo $evaluation_info_047; ?>";
 var score_range_ok_output = "<span class=\"text-success\"><strong>" + score_range_ok + "</strong><br><small><strong>" + score_range_ok_text + "</strong></small></span>";
+
 </script>
-<script src="<?php echo $base_url;?>js_includes/eval_checks.min.js"></script>
+<script src="<?php echo $js_eval_url; ?>"></script>
 <script>
 $(document).ready(function() {
-    <?php if ($action == "edit") { ?>
-    displayCalc(<?php echo $eval_score; ?>);
-    checkScoreRange(<?php echo $eval_score; ?>,judgeScores,score_range,0);
-    checkConsensus(consensusScores);
-    <?php }?>
-    $('#show-hide-status-btn').click(function(){
+
+  $("#courtesy-alert-warning-15").hide();
+  $("#warning-indicator-icon").hide();
+  $("#score-icon-aroma").hide();
+  $("#score-icon-appearance").hide();
+  $("#score-icon-flavor").hide();
+  $("#score-icon-mouthfeel").hide();
+  $("#score-icon-overall").hide();
+  $("#appearance-icon-aroma").hide();
+  $("#flavor-icon-aroma").hide();
+  $("#mouthfeel-icon-aroma").hide();
+  $("#overall-icon-aroma").hide();
+  
+  <?php if ($action == "edit") { ?>
+  displayCalc(<?php echo $eval_score; ?>);
+  checkScoreRange(<?php echo $eval_score; ?>,judgeScores,score_range,0);
+  checkConsensus(consensusScores);
+  <?php }?>
+  
+  $('#show-hide-status-btn').click(function(){
       $('#toggle-icon').toggleClass('fa-chevron-circle-up fa-chevron-circle-down');
-    });
+  });
+
+  $('#show-hide-aroma-btn').click(function(){
+      $('#toggle-icon-aroma').toggleClass('fa-chevron-circle-up fa-chevron-circle-down');
+  });
+
+  $('#show-hide-appearance-btn').click(function(){
+      $('#toggle-icon-appearance').toggleClass('fa-chevron-circle-up fa-chevron-circle-down');
+  });
+
+  $('#show-hide-flavor-btn').click(function(){
+      $('#toggle-icon-flavor').toggleClass('fa-chevron-circle-up fa-chevron-circle-down');
+  });
+
+  $('#show-hide-mouthfeel-btn').click(function(){
+      $('#toggle-icon-mouthfeel').toggleClass('fa-chevron-circle-up fa-chevron-circle-down');
+  });
+
+  $('#show-hide-overall-btn').click(function(){
+      $('#toggle-icon-overall').toggleClass('fa-chevron-circle-up fa-chevron-circle-down');
+  });
+
+  $('#show-hide-flaws-btn').click(function(){
+      $('#toggle-icon-flaws').toggleClass('fa-chevron-circle-up fa-chevron-circle-down');
+  });
+
+  $('#show-hide-entry-info-btn').click(function(){
+      $('#toggle-icon-entry-info').toggleClass('fa-chevron-circle-up fa-chevron-circle-down');
+  });
+
+  $("#evalAromaScore").change(function() {
+
+    if ($(this).val() == "") {
+      $('#score-icon-aroma-status').attr('class', 'fa fa-times-circle text-danger');
+      $("#score-icon-aroma").fadeOut('fast');
+      $("#score-aroma-status").html("");
+    }
+
+    if ($(this).val() > 0) {
+      $('#score-icon-aroma-status').attr('class', 'fa fa-check-circle text-success');
+      $("#score-icon-aroma").fadeIn('fast');
+      $("#score-aroma-status").html($(this).val());
+    }   
+
+  });
+
+  $("#evalAppearanceScore").change(function() {
+
+    if ($(this).val() == "") {
+      $('#score-icon-appearance-status').attr('class', 'fa fa-times-circle text-danger');
+      $("#score-icon-appearance").fadeOut('fast');
+      $("#score-appearance-status").html("");
+    }
+
+    if ($(this).val() > 0) {
+      $('#score-icon-appearance-status').attr('class', 'fa fa-check-circle text-success');
+      $("#score-icon-appearance").fadeIn('fast');
+      $("#score-appearance-status").html($(this).val());
+    }
+
+  });
+
+  $("#evalFlavorScore").change(function() {
+
+    if ($(this).val() == "") {
+      $('#score-icon-flavor-status').attr('class', 'fa fa-times-circle text-danger');
+      $("#score-icon-flavor").fadeOut('fast');
+      $("#score-flavor-status").html("");
+    }
+
+    if ($(this).val() > 0) {
+      $('#score-icon-flavor-status').attr('class', 'fa fa-check-circle text-success');
+      $("#score-icon-flavor").fadeIn('fast');
+      $("#score-flavor-status").html($(this).val());
+    }
+
+  });
+
+  $("#evalMouthfeelScore").change(function() {
+
+    if ($(this).val() == "") {
+      $('#score-icon-mouthfeel-status').attr('class', 'fa fa-times-circle text-danger');
+      $("#score-icon-mouthfeel").fadeOut('fast');
+      $("#score-mouthfeel-status").html("");
+    }
+
+    if ($(this).val() > 0) {
+      $('#score-icon-mouthfeel-status').attr('class', 'fa fa-check-circle text-success');
+      $("#score-icon-mouthfeel").fadeIn('fast');
+      $("#score-mouthfeel-status").html($(this).val());
+    }
+
+  });
+
+  $("#evalOverallScore").change(function() {
+
+    if ($(this).val() == "") {
+      $('#score-icon-overall-status').attr('class', 'fa fa-times-circle text-danger');
+      $("#score-icon-overall").fadeOut('fast');
+      $("#score-overall-status").html("");
+    }
+
+    if ($(this).val() > 0) {
+      $('#score-icon-overall-status').attr('class', 'fa fa-check-circle text-success');
+      $("#score-icon-overall").fadeIn('fast');
+      $("#score-overall-status").html($(this).val());
+    }
+
+  });
+
+  $('#evalFinalScore').on('change input keyup keydown click onmouseout oninput', function() {
+
+    var currentLength = $(this).val().length;
+    if (currentLength >= 2) {
+      $('#score-icon-consensus-status').attr('class', 'fa fa-check-circle text-success');
+      $("#score-consensus-status").html($(this).val());
+    } else {
+      $('#score-icon-consensus-status').attr('class', 'fa fa-times-circle text-danger');
+      $("#score-consensus-status").html("");
+    }
+
+  });
+
 });
 </script>
+
 <style type="text/css">
 
 .scoring-guide-bottom-text {
-    font-weight: bold;
-  }
+  font-weight: bold;
+}
 
 #sticky-score {
   position: -webkit-sticky;
   position: sticky;
   top: 70px;
   z-index: 999;
+  width: 250px;
   min-width: 250px;
+  max-width: 300px;
   /* font-family: initial !important; */
   font-size: .9em;
 }
@@ -614,6 +867,7 @@ $(document).ready(function() {
 }
 
 </style>
+
 <?php
 $evalPos = FALSE; 
 if ((isset($row_eval['evalPosition'])) && (!empty($row_eval['evalPosition']))) {
@@ -627,7 +881,9 @@ echo $entry_info_html;
 if ($entry_found) {
   echo $sticky_score_tally;
 ?>
-<form class="hide-loader-form-submit" id="form1" name="form1" role="form" data-toggle="validator" action="<?php echo $base_url; ?>includes/process.inc.php?section=<?php echo $process_type; ?>&action=<?php echo $action; ?>&view=<?php echo $view; ?>&dbTable=<?php echo $prefix."evaluation"; if ($action == "edit") echo "&id=".$id; ?>" method="post">
+
+<form class="hide-loader-form-submit" id="scoresheet-form" name="scoresheet-form" role="form" data-toggle="validator" action="<?php echo $base_url; ?>includes/process.inc.php?section=<?php echo $process_type; ?>&action=<?php echo $action; ?>&view=<?php echo $view; ?>&dbTable=<?php echo $prefix."evaluation"; if ($action == "edit") echo "&id=".$id; ?>" method="post">
+<input type="hidden" name="token" value ="<?php if (isset($_SESSION['token'])) echo $_SESSION['token']; ?>">
 <!-- Provide information about the judge -->
 <input type="hidden" name="evalJudgeInfo" value="<?php if ($action == "add") echo $judge_id; else echo $row_eval['evalJudgeInfo']; ?>">
 <!-- Type of scoresheet -->
@@ -652,6 +908,7 @@ if ($entry_found) {
     <div id="ordinal-help-total" class="help-block small text-danger"><?php echo $evaluation_info_051; ?></div>
   </div>
 </div>
+
 <?php if (!$nw_cider) { ?>
 <div class="form-group">
   <label for="evalBottle"><?php echo $label_bottle_inspection; ?></label>
@@ -666,10 +923,11 @@ if ($entry_found) {
   <input type="text" class="form-control" name="evalBottleNotes" id="evalBottleNotes" maxlength="255" placeholder="" value="<?php if ($action == "edit") echo $row_eval['evalBottleNotes']; ?>">
 </div>
 <?php } ?>
+
 <?php include (EVALS.$scoresheet_form); ?>
 <h3 class="section-heading"><?php echo $label_score; ?></h3>
 
-<?php if (($_SESSION['jPrefsScoresheet'] == 4) && ($cider)) { ?>
+<?php if ((($_SESSION['jPrefsScoresheet'] == 4) || ($sort == 4)) && ($cider)) { ?>
 <div class="form-group">
   <label for="evalOverallScore"><?php echo $label_your_score; ?></label>
   <input type="number" min="5" max="50" name="evalOverallScore" id="evalOverallScore" class="form-control" placeholder="" data-error="<?php echo $evaluation_info_103; ?>" value="<?php if ($action == "edit") echo $row_eval['evalOverallScore']; ?>"required>
@@ -861,59 +1119,84 @@ if ($entry_found) {
   </div>
 </div>
 <?php } ?>
+
+<script src="<?php echo $js_url; ?>save_my_form.min.js"></script>
+
 <script type="text/javascript">
 var style_type = <?php echo $row_style['brewStyleType']; ?>;
 var edit = <?php if ($action == "edit") echo "true"; else echo "false"; ?>;
+
+$(function() {
+  $('#scoresheet-form').saveMyForm();
+});
+
+if (edit) {
+  localStorage.clear();
+  $('#score-icon-aroma-status').attr('class', 'fa fa-check-circle text-success');
+  $("#score-aroma-status").html("<?php if (isset($row_eval['evalAromaScore'])) echo $row_eval['evalAromaScore']; ?>");
+  $('#score-icon-appearance-status').attr('class', 'fa fa-check-circle text-success');
+  $("#score-appearance-status").html("<?php if (isset($row_eval['evalAppearanceScore'])) echo $row_eval['evalAppearanceScore']; ?>");
+  $('#score-icon-flavor-status').attr('class', 'fa fa-check-circle text-success');
+  $("#score-flavor-status").html("<?php if (isset($row_eval['evalFlavorScore'])) echo $row_eval['evalFlavorScore']; ?>");
+  $('#score-icon-mouthfeel-status').attr('class', 'fa fa-check-circle text-success');
+  $("#score-mouthfeel-status").html("<?php if (isset($row_eval['evalMouthfeelScore'])) echo $row_eval['evalMouthfeelScore']; ?>");
+  $('#score-icon-overall-status').attr('class', 'fa fa-check-circle text-success');
+  $("#score-overall-status").html("<?php if (isset($row_eval['evalOverallScore'])) echo $row_eval['evalOverallScore']; ?>");
+  $('#score-icon-consensus-status').attr('class', 'fa fa-check-circle text-success');
+  $("#score-consensus-status").html("<?php if (isset($row_eval['evalFinalScore'])) echo $row_eval['evalFinalScore']; ?>");
+}
+
 </script>
+
 <?php if ((isset($_SESSION['jPrefsMinWords'])) && ($_SESSION['jPrefsMinWords'] > 0)) { ?>
 <script type="text/javascript">
 var min_words = <?php echo $_SESSION['jPrefsMinWords']; ?>;
 var min_wordcount_reached = '<strong class="text-success"><?php echo $evaluation_info_089; ?></strong> <?php echo $evaluation_info_090; ?>';
 var min_wordcount_not = '<?php echo $evaluation_info_091; ?>';
 var word_count_so_far = '<?php echo $evaluation_info_092; ?>';
+</script>
 
 <?php if (($judging_scoresheet == 3) || ($judging_scoresheet == 4)) { ?>
-
-if (edit) var min_words_overall_ok = true;
-else var min_words_overall_ok = false;
-
-function min_words_ok() {
-    $('#submitForm').attr('disabled','disabled');
-    if (min_words_overall_ok) {
-        $('#submitForm').removeAttr('disabled');
-        $('#min-words-message').hide();
-    } else {
-      $('#min-words-message').show();
-      $('#min-words-message').html('<i class="fa fa-lg fa-exclamation-circle"></i> <strong><?php echo $evaluation_info_093; ?></strong>');
+<script type="text/javascript">
+    if (edit) var min_words_overall_ok = true;
+    else var min_words_overall_ok = false;
+    function min_words_ok() {
+        $('#submitForm').attr('disabled','disabled');
+        if (min_words_overall_ok) {
+            $('#submitForm').removeAttr('disabled');
+            $('#min-words-message').hide();
+        } else {
+          $('#min-words-message').show();
+          $('#min-words-message').html('<i class="fa fa-lg fa-exclamation-circle"></i> <strong><?php echo $evaluation_info_093; ?></strong>');
+        }
     }
-}
 
-$(document).ready(function() {
+    $(document).ready(function() {
 
-    $('#min-words-message').hide();
+        $('#min-words-message').hide();
+        $('#evalOverallComments').on('keyup keydown click onmouseout oninput', function() {
 
-    $('#evalOverallComments').on('keyup keydown click onmouseout oninput', function() {
+            var currentWordCount = $('#evalOverallComments').val().match(/\S+/g).length;
+            if (currentWordCount >= min_words) {
+                min_words_overall_ok = true;
+                $('#evalOverallComments-words').html(min_wordcount_reached + currentWordCount);      
+            } 
 
-        var currentWordCount = $('#evalOverallComments').val().match(/\S+/g).length;
+            else {
+               min_words_overall_ok = false;
+               $('#evalOverallComments-words').html('<strong> ' + min_wordcount_not + min_words + '</strong>');
+               if (currentWordCount > 1) $('#evalOverallComments-words').html('<strong>' + min_wordcount_not + min_words + '</strong>. <strong class="text-danger">' + word_count_so_far + currentWordCount + '</strong>');
+            }  
 
-        if (currentWordCount >= min_words) {
-            min_words_overall_ok = true;
-            $('#evalOverallComments-words').html(min_wordcount_reached + currentWordCount);      
-        } 
+            min_words_ok();
 
-        else {
-           min_words_overall_ok = false;
-           $('#evalOverallComments-words').html('<strong> ' + min_wordcount_not + min_words + '</strong>');
-           if (currentWordCount > 1) $('#evalOverallComments-words').html('<strong>' + min_wordcount_not + min_words + '</strong>. <strong class="text-danger">' + word_count_so_far + currentWordCount + '</strong>');
-        }  
-
-        min_words_ok();
+        });
 
     });
+</script>
+<?php } // end if (($judging_scoresheet == 3) || ($judging_scoresheet == 4)) ?>
 
-});
-
-<?php } if ((($judging_scoresheet == 1) || ($judging_scoresheet == 2)) && ((isset($_SESSION['jPrefsMinWords'])) && ($_SESSION['jPrefsMinWords'] > 0))) { 
+<?php if ((($judging_scoresheet == 1) || ($judging_scoresheet == 2)) && ((isset($_SESSION['jPrefsMinWords'])) && ($_SESSION['jPrefsMinWords'] > 0))) { 
 
     if (($cider) || ($mead)) {
       $comment_fields = array(
@@ -933,65 +1216,85 @@ $(document).ready(function() {
     }
 
 ?>
+<script type="text/javascript">
 
-if (edit) {
-  var min_words_aroma_ok = true;
-  var min_words_appearance_ok = true;
-  var min_words_flavor_ok = true;
-  var min_words_mouthfeel_ok = true;  
-  var min_words_overall_ok = true;
-} else {
-  var min_words_aroma_ok = false;
-  var min_words_appearance_ok = false;
-  var min_words_flavor_ok = false;
-  if ((style_type == 2) || (style_type == 3)) var min_words_mouthfeel_ok = true;
-  else var min_words_mouthfeel_ok = false;
-  var min_words_overall_ok = false;
-}
-
-function min_words_ok() {
-    $('#submitForm').attr('disabled','disabled');
-    if ((min_words_aroma_ok) && (min_words_appearance_ok) && (min_words_flavor_ok) && (min_words_mouthfeel_ok) && (min_words_overall_ok)) {
-        $('#submitForm').removeAttr('disabled');
-        $('#min-words-message').hide();
+    if (edit) {
+      var min_words_aroma_ok = true;
+      var min_words_appearance_ok = true;
+      var min_words_flavor_ok = true;
+      var min_words_mouthfeel_ok = true;  
+      var min_words_overall_ok = true;
     } else {
-      $('#min-words-message').show();
-      $('#min-words-message').html('<i class="fa fa-lg fa-exclamation-circle"></i> <strong><?php echo $evaluation_info_094; ?></strong>');
+      var min_words_aroma_ok = false;
+      var min_words_appearance_ok = false;
+      var min_words_flavor_ok = false;
+      if ((style_type == 2) || (style_type == 3)) var min_words_mouthfeel_ok = true;
+      else var min_words_mouthfeel_ok = false;
+      var min_words_overall_ok = false;
     }
 
-}
-
-$(document).ready(function() {
-
-    $('#min-words-message').hide();
-
-    <?php foreach ($comment_fields as $key => $value) { 
-        $value_words = $value."-words";
-        $key_ok = "min_words_".$key."_ok";
-    ?>
-
-    $('<?php echo $value; ?>').on('keyup keydown click onmouseout oninput', function() {
-
-        var currentWordCount_<?php echo $key; ?> = $('<?php echo $value; ?>').val().match(/\S+/g).length;
-
-        if (currentWordCount_<?php echo $key; ?> >= min_words) {
-            <?php echo $key_ok; ?> = true;
-            $('<?php echo $value_words; ?>').html(min_wordcount_reached + currentWordCount_<?php echo $key; ?>);      
-        } 
-
-        else {
-           <?php echo $key_ok; ?> = false;
-           $('<?php echo $value_words; ?>').html('<strong> ' + min_wordcount_not + min_words + '</strong>');
-           if (currentWordCount_<?php echo $key; ?> > 1) $('<?php echo $value_words; ?>').html('<strong>' + min_wordcount_not +  min_words + '</strong>. <strong class="text-danger">' + word_count_so_far + currentWordCount_<?php echo $key; ?> + '</strong>.');
+    function min_words_ok() {
+        $('#submitForm').attr('disabled','disabled');
+        if ((min_words_aroma_ok) && (min_words_appearance_ok) && (min_words_flavor_ok) && (min_words_mouthfeel_ok) && (min_words_overall_ok)) {
+            $('#submitForm').removeAttr('disabled');
+            $('#min-words-message').hide();
+        } else {
+          $('#min-words-message').show();
+          $('#min-words-message').html('<i class="fa fa-lg fa-exclamation-circle"></i> <strong><?php echo $evaluation_info_094; ?></strong>');
         }
 
-        min_words_ok();        
+    }
+
+    $(document).ready(function() {
+
+        $('#min-words-message').hide();
+
+        <?php foreach ($comment_fields as $key => $value) { 
+            $value_words = $value."-words";
+            $key_ok = "min_words_".$key."_ok";
+        ?>
+
+        $('<?php echo $value; ?>').on('keyup keydown click onmouseout oninput', function() { //evalFinalScore
+
+            var currentWordCount_<?php echo $key; ?> = $('<?php echo $value; ?>').val().match(/\S+/g).length;
+
+            if (currentWordCount_<?php echo $key; ?> >= min_words) {
+                <?php echo $key_ok; ?> = true;
+                $('<?php echo $value_words; ?>').html(min_wordcount_reached + currentWordCount_<?php echo $key; ?>);      
+            } 
+
+            else {
+               <?php echo $key_ok; ?> = false;
+               $('<?php echo $value_words; ?>').html('<strong> ' + min_wordcount_not + min_words + '</strong>');
+               if (currentWordCount_<?php echo $key; ?> > 1) $('<?php echo $value_words; ?>').html('<strong>' + min_wordcount_not +  min_words + '</strong>. <strong class="text-danger">' + word_count_so_far + currentWordCount_<?php echo $key; ?> + '</strong>.');
+            }
+
+            min_words_ok();        
+
+        });
+            
+        <?php } // end foreach ?>
 
     });
-        
-    <?php } // end foreach ?>
 
-});
-<?php } ?>
 </script>
-<?php } // end if ((isset($_SESSION['jPrefsMinWords'])) && ($_SESSION['jPrefsMinWords'] > 0)) ?>
+<?php } // end if ((($judging_scoresheet == 1) || ($judging_scoresheet == 2)) && ((isset($_SESSION['jPrefsMinWords'])) && ($_SESSION['jPrefsMinWords'] > 0))) ?>
+<?php } // End if ((isset($_SESSION['jPrefsMinWords'])) && ($_SESSION['jPrefsMinWords'] > 0)) ?>
+<!-- Modal -->
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">Modal title</h4>
+      </div>
+      <div class="modal-body">
+        ...
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>

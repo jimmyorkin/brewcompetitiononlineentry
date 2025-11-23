@@ -5,9 +5,15 @@
  *
  */
 
-// Turn off SEF for error pages
-if ($section >= 400) $sef = "false";
-else $sef = $sef;
+/*
+// Redirect if directly accessed
+if ((!isset($_SESSION['prefs'.$prefix_session])) || ((isset($_SESSION['prefs'.$prefix_session])) && (!isset($base_url)))) {
+    $redirect = "../../index.php";
+    $redirect_go_to = sprintf("Location: %s", $redirect);
+    header($redirect_go_to);
+    exit();
+}
+*/
 
 $add_entry_link_show = FALSE;
 $show_entries = TRUE;
@@ -15,13 +21,7 @@ $nav_register_entrant_show = TRUE;
 
 if ($comp_entry_limit) $nav_register_entrant_show = FALSE;
 if ($comp_paid_entry_limit) $nav_register_entrant_show = FALSE;
-
-if ($entry_window_open == 1) {
-	if ($comp_entry_limit) $add_entry_link_show = FALSE;
-	elseif ($comp_paid_entry_limit) $add_entry_link_show = FALSE;
-	elseif ($remaining_entries <= 0) $add_entry_link_show = FALSE;
-	else $add_entry_link_show = TRUE;
-}
+if (($remaining_entries > 0) && ($entry_window_open == 1)) $add_entry_link_show = TRUE;
 
 $active_class = " class=\"active\"";
 
@@ -63,47 +63,47 @@ if ($section == "rules") {
 	$link_rules = "#";
 	$print_icon = TRUE;
 }
-else $link_rules = build_public_url("rules","default","default","default",$sef,$base_url);
+else $link_rules = build_public_url("rules","default","default","default",$sef,$base_url,"default");
 
 if ($section == "entry") {
 	$link_entry_info = "#";
 	$print_icon = TRUE;
 }
-else $link_entry_info = build_public_url("entry","default","default","default",$sef,$base_url);
+else $link_entry_info = build_public_url("entry","default","default","default",$sef,$base_url,"default");
 
 if ($section == "volunteers") { $link_volunteer_info = "#";  $print_icon = TRUE; }
-else $link_volunteer_info = build_public_url("volunteers","default","default","default",$sef,$base_url);
+else $link_volunteer_info = build_public_url("volunteers","default","default","default",$sef,$base_url,"default");
 
 if (($_SESSION['prefsSponsors'] == "Y") && ($_SESSION['sponsorCount'] > 0)) {
 	if ($section == "sponsors") {
 		$link_sponsors = "#";
 		$print_icon = TRUE;
 	}
-	else $link_sponsors = build_public_url("sponsors","default","default","default",$sef,$base_url);
+	else $link_sponsors = build_public_url("sponsors","default","default","default",$sef,$base_url,"default");
 	$sponsors = TRUE;
 }
 else $sponsors = FALSE;
 
 if ($section == "contact") $link_contacts = "#";
-else $link_contacts = build_public_url("contact","default","default","default",$sef,$base_url);
+else $link_contacts = build_public_url("contact","default","default","default",$sef,$base_url,"default");
 
 if ($section == "register") $link_register = "#";
-elseif (($judge_limit) && ($steward_limit)) $link_register = build_public_url("register","entrant","default","default",$sef,$base_url);
-elseif (($registration_open != 1) && (!$ua) && (!isset($_SESSION['loginUsername'])) && ($judge_window_open == 1) && ($msg == "default")) $link_register = build_public_url("register","judge","default","default",$sef,$base_url);
-elseif (($judge_window_open == "1") && ($registration_open == "2")) $link_register = build_public_url("register","judge","default","default",$sef,$base_url);
-else $link_register = build_public_url("register","default","default","default",$sef,$base_url);
+elseif (($judge_limit) && ($steward_limit)) $link_register = build_public_url("register","entrant","default","default",$sef,$base_url,"default");
+elseif (($registration_open != 1) && (!$ua) && (!isset($_SESSION['loginUsername'])) && ($judge_window_open == 1) && ($msg == "default")) $link_register = build_public_url("register","judge","default","default",$sef,$base_url,"default");
+elseif (($judge_window_open == "1") && ($registration_open == "2")) $link_register = build_public_url("register","judge","default","default",$sef,$base_url,"default");
+else $link_register = build_public_url("register","default","default","default",$sef,$base_url,"default");
 
 if ($section == "login") $link_login = "#";
-else $link_login = build_public_url("login","default","default","default",$sef,$base_url);
+else $link_login = build_public_url("login","default","default","default",$sef,$base_url,"default");
 
 if ($section == "logout") $link_logout = "#";
-else $link_logout = build_public_url("logout","default","default","default",$sef,$base_url);
+else $link_logout = build_public_url("logout","default","default","default",$sef,$base_url,"default");
 
 $qr_enable = FALSE;
 $link_qr = "";
 if (!empty($row_contest_dates['contestCheckInPassword'])) {
 	if (($entry_window_open == 2) && ($dropoff_window_open == 2) && ($shipping_window_open == 2) && ($judging_past > 0) && (in_array($_SESSION['prefsEntryForm'],$barcode_qrcode_array))) $qr_enable = TRUE;
-	$link_qr .= build_public_url("qr","default","default","default",$sef,$base_url);
+	$link_qr .= build_public_url("qr","default","default","default",$sef,$base_url,"default");
 }
 
 // Session specific
@@ -119,8 +119,6 @@ if ($logged_in)  {
 			// Only individuals can be judges, stewards, or staff; individuals will not have entries
 			$show_judge_steward_fields = FALSE;
 			$show_entries = TRUE;
-			$add_entry_link_show = TRUE;
-
 		}
 
 		else {
@@ -139,21 +137,21 @@ if ($logged_in)  {
 		$link_pay = "#";
 		if ($msg != "default") $print_icon = TRUE;
 		}
-	else $link_pay = build_public_url("pay","default","default","default",$sef,$base_url);
+	else $link_pay = build_public_url("pay","default","default","default",$sef,$base_url,"default");
 
 	// Build My Account Link
 	if ($section == "list") {
 		$link_list = "#";
 		$print_icon = TRUE;
 	}
-	else $link_list = build_public_url("list","default","default","default",$sef,$base_url);
+	else $link_list = build_public_url("list","default","default","default",$sef,$base_url,"default");
 
 	// Build My Entries Link
-	$link_user_entries = build_public_url("list","default","default","default",$sef,$base_url)."#entries";
+	$link_user_entries = build_public_url("list","default","default","default",$sef,$base_url,"default")."#entries";
 
 	// Build Edit My Info link
     $edit_user_info_link = "";
-	if ($_SESSION['brewerID'] != "") $edit_user_info_link .= build_public_url("brewer","account","edit",$_SESSION['brewerID'],$sef,$base_url);
+	if ($_SESSION['brewerID'] != "") $edit_user_info_link .= build_public_url("brewer","account","edit",$_SESSION['brewerID'],$sef,$base_url,"default");
 
 	/*
 	$edit_user_info_link = $base_url."index.php?";
@@ -162,18 +160,17 @@ if ($logged_in)  {
 	*/
 
 	// Build Change My Email Address link
-	$edit_user_email_link = build_public_url("user","account","username",$_SESSION['user_id'],$sef,$base_url);
+	$edit_user_email_link = build_public_url("user","account","username",$_SESSION['user_id'],$sef,$base_url,"default");
 	//$edit_user_email_link = $base_url."index.php?section=user&amp;action=username&amp;id=".$_SESSION['brewerID'];
 
 	// Build Change My Email Address link
-	$edit_user_password_link = build_public_url("user","account","password",$_SESSION['user_id'],$sef,$base_url);
+	$edit_user_password_link = build_public_url("user","account","password",$_SESSION['user_id'],$sef,$base_url,"default");
 	//$edit_user_password_link = $base_url."index.php?section=user&amp;action=password&amp;id=".$_SESSION['brewerID'];
 
 	// Build Add Entry Link
 	$add_entry_link = "";
-	$add_entry_link .= $base_url;
-	if ($_SESSION['userLevel'] <= "1") $add_entry_link .= "index.php?section=brew&amp;go=entries&amp;action=add&amp;filter=admin";
-	else $add_entry_link .= "index.php?section=brew&amp;action=add";
+	if ($_SESSION['userLevel'] <= "1") $add_entry_link .= $base_url."index.php?section=brew&amp;go=entries&amp;action=add&amp;filter=admin";
+	else $add_entry_link .= build_public_url("brew","entry","add","default",$sef,$base_url,"default");
 
 }
 if (($logged_in) && ($admin_user) && ($go != "error_page")) { ?>
@@ -221,9 +218,11 @@ if (($logged_in) && ($admin_user) && ($go != "error_page")) { ?>
             <a href="#" class="dropdown-toggle" data-toggle="dropdown">Sorting <span class="caret"></span></a>
                 <ul class="dropdown-menu navmenu-nav">
                     <li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=entries">Manually</a></li>
+                    <?php if ($_SESSION['userAdminObfuscate'] == 0) { ?>
                     <?php if (in_array($_SESSION['prefsEntryForm'],$barcode_qrcode_array)) { ?>
                     <li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=checkin">Entry Check-in Via Barcode Scanner</a></li>
                     <li><a class="hide-loader" href="<?php echo $base_url; ?>qr.php" target="_blank">Entry Check-in Via Mobile Devices <span class="fa fa-external-link"></span></a></li>
+                    <?php } ?>
                     <?php } ?>
                 </ul>
             </li>
@@ -239,22 +238,31 @@ if (($logged_in) && ($admin_user) && ($go != "error_page")) { ?>
             <a href="#" class="dropdown-toggle" data-toggle="dropdown">Scoring <span class="caret"></span></a>
                 <ul class="dropdown-menu navmenu-nav">
                 	<li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=upload_scoresheets">Upload Scoresheets</a></li>
-                	<?php if ($_SESSION['prefsEval'] == 1) { ?><li><a href="<?php echo $base_url; ?>index.php?section=evaluation&amp;go=default&amp;filter=default&amp;view=admin">Manage Entry Evaluations</a></li><?php } ?>
+                <?php if ($_SESSION['userAdminObfuscate'] == 0) { ?>
+                	<?php if ($_SESSION['prefsEval'] == 1) { ?><li><a href="<?php echo $base_url; ?>index.php?section=evaluation&amp;go=default&amp;filter=default&amp;view=admin">Manage Entry Evaluations</a></li>
+                	<?php } ?>
                     <li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=judging_scores">Manage Scores</a></li>
                     <li><a href="<?php echo $base_url; ?>index.php?section=admin&amp;go=judging_scores_bos">Manage BOS Entries and Places</a></li>
+                <?php } ?>
                 </ul>
             </li>
             <li class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown">Reports <span class="caret"></span></a>
                 <ul class="dropdown-menu navmenu-nav">
-                    <li><a id="modal_window_link" class="hide-loader" href="<?php echo $base_url; ?>output/print.output.php?section=table-cards&amp;go=judging_tables&amp;id=default">Table Cards</a></li>
-                    <li><a id="modal_window_link" class="hide-loader" href="<?php echo $base_url; ?>output/print.output.php?section=pullsheets&amp;go=judging_tables&amp;view=entry&amp;id=default">Pullsheets - Entry Numbers</a></li>
-                    <li><a id="modal_window_link" class="hide-loader" href="<?php echo $base_url; ?>output/print.output.php?section=pullsheets&amp;go=judging_tables&amp;id=default">Pullsheets - Judging Numbers</a></li>
-                    <li><a id="modal_window_link" class="hide-loader" href="<?php echo $base_url; ?>output/print.output.php?section=pullsheets&amp;go=judging_scores_bos">BOS Pullsheets</a></li>
-                    <li><a id="modal_window_link" class="hide-loader" href="<?php echo $base_url; ?>output/print.output.php?section=bos-mat">BOS Cup Mats - Judging Numbers</a></li>
-                    <li><a id="modal_window_link" class="hide-loader" href="<?php echo $base_url; ?>output/print.output.php?section=bos-mat&amp;filter=entry">BOS Cup Mats - Entry Numbers</a></li>
-                    <li><a id="modal_window_link" class="hide-loader" href="<?php echo $base_url; ?>output/print.output.php?section=results&amp;go=judging_scores&amp;action=print&amp;filter=scores&amp;view=winners">Winners with Scores</a></li>
-                    <li><a id="modal_window_link" class="hide-loader" href="<?php echo $base_url; ?>output/print.output.php?section=results&amp;go=judging_scores&amp;action=print&amp;filter=none&amp;view=winners">Winners without Scores</a></li>
+                    <li><a data-fancybox data-type="iframe" class="modal-window-link hide-loader" href="<?php echo $base_url; ?>includes/output.inc.php?section=table-cards&amp;go=judging_tables&amp;id=default">Table Cards</a></li>
+                <?php if ($_SESSION['userAdminObfuscate'] == 0) { ?>
+                    <li><a data-fancybox data-type="iframe" class="modal-window-link hide-loader" href="<?php echo $base_url; ?>includes/output.inc.php?section=pullsheets&amp;go=judging_tables&amp;view=entry&amp;id=default">Pullsheets - Entry Numbers</a></li>
+                    <li><a data-fancybox data-type="iframe" class="modal-window-link hide-loader" href="<?php echo $base_url; ?>includes/output.inc.php?section=pullsheets&amp;go=judging_tables&amp;id=default">Pullsheets - Judging Numbers</a></li>
+                    <?php if ($judging_started) { ?>
+                    <li><a data-fancybox data-type="iframe" class="modal-window-link hide-loader" href="<?php echo $base_url; ?>includes/output.inc.php?section=pullsheets&amp;go=judging_scores_bos">BOS Pullsheets</a></li>
+                    <li><a data-fancybox data-type="iframe" class="modal-window-link hide-loader" href="<?php echo $base_url; ?>includes/output.inc.php?section=bos-mat">BOS Cup Mats - Judging Numbers</a></li>
+                    <li><a data-fancybox data-type="iframe" class="modal-window-link hide-loader" href="<?php echo $base_url; ?>includes/output.inc.php?section=bos-mat&amp;filter=entry">BOS Cup Mats - Entry Numbers</a></li>
+                	<?php } ?>
+                <?php } ?>
+                <?php if ($judging_started) { ?>
+                    <li><a data-fancybox data-type="iframe" class="modal-window-link hide-loader" href="<?php echo $base_url; ?>includes/output.inc.php?section=results&amp;go=judging_scores&amp;action=print&amp;filter=scores&amp;view=winners">Winners with Scores</a></li>
+                    <li><a data-fancybox data-type="iframe" class="modal-window-link hide-loader" href="<?php echo $base_url; ?>includes/output.inc.php?section=results&amp;go=judging_scores&amp;action=print&amp;filter=none&amp;view=winners">Winners without Scores</a></li>
+                <?php } ?>
                 </ul>
             </li>
 			<?php if ($_SESSION['userLevel'] == "0") { ?>
@@ -294,7 +302,7 @@ $(document).ready(function(){
 	});
 });
 </script>
-<!-- Login Form Modal -->
+<!-- Login Form Modal logincheck.inc.php?section=login -->
 <?php if ((!$logged_in) && (($section != "login") || (($section == "login") && ($go != "default")))) { ?>
 <!-- Modal -->
 <div class="modal fade" id="loginModal" tabindex="-1" role="dialog" aria-labelledby="loginModalLabel">
@@ -305,14 +313,14 @@ $(document).ready(function(){
 				<h4 class="modal-title" id="loginModalLabel"><?php echo $label_log_in; ?></h4>
 			</div>
 			<div class="modal-body">
-				<form class="form-horizontal" data-toggle="validator" role="form" action="<?php echo $base_url; ?>includes/logincheck.inc.php?section=login" method="POST" name="form1" id="form1">
+				<form class="form-horizontal" data-toggle="validator" role="form" action="<?php echo $base_url; ?>includes/process.inc.php?section=login&action=login" method="POST" name="form1" id="form1">
 					<div class="form-group">
 						<div class="col-md-12">
 							<div class="input-group has-warning">
 								<span class="input-group-addon" id="login-addon1"><span class="fa fa-envelope"></span></span>
 								<!-- Input Here -->
 								<input id="loginUsername" class="form-control" name="loginUsername" type="email" required placeholder="<?php echo $label_email; ?>" data-error="<?php echo $login_text_018; ?>">
-								<span class="input-group-addon" id="login-addon2"><span class="fa fa-star"></span></span>
+								<span class="input-group-addon" id="login-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
 							</div>
 							<span class="help-block with-errors"></span>
 						</div>
@@ -323,7 +331,7 @@ $(document).ready(function(){
 								<span class="input-group-addon" id="login-addon3"><span class="fa fa-key"></span></span>
 								<!-- Input Here -->
 								<input class="form-control" name="loginPassword" type="password" required placeholder="<?php echo $label_password; ?>" data-error="<?php echo $login_text_019; ?>">
-								<span class="input-group-addon" id="login-addon4"><span class="fa fa-star"></span></span>
+								<span class="input-group-addon" id="login-addon4" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
 							</div>
 							<span class="help-block with-errors"></span>
 						</div>
@@ -340,7 +348,7 @@ $(document).ready(function(){
 				<p align="center"><?php echo sprintf("<span class=\"fa fa-lg fa-exlamation-circle\"></span> %s <a href=\"%s\">%s</a>.", $login_text_004, $base_url."index.php?section=login&amp;go=password&amp;action=forgot", $login_text_005); ?></p>
 				<?php if ((!$logged_in) && ($registration_open == 1)) { ?>
 				<p align="center" class="small"><?php echo $label_or; ?></p>
-				<a class="btn btn-block btn-default" href="<?php echo build_public_url("register","entrant","default","default",$sef,$base_url); ?>"><?php echo $label_register; ?></a>
+				<a class="btn btn-block btn-default" href="<?php echo build_public_url("register","entrant","default","default",$sef,$base_url,"default"); ?>"><?php echo $label_register; ?></a>
 				<?php } ?>
 			</div>
 		</div>
@@ -373,13 +381,13 @@ $(document).ready(function(){
                     <ul class="dropdown-menu">
                     	<?php if (($registration_open == 1) && (!$ua) && (!isset($_SESSION['loginUsername']))) { ?>
                         <?php if ($nav_register_entrant_show) { ?>
-                    	<li><a class="hide-loader" href="<?php echo build_public_url("register","entrant","default","default",$sef,$base_url); ?>"><?php echo $label_entrant; ?></a></li>
+                    	<li><a class="hide-loader" href="<?php echo build_public_url("register","entrant","default","default",$sef,$base_url,"default"); ?>"><?php echo $label_entrant; ?></a></li>
                         <?php } ?>
                         <?php } ?>
                         <?php if ((!$judge_limit) && ($judge_window_open == 1)) { ?>
-                        <li><a class="hide-loader" href="<?php echo build_public_url("register","judge","default","default",$sef,$base_url); ?>"><?php echo $label_judge; ?></a></li>
+                        <li><a class="hide-loader" href="<?php echo build_public_url("register","judge","default","default",$sef,$base_url,"default"); ?>"><?php echo $label_judge; ?></a></li>
                         <?php } if ((!$steward_limit) && ($judge_window_open == 1)) { ?>
-                        <li><a class="hide-loader" href="<?php echo build_public_url("register","steward","default","default",$sef,$base_url); ?>"><?php echo $label_steward; ?></a></li>
+                        <li><a class="hide-loader" href="<?php echo build_public_url("register","steward","default","default",$sef,$base_url,"default"); ?>"><?php echo $label_steward; ?></a></li>
                         <?php } ?>
                     </ul>
                 </li>
@@ -416,7 +424,7 @@ $(document).ready(function(){
 						$assignment_array = explode(",", $assignment_array);
 						if (((in_array($label_judge,$assignment_array)) && ($_SESSION['brewerJudge'] == "Y")) && (judging_winner_display($row_judging_prefs['jPrefsJudgingOpen']))) { 
                    	?>
-					<li><a href="<?php echo build_public_url("evaluation","default","default","default",$sef,$base_url); ?>" tabindex="-1"><?php echo $label_judging_dashboard; ?></a></li>
+					<li><a href="<?php echo build_public_url("evaluation","default","default","default",$sef,$base_url,"default"); ?>" tabindex="-1"><?php echo $label_judging_dashboard; ?></a></li>
                     <?php }
                     } if ((!$disable_pay) && ($show_entries)) { ?>
                         <?php if (!$comp_paid_entry_limit) { ?>
@@ -424,14 +432,14 @@ $(document).ready(function(){
                         <?php } ?>
                     <?php } ?>
                     <li role="separator" class="divider"></li>
-                    <li><a href="<?php echo $base_url; ?>includes/logout.inc.php"><?php echo $label_log_out; ?></a></li>
+                    <li><a href="<?php echo $base_url; ?>includes/process.inc.php?section=logout&amp;action=logout"><?php echo $label_log_out; ?></a></li>
                     <?php if ((!in_array($go,$datetime_load)) || ($go == "default")) { ?>
                     <li class="dropdown-header"><small><?php echo $label_auto_log_out; ?> <span id="session-end"></span></small></li>
                 	<?php } ?>
                 </ul>
             </li>
             <li id="user-menu-disable"><a href="<?php echo $link_list; ?>" tabindex="-1"><?php echo $label_my_account; ?></a></li>
-            <li id="logout-disable"><a href="<?php echo $base_url; ?>includes/logout.inc.php"><?php echo $label_log_out; ?></a></li>  
+            <li id="logout-disable"><a href="<?php echo $base_url; ?>includes/process.inc.php?section=logout&action=logout"><?php echo $label_log_out; ?></a></li>  
             <?php if ($admin_user) { ?>
             <li id="admin-enable" id="admin-arrow"><a href="<?php if ($go == "error_page") echo $base_url."index.php?section=admin"; else echo "#"; ?>" class="admin-offcanvas" data-toggle="offcanvas" data-target=".navmenu" data-canvas="body"><i class="fa fa-chevron-circle-left"></i> <?php echo $label_admin_short; ?></a></li>
             <li id="admin-disable"><a href="<?php echo $base_url."index.php?section=admin"; ?>"><?php echo $label_admin_short; ?></a></li>
@@ -440,7 +448,7 @@ $(document).ready(function(){
             <li id="login-modal-enable" <?php if ($section == "login") echo $active_class; ?>><a href="#" role="button" data-toggle="modal" data-target="#loginModal"><?php echo $label_log_in; ?></a></li>
             <li id="login-modal-disable"><a href="<?php echo $base_url; ?>index.php?section=login"><?php echo $label_log_in; ?></a></li>
             <?php } ?>
-            <li class="small visible-xs"><a href="https://brewcompetition.com" target="_blank">v <?php echo $current_version_display; ?></a></li>
+            <li class="small visible-xs"><a href="https://brewingcompetitions.com" target="_blank">v <?php echo $current_version_display; ?></a></li>
             </ul>
 
           </div>

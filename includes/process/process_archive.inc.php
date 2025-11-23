@@ -30,13 +30,17 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 	if ($eval_db_exist) $tables_array[] = $prefix."evaluation";
 
 	if ($go == "add") {
-		
+
 		$query_suffix_check = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE archiveSuffix = '%s';", $archive_db_table, $suffix);
 		$suffix_check = mysqli_query($connection,$query_suffix_check) or die (mysqli_error($connection));
 		$row_suffix_check = mysqli_fetch_assoc($suffix_check);
 
 		if ($row_suffix_check['count'] > 0) {
-			$redirect_go_to = sprintf("Location: %s", $base_url."index.php?section=admin&go=archive&msg=6");
+			$redirect = $base_url."index.php?section=admin&go=archive&msg=6";
+			$redirect = prep_redirect_link($redirect);
+			$redirect_go_to = sprintf("Location: %s", $redirect);
+			header($redirect_go_to);
+			exit();
 		}
 		
 		/**
@@ -56,6 +60,18 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 			// Run the delete function
 			rdelete(USER_DOCS,"");
 
+		}
+
+		// Clear BJCP ID from "contest_info"
+		$update_table = $prefix."contest_info";
+		$data = array(
+			'contestID' => NULL
+		);
+		$db_conn->where ('id', 1);
+		$result = $db_conn->update ($update_table, $data);
+		if (!$result) {
+			$error_output[] = $db_conn->getLastError();
+			$errors = TRUE;
 		}
 
 		// Clear out all participants (except for current user)
@@ -282,7 +298,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 				'userLevel' => $userLevel, 
 				'userQuestion' => $userQuestion, 
 				'userQuestionAnswer' => $userQuestionAnswer, 
-				'userCreated' => $db_conn->now()
+				'userCreated' => date('Y-m-d H:i:s', time())
 			);
 			$result = $db_conn->insert ($update_table, $data);
 			if (!$result) {
@@ -325,7 +341,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 				'brewerProAm' => '0',
 				'brewerDropOff' => '999',
 				'brewerBreweryName' => blank_to_null($brewerBreweryName),
-				'brewerBreweryTTB' => NULL
+				'brewerBreweryInfo' => NULL
 			);
 			$result = $db_conn->insert ($update_table, $data);
 			if (!$result) {
@@ -461,7 +477,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 				$_SESSION['prefsTransFee'] = $row_prefs['prefsTransFee'];
 				$_SESSION['prefsSponsors'] = $row_prefs['prefsSponsors'];
 				$_SESSION['prefsSponsorLogos'] = $row_prefs['prefsSponsorLogos'];
-				$_SESSION['prefsSponsorLogoSize'] = $row_prefs['prefsSponsorLogoSize'];
+				$_SESSION['prefsSelectedStyles'] = $row_prefs['prefsSelectedStyles'];
 				$_SESSION['prefsCompLogoSize'] = $row_prefs['prefsCompLogoSize'];
 				$_SESSION['prefsDisplayWinners'] = $row_prefs['prefsDisplayWinners'];
 				$_SESSION['prefsWinnerDelay'] = $row_prefs['prefsWinnerDelay'];

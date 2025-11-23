@@ -5,43 +5,16 @@
  *              specified in the contest_info database table. 
  * 
  */
- 
-/* ---------------- PUBLIC Pages Rebuild Info ---------------------
 
-Beginning with the 1.3.0 release, an effort was begun to separate the programming
-layer from the presentation layer for all scripts with this header.
-
-All Public pages have certain variables in common that build the page:
-
-	$warningX = any warnings
-  
-	$primary_page_info_vol = any information related to the page
-	
-	$header1_X = an <h2> header on the page
-	$header2_X = an <h3> subheader on the page
-	
-	$page_infoX = the bulk of the information on the page.
-	$help_page_link = link to the appropriate page on help.brewcompetition.com
-	$print_page_link = the "Print This Page" link
-	$competition_logo = display of the competition's logo
-	
-	$labelX = the various labels in a table or on a form
-	$messageX = various messages to display
-	
-	$print_page_link = "<p><span class='icon'><img src='".$base_url."images/printer.png' border='0' alt='Print' title='Print' /></span><a id='modal_window_link' class='data' href='".$base_url."output/print.php?section=".$section."&amp;action=print' title='Print'>Print This Page</a></p>";
-	$competition_logo = "<img src='".$base_url."user_images/".$_SESSION['contestLogo']."' width='".$_SESSION['prefsCompLogoSize']."' style='float:right; padding: 5px 0 5px 5px' alt='Competition Logo' title='Competition Logo' />";
-	
-Declare all variables empty at the top of the script. Add on later...
-	$warning1 = "";
-	$primary_page_info_vol = "";
-	$header_vol_1_1 = "";
-	$page_info_vol_1 = "";
-	$header_vol_1_2 = "";
-	$page_info_vol_2 = "";
-	
-	etc., etc., etc.
-
- * ---------------- END Rebuild Info --------------------- */
+/*
+// Redirect if directly accessed
+if ((!isset($_SESSION['prefs'.$prefix_session])) || ((isset($_SESSION['prefs'.$prefix_session])) && (!isset($base_url)))) {
+    $redirect = "../../index.php?section=volunteers";
+    $redirect_go_to = sprintf("Location: %s", $redirect);
+    header($redirect_go_to);
+    exit();
+}
+*/
 
 include (DB.'judging_locations.db.php');
 $primary_page_info_vol = "";
@@ -59,7 +32,7 @@ if (($judge_window_open > 0) && (!$logged_in)) {
 }
 
 elseif (($judge_window_open > 0) && ($logged_in)) {
-	$page_info_vol_1 .= sprintf("<p>%s <a href=\"%s\">%s</a> %s.</p>",$volunteers_text_005, build_public_url("list","default","default","default",$sef,$base_url), $volunteers_text_006, $volunteers_text_007);
+	$page_info_vol_1 .= sprintf("<p>%s <a href=\"%s\">%s</a> %s.</p>",$volunteers_text_005, build_public_url("list","default","default","default",$sef,$base_url,"default"), $volunteers_text_006, $volunteers_text_007);
 }
 
 else {
@@ -69,7 +42,7 @@ else {
 if ($registration_open < 2) {
 	$staff_locations = "";
 	$header_vol_1_2 .= sprintf("<h2>%s</h2>",$label_staff);
-	$page_info_vol_2 .= sprintf("<p>%s",$volunteers_text_009, build_public_url("contact","default","default","default",$sef,$base_url), $volunteers_text_010);
+	$page_info_vol_2 .= sprintf("<p>%s",$volunteers_text_009, build_public_url("contact","default","default","default",$sef,$base_url,"default"), $volunteers_text_010);
 	
 	if ($row_judging1) {
 		do {

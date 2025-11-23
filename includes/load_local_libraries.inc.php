@@ -25,19 +25,15 @@
     <script type="text/javascript" src="<?php echo $base_url; ?>libraries/fancybox/lib/jquery.mousewheel-3.0.6.pack.js"></script>
     <script type="text/javascript" src="<?php echo $base_url; ?>libraries/fancybox/source/jquery.fancybox.pack.js"></script>
     
-    <?php if ((($section == "admin") || (strpos($section, 'step') !== FALSE)) && (in_array($go,$datetime_load)) || ($section == "brew")) { ?>
-    
     <!-- Load Bootstrap DateTime Picker / http://eonasdan.github.io/bootstrap-datetimepicker/ -->
     <link rel="stylesheet" type="text/css" href="<?php echo $base_url; ?>libraries/date-time-picker/css/bootstrap-datetimepicker.min.css" />
     <script type="text/javascript" src="<?php echo $base_url; ?>libraries/date-time-picker/js/moment-with-locales.js"></script>
     <script type="text/javascript" src="<?php echo $base_url; ?>libraries/date-time-picker/js/bootstrap-datetimepicker.min.js"></script>
-    <script src="<?php echo $base_url;?>js_includes/date-time.min.js"></script>
-    <?php } ?>
     
     <?php if ((($section == "admin") || (strpos($section, 'step') !== FALSE)) && (in_array($go,$tinymce_load))) { ?>
     <!-- Load TinyMCE / https://www.tinymce.com/ -->
     <script src="<?php echo $base_url; ?>libraries/tinymce/js/tinymce/tinymce.min.js"></script>
-	<script src="<?php echo $base_url;?>js_includes/tinymce-init.min.js"></script>    
+	<script src="<?php echo $js_url; ?>tinymce-init.min.js"></script>    
     <?php } ?>
 
     <?php if ((($section == "admin") || (strpos($section, 'step') !== FALSE)) && (in_array($go,$tinymce_load))) { ?>
@@ -49,7 +45,7 @@
     <script src="<?php echo $base_url; ?>libraries/marked/marked.min.js"></script>
     <?php } else { ?>
     <script src="<?php echo $base_url; ?>libraries/tinymce/tinymce.min.js"></script>
-    <script src="<?php echo $base_url;?>js_includes/tinymce-init.min.js"></script>
+    <script src="<?php echo $js_url; ?>tinymce-init.min.js"></script>
     <?php } ?>
     <?php } ?>
     
@@ -63,7 +59,7 @@
     <!-- Load DropZone / http://www.dropzonejs.com -->
     <link rel="stylesheet" type="text/css" href="<?php echo $base_url; ?>libraries/dropzone/dropzone.min.css" />
     <script src="<?php echo $base_url; ?>libraries/dropzone/dropzone.min.js"></script>
-    <script src="<?php echo $base_url;?>js_includes/dz.min.js"></script>
+    <script src="<?php echo $js_url; ?>dz.min.js"></script>
     <?php } ?>
     
     <?php } ?>

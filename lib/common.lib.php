@@ -86,7 +86,7 @@ function build_action_link($icon,$base_url,$section,$go,$action,$filter,$id,$dbT
 	else {
 
 		if ($method == 2) { // print form link
-			$return .= "<a id=\"modal_window_link\" class=\"hide-loader\" href=\"".$base_url."output/entry.output.php?";
+			$return .= "<a data-fancybox data-type=\"iframe\" class=\"modal-window-link hide-loader\" href=\"".$base_url."includes/outpoutput.inc.php?section=entry-form&amp;action=print&amp;";
 			$return .= "id=".$id;
 			$return .= "&amp;bid=".$section;
 			$return .= "\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"".$tooltip_text."\">";
@@ -127,7 +127,7 @@ function build_output_link($icon,$base_url,$filename,$section,$go,$action,$filte
 	if ($filter != "default") $return .= "&amp;filter=".$filter;
 	if ($id != "default") $return .= "&amp;id=".$id;
 	$return .= "\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"".$alt_title."\"";
-	if ($modal_window) $return .= " id=\"modal_window_link\" class=\"hide-loader\"";
+	if ($modal_window) $return .= " data-fancybox data-type=\"iframe\" class=\"modal-window-link hide-loader\"";
 	$return .= ">";
 	$return .= "<span class=\"fa ".$icon." text-primary\"></span>";
 	$return .= "</span>";
@@ -151,33 +151,29 @@ function build_form_action($base_url,$section,$go,$action,$filter,$id,$dbTable,$
 	return $return;
 }
 
-function build_public_url($section="default",$go="default",$action="default",$id="default",$sef,$base_url) {
-
-	include (CONFIG.'config.php');
-	if (NHC) {
-		$url = "index.php?section=".$section;
+function build_public_url($section="default",$go="default",$action="default",$id="default",$sef,$base_url,$view="default") {
+	
+	if ($_SESSION['prefsSEF'] == 'Y') {
+		$url = $base_url."";
+		if ($section != "default") $url .= $section."/";
+		if ($go != "default") $url .= $go."/";
+		if ($action != "default") $url .= $action."/";
+		if ($view != "default") $url .= $view."/";
+		if ($id != "default") $url .= $id."/";
+		return rtrim($url,"/");
+	}
+	
+	else {
+		$url = $base_url."index.php?section=".$section;
 		if ($go != "default") $url .= "&amp;go=".$go;
 		if ($action != "default") $url .= "&amp;action=".$action;
+		if ($view != "default") $url .= "&amp;view=".$view;
+		if ($id != "default") $url .= "&amp;id=".$id;
 		return $url;
 	}
-	else {
-		if ($sef == "true") {
-			$url = $base_url."";
-			if ($section != "default") $url .= $section."/";
-			if ($go != "default") $url .= $go."/";
-			if ($action != "default") $url .= $action."/";
-			if ($id != "default") $url .= $id."/";
-			return rtrim($url,"/");
-		}
-		if ($sef == "false") {
-			$url = $base_url."index.php?section=".$section;
-			if ($go != "default") $url .= "&amp;go=".$go;
-			if ($action != "default") $url .= "&amp;action=".$action;
-			if ($id != "default") $url .= "&amp;id=".$id;
-			return $url;
-		}
-	}
+	
 }
+
 /*
 function build_admin_url ($section="default",$go="default",$action="default",$id="default",$filter="default",$view="default",$sef="true",$base_url) {
 	if ($sef == "true") {
@@ -241,6 +237,12 @@ function purge_entries($type, $interval) {
 	require(CONFIG.'config.php');
 	$db_conn = new MysqliDb($connection);
 
+	/*
+	if (HOSTED) $styles_db_table = "bcoem_shared_styles";
+	else
+	*/
+	$styles_db_table = $prefix."styles";
+
 	if ($type == "unconfirmed") {
 		
 		$query_check = sprintf("SELECT id FROM %s WHERE brewConfirmed='0'", $prefix."brewing");
@@ -272,7 +274,60 @@ function purge_entries($type, $interval) {
 
 	if ($type == "special") {
 		
-		$query_check = sprintf("SELECT a.id, a.brewUpdated, a.brewInfo, a.brewCategorySort, a.brewSubCategory FROM %s as a, %s as b WHERE a.brewCategorySort=b.brewStyleGroup AND a.brewSubCategory=b.brewStyleNum AND b.brewStyleReqSpec=1 AND (a.brewInfo IS NULL OR a.brewInfo='') AND b.brewStyleVersion = '%s'", $prefix."brewing",$prefix."styles",$_SESSION['prefsStyleSet']);
+		/*
+		
+		if (HOSTED) {
+			
+			$query_check = sprintf("SELECT a.id, a.brewUpdated, a.brewInfo, a.brewCategorySort, a.brewSubCategory FROM %s as a, %s as b WHERE a.brewCategorySort=b.brewStyleGroup AND a.brewSubCategory=b.brewStyleNum AND b.brewStyleReqSpec=1 AND (a.brewInfo IS NULL OR a.brewInfo='') AND b.brewStyleVersion = '%s'", $prefix."brewing", $styles_db_table, $_SESSION['prefsStyleSet']);
+
+			if ($interval > 0) $query_check .=" AND a.brewUpdated < DATE_SUB( NOW(), INTERVAL 1 DAY)";
+			$check = mysqli_query($connection,$query_check) or die (mysqli_error($connection));
+			$row_check = mysqli_fetch_assoc($check);
+			$totalRows_check = mysqli_num_rows($check);
+
+			if ($totalRows_check == 0) $count += 1;
+
+			if ($totalRows_check > 0) {
+				
+				do {
+
+					$update_table = $prefix."brewing";
+					$db_conn->where ('id', $row_check['id']);
+					$result = $db_conn->delete ($update_table);
+					if ($result) $count += 1;
+
+				} while ($row_check = mysqli_fetch_assoc($check));
+
+			}
+
+			$query_check_custom = sprintf("SELECT a.id, a.brewUpdated, a.brewInfo, a.brewCategorySort, a.brewSubCategory FROM %s as a, %s as b WHERE a.brewCategorySort=b.brewStyleGroup AND a.brewSubCategory=b.brewStyleNum AND b.brewStyleReqSpec=1 AND (a.brewInfo IS NULL OR a.brewInfo='') AND b.brewStyleVersion = '%s'", $prefix."brewing", $prefix."styles", $_SESSION['prefsStyleSet']);
+
+			if ($interval > 0) $query_check_custom .=" AND a.brewUpdated < DATE_SUB( NOW(), INTERVAL 1 DAY)";
+			$check_custom = mysqli_query($connection,$query_check_custom) or die (mysqli_error($connection));
+			$row_check_custom = mysqli_fetch_assoc($check_custom);
+			$totalRows_check_custom = mysqli_num_rows($check_custom);
+
+			if ($totalRows_check_custom == 0) $count += 1;
+
+			if ($totalRows_check_custom > 0) {
+				
+				do {
+
+					$update_table = $prefix."brewing";
+					$db_conn->where ('id', $row_check_custom['id']);
+					$result = $db_conn->delete ($update_table);
+					if ($result) $count += 1;
+
+				} while ($row_check_custom = mysqli_fetch_assoc($check_custom));
+
+			}
+
+		}
+
+		*/
+
+		$query_check = sprintf("SELECT a.id, a.brewUpdated, a.brewInfo, a.brewCategorySort, a.brewSubCategory FROM %s as a, %s as b WHERE a.brewCategorySort=b.brewStyleGroup AND a.brewSubCategory=b.brewStyleNum AND b.brewStyleReqSpec=1 AND (a.brewInfo IS NULL OR a.brewInfo='') AND b.brewStyleVersion = '%s'", $prefix."brewing", $styles_db_table, $_SESSION['prefsStyleSet']);
+
 		if ($interval > 0) $query_check .=" AND a.brewUpdated < DATE_SUB( NOW(), INTERVAL 1 DAY)";
 		$check = mysqli_query($connection,$query_check) or die (mysqli_error($connection));
 		$row_check = mysqli_fetch_assoc($check);
@@ -291,6 +346,32 @@ function purge_entries($type, $interval) {
 
 			} while ($row_check = mysqli_fetch_assoc($check));
 
+		}
+
+	}
+
+	if ($type == "unpaid") {
+		
+		$query_check = sprintf("SELECT id FROM %s WHERE brewPaid='0' OR brewPaid IS NULL", $prefix."brewing");
+		if ($interval > 0) $query_check .=" AND a.brewUpdated < DATE_SUB( NOW(), INTERVAL 1 DAY)";
+		$check = mysqli_query($connection,$query_check) or die (mysqli_error($connection));
+		$row_check = mysqli_fetch_assoc($check);
+		$totalRows_check = mysqli_num_rows($check);
+
+		if ($totalRows_check == 0) $count += 1;
+
+		if ($totalRows_check > 0) {
+
+			do {
+
+				$update_table = $prefix."brewing";
+				$db_conn->where ('id', $row_check['id']);
+				$result = $db_conn->delete ($update_table);
+				if ($result) $count += 1;
+
+			} while ($row_check = mysqli_fetch_assoc($check));
+
+			
 		}
 
 	}
@@ -745,7 +826,7 @@ function total_fees($entry_fee, $entry_fee_discount, $entry_discount, $entry_dis
 			$brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
 			$row_brewer = mysqli_fetch_array($brewer, MYSQLI_BOTH);
 
-			if ($totalRows_entries > 0) {
+			if (($totalRows_entries > 0) && ($row_brewer)) {
 				if (($row_brewer['brewerDiscount'] == "Y") && ($special_discount_number != "")) {
 					if ($entry_discount == "Y") {
 						$a = $entry_discount_number * $special_discount_number;
@@ -933,7 +1014,7 @@ function total_fees_paid($entry_fee, $entry_fee_discount, $entry_discount, $entr
 			$brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
 			$row_brewer = mysqli_fetch_array($brewer);
 
-			if ($totalRows_entries > 0) {
+			if (($totalRows_entries > 0) && ($row_brewer)) {
 
 				if (($row_brewer['brewerDiscount'] == "Y") && ($special_discount_number != "")) {
 					if ($entry_discount == "Y") {
@@ -966,7 +1047,7 @@ function total_fees_paid($entry_fee, $entry_fee_discount, $entry_discount, $entr
 			} // end if ($row_brewer['brewerDiscount'] == "Y")
 
 
-				if (($row_brewer['brewerDiscount'] != "Y") || ((($row_brewer['brewerDiscount'] == "Y")) && ($special_discount_number == ""))) {
+			if (($row_brewer['brewerDiscount'] != "Y") || ((($row_brewer['brewerDiscount'] == "Y")) && ($special_discount_number == ""))) {
 				if ($entry_discount == "Y") {
 						// Determine if the amount paid is equal or less than the discount amount
 						// If so, total paid is a simple calculation
@@ -1275,13 +1356,25 @@ function total_nopay_received($go, $id, $comp_id) {
 }
 
 function style_convert($number,$type,$base_url="",$archive="") {
+	
 	require(CONFIG.'config.php');
 	require(LANG.'language.lang.php');
+
+	/*
+	if (HOSTED) $styles_db_table = "bcoem_shared_styles";
+	else
+	*/
 	$styles_db_table = $prefix."styles";
+
 	$style_set = $_SESSION['prefsStyleSet'];
 
 	mysqli_select_db($connection,$database);
-	$query_style = sprintf("SELECT brewStyleNum,brewStyleGroup,brewStyle,brewStyleVersion,brewStyleReqSpec,brewStyleOwn FROM %s WHERE brewStyleGroup='%s' AND (brewStyleVersion='%s' OR brewStyleOwn='custom')",$styles_db_table,$number,$style_set);
+
+	/*
+	if (HOSTED) $query_style = sprintf("SELECT brewStyleNum,brewStyleGroup,brewStyle,brewStyleVersion,brewStyleReqSpec,brewStyleOwn FROM %s WHERE brewStyleGroup='%s' AND (brewStyleVersion='%s' OR brewStyleOwn='custom') UNION ALL SELECT brewStyleNum,brewStyleGroup,brewStyle,brewStyleVersion,brewStyleReqSpec,brewStyleOwn FROM %s WHERE brewStyleGroup='%s' AND (brewStyleVersion='%s' OR brewStyleOwn='custom')", $prefix."styles", $number, $style_set, $styles_db_table, $number, $style_set);
+	else 
+	*/
+	$query_style = sprintf("SELECT brewStyleNum,brewStyleGroup,brewStyle,brewStyleVersion,brewStyleReqSpec,brewStyleOwn FROM %s WHERE brewStyleGroup='%s' AND (brewStyleVersion='%s' OR brewStyleOwn='custom')", $styles_db_table, $number, $style_set);
 	$style = mysqli_query($connection,$query_style) or die (mysqli_error($connection));
 	$row_style = mysqli_fetch_assoc($style);
 
@@ -1305,7 +1398,7 @@ function style_convert($number,$type,$base_url="",$archive="") {
 
 		if ($row_style) {
 
-			if ((is_numeric($number)) && ($number >= $start_custom) && ($row_style['brewStyleOwn'] != "bcoe")) $custom = TRUE;
+			if ($row_style['brewStyleOwn'] != "bcoe") $custom = TRUE;
 
 			// if numeric make two-digit by adding leading zero just in case
 			if (is_numeric($number)) $number = sprintf('%02d', $number); 
@@ -1327,6 +1420,7 @@ function style_convert($number,$type,$base_url="",$archive="") {
 
 		break;
 
+		// Apparently unused. 2.6.2.
 		case "2":
 
 		if ($style_set == "BJCP2015") {
@@ -1425,6 +1519,7 @@ function style_convert($number,$type,$base_url="",$archive="") {
 
 		break;
 
+		// Apparently unused. 2.6.2.
 		case "3":
 		$n = preg_replace('/[^0-9]+/', '', $number);
 
@@ -1470,6 +1565,7 @@ function style_convert($number,$type,$base_url="",$archive="") {
 
 		break;
 
+		// Used only on My Account page for judges.
 		case "4":
 		$replacement1 = array('Entry Instructions:','Commercial Examples:','must specify','may specify','MUST specify','MAY specify','must provide','must be specified','must declare','must either','must supply','may provide','MUST state');
 		$replacement2 = array('<strong class="text-danger">Entry Instructions:</strong>','<strong class="text-info">Commercial Examples:</strong>','<strong><u>MUST</u></strong> specify','<strong><u>MAY</u></strong> specify','<strong><u>MUST</u></strong> specify','<strong><u>MAY</u></strong> specify','<u>MUST</u> provide','<strong><u>MUST</u></strong> be specified','<strong><u>MUST</u></strong> declare','<strong><u>MUST</u></strong> either','<strong><u>MUST</u></strong> supply','<strong><u>MAY</u></strong> provide','<strong><u>MUST</u></strong> state');
@@ -1484,7 +1580,10 @@ function style_convert($number,$type,$base_url="",$archive="") {
 
 		foreach ($a as $value) {
 
-			$styles_db_table = $prefix."styles";
+			/*
+			if (HOSTED) $query_style = sprintf("SELECT * FROM %s WHERE id='%s' UNION ALL SELECT * FROM %s WHERE id='%s'", $prefix."styles", $value, $styles_db_table, $value);	
+			else 
+			*/
 			$query_style = sprintf("SELECT * FROM %s WHERE id='%s'",$styles_db_table,$value);
 			$style = mysqli_query($connection,$query_style) or die (mysqli_error($connection));
 			$row_style = mysqli_fetch_assoc($style);
@@ -1566,11 +1665,13 @@ function style_convert($number,$type,$base_url="",$archive="") {
 		$style_convert = rtrim(implode(", ",$style_convert_1),", ")."|".implode("^",$style_modal);
 		break;
 
+		// Apparently unused. 2.6.2.
 		case "5":
 		$n = preg_replace('/[^0-9]+/', '', $number);
 		if ((($style_set == "BJCP2015") || (($style_set == "BJCP2021"))) && ($n >= 35)) $style_convert = TRUE;
 		break;
 
+		// Used primarily in export.output.php.
 		case "6":
 		$a = explode(",",$number);
 		require(CONFIG.'config.php');
@@ -1580,16 +1681,22 @@ function style_convert($number,$type,$base_url="",$archive="") {
 		$style_convert1 = array();
 
 		foreach ($a as $value) {
-			$styles_db_table = $prefix."styles";
-			$query_style = sprintf("SELECT brewStyleGroup,brewStyleNum,brewStyle FROM %s WHERE id='%s'",$styles_db_table,$value);
+
+			/*
+			if (HOSTED) $query_style = sprintf("SELECT brewStyleGroup,brewStyleNum,brewStyle FROM %s WHERE id='%s' UNION ALL SELECT brewStyleGroup,brewStyleNum,brewStyle FROM %s WHERE id='%s'", $styles_db_table, $value, $prefix."styles", $value);	
+			else 
+			*/
+			$query_style = sprintf("SELECT brewStyleGroup,brewStyleNum,brewStyle FROM %s WHERE id='%s'",$styles_db_table, $value);
 			$style = mysqli_query($connection,$query_style) or die (mysqli_error($connection));
 			$row_style = mysqli_fetch_assoc($style);
 			if ($row_style) $style_convert1[] = ltrim($row_style['brewStyleGroup'],"0").$row_style['brewStyleNum'];
+		
 		}
 		
 		if (!empty($style_convert1)) $style_convert = rtrim(implode(", ",$style_convert1),", ");
 		break;
 
+		// Used primarily in entry_info.sec.php.
 		case "7":
 		
 		$a = explode(",",$number);
@@ -1598,7 +1705,10 @@ function style_convert($number,$type,$base_url="",$archive="") {
 		
 		foreach ($a as $value) {
 			
-			$styles_db_table = $prefix."styles";
+			/*
+			if (HOSTED) $query_style = sprintf("SELECT brewStyleGroup,brewStyleNum,brewStyle,brewStyleOwn FROM %s WHERE id='%s' UNION ALL SELECT brewStyleGroup,brewStyleNum,brewStyle,brewStyleOwn FROM %s WHERE id='%s'", $styles_db_table, $value, $prefix."styles", $value);	
+			else 
+			*/
 			$query_style = sprintf("SELECT brewStyleGroup,brewStyleNum,brewStyle,brewStyleOwn FROM %s WHERE id='%s'",$styles_db_table,$value);
 			$style = mysqli_query($connection,$query_style) or die (mysqli_error($connection));
 			$row_style = mysqli_fetch_assoc($style);
@@ -1625,12 +1735,17 @@ function style_convert($number,$type,$base_url="",$archive="") {
 		break;
 
 		// Get Style Name
+		// Primarily used in judging_flights.admin.php.
 		case "8":
 
 		$style_convert = "";
 		$style_name = "";
 
-		$query_style = sprintf("SELECT brewStyle,brewStyleNum,brewStyleGroup FROM %s WHERE id='%s'",$styles_db_table,$number);
+		/*
+		if (HOSTED) $query_style = sprintf("SELECT brewStyle,brewStyleNum,brewStyleGroup FROM %s WHERE id='%s' UNION ALL SELECT brewStyle,brewStyleNum,brewStyleGroup FROM %s WHERE id='%s'", $styles_db_table, $number, $prefix."styles", $number);	
+		else 
+		*/
+		$query_style = sprintf("SELECT brewStyle,brewStyleNum,brewStyleGroup FROM %s WHERE id='%s'",$styles_db_table, $number);
 		$style = mysqli_query($connection,$query_style) or die (mysqli_error($connection));
 		$row_style = mysqli_fetch_assoc($style);
 
@@ -1642,10 +1757,17 @@ function style_convert($number,$type,$base_url="",$archive="") {
 
 		break;
 
+		// Primarily used in pullsheets.output.php.
 		case "9":
 		$style_convert = "";
 		$style_name = "";
 		$number = explode("^",$number);
+		
+		/*
+		if (HOSTED) $query_style = sprintf("SELECT brewStyleNum, brewStyleGroup, brewStyle, brewStyleVersion, brewStyleReqSpec, brewStyleStrength, brewStyleCarb,brewStyleSweet FROM %s WHERE brewStyleGroup='%s' AND 
+			brewStyleNum='%s' AND (brewStyleVersion='%s' OR brewStyleOwn='custom') UNION ALL SELECT brewStyleNum, brewStyleGroup, brewStyle, brewStyleVersion, brewStyleReqSpec, brewStyleStrength,brewStyleCarb,brewStyleSweet FROM %s WHERE brewStyleGroup='%s' AND brewStyleNum='%s' AND (brewStyleVersion='%s' OR brewStyleOwn='custom');", $styles_db_table, $number[0], $number[1], $number[2], $prefix."styles", $number[0], $number[1], $number[2]);
+		else 
+		*/
 		$query_style = sprintf("SELECT brewStyleNum,brewStyleGroup,brewStyle,brewStyleVersion,brewStyleReqSpec,brewStyleStrength,brewStyleCarb,brewStyleSweet FROM %s WHERE brewStyleGroup='%s' AND brewStyleNum='%s' AND (brewStyleVersion='%s' OR brewStyleOwn='custom')",$styles_db_table,$number[0],$number[1],$number[2]);
 		$style = mysqli_query($connection,$query_style) or die (mysqli_error($connection));
 		$row_style = mysqli_fetch_assoc($style);
@@ -1667,32 +1789,37 @@ function style_convert($number,$type,$base_url="",$archive="") {
 	return $style_convert;
 }
 
-function get_table_info($input,$method,$table_id,$dbTable,$param) {
+function get_table_info($input,$method,$table_id,$dbTable,$param,$base_url="") {
 
 	// Define Vars
 	require(CONFIG.'config.php');
 	require(LANG.'language.lang.php');
 	mysqli_select_db($connection,$database);
 
+	/*
+	if (HOSTED) $styles_db_table = "bcoem_shared_styles";
+	else
+	*/
+	$styles_db_table = $prefix."styles";
+
 	if ($dbTable == "default") {
 		$judging_tables_db_table = $prefix."judging_tables";
 		$judging_locations_db_table = $prefix."judging_locations";
 		$judging_scores_db_table = $prefix."judging_scores";
 		$judging_scores_bos_db_table = $prefix."judging_scores_bos";
-		$styles_db_table = $prefix."styles";
 		$brewing_db_table = $prefix."brewing";
 		$styleSet = $_SESSION['prefsStyleSet'];
 	}
 
 	// Archives
 	else {
+		
 		$suffix_1 = ltrim(get_suffix($dbTable), "_");
 		$suffix = "_".$suffix_1;
 		$judging_tables_db_table = $prefix."judging_tables".$suffix;
 		$judging_locations_db_table = $prefix."judging_locations".$suffix;
 		$judging_scores_db_table = $prefix."judging_scores".$suffix;
 		$judging_scores_bos_db_table = $prefix."judging_scores_bos".$suffix;
-		$styles_db_table = $prefix."styles";
 		$archive_db_table = $prefix."archive";
 		$brewing_db_table = $prefix."brewing".$suffix;
 
@@ -1700,6 +1827,7 @@ function get_table_info($input,$method,$table_id,$dbTable,$param) {
 		$archive_db = mysqli_query($connection,$query_archive_db) or die (mysqli_error($connection));
 		$row_archive_db = mysqli_fetch_assoc($archive_db);
 		$styleSet = $row_archive_db['archiveStyleSet'];
+	
 	}
 
 	// Get info about the table from the DB
@@ -1742,59 +1870,6 @@ function get_table_info($input,$method,$table_id,$dbTable,$param) {
 		
 		return $return;
 	}
-
-	/*
-	// Check if any styles have not been assigned to a table
-	if ($method == "unassigned") {
-		$return = "";
-
-		$query_styles = "SELECT id,brewStyle FROM $styles_db_table";
-		$styles = mysqli_query($connection,$query_styles) or die (mysqli_error($connection));
-		$row_styles = mysqli_fetch_assoc($styles);
-
-		do {
-			$a[] = $row_styles['id'];
-		} while ($row_styles = mysqli_fetch_assoc($styles));
-
-		sort($a);
-		//echo "<p>"; print_r($a); echo "</p>";
-		foreach ($a as $value) {
-			//echo $input."<br>";
-			$b = array(explode(",",$input));
-			//echo "<p>".print_r($b)."</p>";
-			//echo "<p>-".$value."-</p>";
-			if (in_array($value,$b)) {
-				//echo "Yes. The style ID is $value.<br>";
-				//$query_styles1 = "SELECT brewStyle FROM $styles_db_table WHERE id='$value'";
-				//$styles1 = mysqli_query($connection,$query_styles1) or die (mysqli_error($connection));
-				//$row_styles1 = mysqli_fetch_assoc($styles1);
-				//echo "<p>".$row_styles1['brewStyle']."</p>";
-			}
-			//else echo "No.<br>";
-		}
-	return $return;
-	}
-
-	// Check if style is assigned to a particular table
-	if ($method == "styles") {
-
-		$a = "";
-
-		do {
-			$a .= $row_table['tableStyles'].",";
-				$a = explode(",", $row_table['tableStyles']);
-				$b = $input;
-				foreach ($a as $value) {
-					if ($value == $input) return TRUE;
-				}
-		} while ($row_table = mysqli_fetch_assoc($table));
-		$a = explode(",", $row_table['tableStyles']);
-		//$b = rtrim($a,",");
-		//$c = explode(",",$b);
-		if (in_array($input,$a)) return TRUE;
-		else return FALSE;
-	}
-	*/
 
 	if ($method == "styles") {
 
@@ -1844,22 +1919,23 @@ function get_table_info($input,$method,$table_id,$dbTable,$param) {
 		if (!empty($row_table['tableStyles'])) {
 
 			$a = explode(",", $row_table['tableStyles']);
+			$b = array();
 
 				foreach ($a as $value) {
-
-					require(CONFIG.'config.php');
-					mysqli_select_db($connection,$database);
-					$query_styles = sprintf("SELECT * FROM %s WHERE id='%s'", $styles_db_table, $value);
+					
+					/* 
+					if (HOSTED) $query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s' UNION ALL SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s'", $styles_db_table, $value, $prefix."styles", $value);
+					else 
+					*/
+					$query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s'", $styles_db_table, $value);
 					$styles = mysqli_query($connection,$query_styles) or die (mysqli_error($connection));
 					$row_styles = mysqli_fetch_assoc($styles);
-					if ($_SESSION['prefsStyleSet']  == "BA") $c[] = $row_styles['brewStyle'].",&nbsp;";
-					elseif ($_SESSION['prefsStyleSet'] == "AABC") $c[] = ltrim($row_styles['brewStyleGroup'],"0").".".ltrim($row_styles['brewStyleNum'],"0").",&nbsp;";
-					else $c[] = ltrim($row_styles['brewStyleGroup'].$row_styles['brewStyleNum'],"0").",&nbsp;";
+
+					if ($row_styles) $b[] = style_number_const($row_styles['brewStyleGroup'],$row_styles['brewStyleNum'],$_SESSION['style_set_display_separator'],0).",&nbsp;";
 
 				}
 
-			$d = array($c);
-			return $d;
+			return $b;
 
 		}
 
@@ -1877,21 +1953,27 @@ function get_table_info($input,$method,$table_id,$dbTable,$param) {
 
 			foreach ($a as $value) {
 
-				require(CONFIG.'config.php');
-				mysqli_select_db($connection,$database);
+				/*
+				if (HOSTED) $query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s' UNION ALL SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s'", $styles_db_table, $value, $prefix."styles", $value);
+				else 
+				*/
 				$query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s'", $styles_db_table, $value);
 				$styles = mysqli_query($connection,$query_styles) or die (mysqli_error($connection));
 				$row_styles = mysqli_fetch_assoc($styles);
 
-				if ($_SESSION['jPrefsTablePlanning'] == 1) $query_style_count = sprintf("SELECT COUNT(*) as count FROM %s WHERE brewCategorySort='%s' AND brewSubCategory='%s'", $brewing_db_table, $row_styles['brewStyleGroup'], $row_styles['brewStyleNum']);
-				else $query_style_count = sprintf("SELECT COUNT(*) as count FROM %s WHERE brewCategorySort='%s' AND brewSubCategory='%s' AND brewReceived='1'", $brewing_db_table, $row_styles['brewStyleGroup'], $row_styles['brewStyleNum']);
+				if ($row_styles) {
 
-				$style_count = mysqli_query($connection,$query_style_count) or die (mysqli_error($connection));
-				$row_style_count = mysqli_fetch_assoc($style_count);
+					if ($_SESSION['jPrefsTablePlanning'] == 1) $query_style_count = sprintf("SELECT COUNT(*) as count FROM %s WHERE brewCategorySort='%s' AND brewSubCategory='%s'", $brewing_db_table, $row_styles['brewStyleGroup'], $row_styles['brewStyleNum']);
+					else $query_style_count = sprintf("SELECT COUNT(*) as count FROM %s WHERE brewCategorySort='%s' AND brewSubCategory='%s' AND brewReceived='1'", $brewing_db_table, $row_styles['brewStyleGroup'], $row_styles['brewStyleNum']);
 
-				$debug .= $query_style_count."<br>";
+					$style_count = mysqli_query($connection,$query_style_count) or die (mysqli_error($connection));
+					$row_style_count = mysqli_fetch_assoc($style_count);
 
-				if ((isset($row_style_count['count'])) && ($row_style_count['count'] > 0)) $c[] = $row_style_count['count'];
+					$debug .= $query_style_count."<br>";
+
+					if ((isset($row_style_count['count'])) && ($row_style_count['count'] > 0)) $c[] = $row_style_count['count'];
+
+				}
 
 			}
 			
@@ -1929,18 +2011,26 @@ function get_table_info($input,$method,$table_id,$dbTable,$param) {
 
 				foreach ($a as $value) {
 
+					/*
+					if (HOSTED) $query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s' UNION ALL SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s'", $styles_db_table, $value, $prefix."styles", $value);
+					else 
+					*/
 					$query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s'", $styles_db_table, $value);
 					$styles = mysqli_query($connection,$query_styles) or die (mysqli_error($connection));
 					$row_styles = mysqli_fetch_assoc($styles);
 
-					if ($_SESSION['jPrefsTablePlanning'] == 1) $query_style_count = sprintf("SELECT COUNT(*) as count FROM %s WHERE brewCategorySort='%s' AND brewSubCategory='%s'", $brewing_db_table, $row_styles['brewStyleGroup'], $row_styles['brewStyleNum']);
-					else $query_style_count = sprintf("SELECT COUNT(*) as count FROM %s WHERE brewCategorySort='%s' AND brewSubCategory='%s' AND brewReceived='1'", $brewing_db_table, $row_styles['brewStyleGroup'], $row_styles['brewStyleNum']);
-					$style_count = mysqli_query($connection,$query_style_count) or die (mysqli_error($connection));
-					$row_style_count = mysqli_fetch_assoc($style_count);
+					if ($row_styles) {
+						
+						if ($_SESSION['jPrefsTablePlanning'] == 1) $query_style_count = sprintf("SELECT COUNT(*) as count FROM %s WHERE brewCategorySort='%s' AND brewSubCategory='%s'", $brewing_db_table, $row_styles['brewStyleGroup'], $row_styles['brewStyleNum']);
+						else $query_style_count = sprintf("SELECT COUNT(*) as count FROM %s WHERE brewCategorySort='%s' AND brewSubCategory='%s' AND brewReceived='1'", $brewing_db_table, $row_styles['brewStyleGroup'], $row_styles['brewStyleNum']);
+						$style_count = mysqli_query($connection,$query_style_count) or die (mysqli_error($connection));
+						$row_style_count = mysqli_fetch_assoc($style_count);
 
-					$debug .= $query_style_count."<br>";
+						$debug .= $query_style_count."<br>";
 
-					if ((isset($row_style_count['count'])) && ($row_style_count['count'] > 0)) $c[] = $row_style_count['count'];
+						if ((isset($row_style_count['count'])) && ($row_style_count['count'] > 0)) $c[] = $row_style_count['count'];
+					
+					}
 
 				}
 
@@ -1980,6 +2070,10 @@ function get_table_info($input,$method,$table_id,$dbTable,$param) {
 
 		foreach ($a as $value) {
 
+			/*
+			if (HOSTED) $query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s' UNION ALL SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s'", $styles_db_table, $value, $prefix."styles", $value);
+			else 
+			*/
 			$query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s'", $styles_db_table, $value);
 			$styles = mysqli_query($connection,$query_styles) or die (mysqli_error($connection));
 			$row_styles = mysqli_fetch_assoc($styles);
@@ -1987,7 +2081,6 @@ function get_table_info($input,$method,$table_id,$dbTable,$param) {
 			$query_style_count = sprintf("SELECT COUNT(*) as count FROM %s WHERE brewCategorySort='%s' AND brewSubCategory='%s' AND brewReceived='1'", $brewing_db_table, $row_styles['brewStyleGroup'], $row_styles['brewStyleNum']);
 			$style_count = mysqli_query($connection,$query_style_count) or die (mysqli_error($connection));
 			$row_style_count = mysqli_fetch_assoc($style_count);
-
 
 			$c[] = $row_style_count['count'];
 
@@ -2040,7 +2133,7 @@ function style_type($type,$method,$source) {
 		$query_style_type = sprintf("SELECT styleTypeName FROM %s WHERE id='%s'", $prefix."style_types", $type);
 		$style_type = mysqli_query($connection,$query_style_type) or die (mysqli_error($connection));
 		$row_style_type = mysqli_fetch_assoc($style_type);
-		$type = $row_style_type['styleTypeName'];
+		if ($row_style_type) $type = $row_style_type['styleTypeName'];
 	}
 
 	if ($method == "3") {
@@ -2054,6 +2147,7 @@ function style_type($type,$method,$source) {
 	}
 	return $type;
 }
+
 /*
 function check_bos_loc($id) {
 	require(CONFIG.'config.php');
@@ -2065,7 +2159,6 @@ function check_bos_loc($id) {
 	return $bos_loc;
 }
 */
-
 
 function table_location($table_id,$date_format,$time_zone,$time_format,$method) {
 	require(CONFIG.'config.php');
@@ -2083,7 +2176,8 @@ function table_location($table_id,$date_format,$time_zone,$time_format,$method) 
 		$table = mysqli_query($connection,$query_table) or die (mysqli_error($connection));
 		$row_table = mysqli_fetch_assoc($table);
 
-		$query_location = sprintf("SELECT * FROM %s WHERE id='%s'", $prefix."judging_locations", $row_table['tableLocation']);
+		if ($row_table) $query_location = sprintf("SELECT * FROM %s WHERE id='%s'", $prefix."judging_locations", $row_table['tableLocation']);
+		else $query_location = sprintf("SELECT * FROM %s", $prefix."judging_locations");
 		
 	}
 
@@ -2122,15 +2216,12 @@ function score_count($table_id,$method,$dbTable) {
 
 }
 
-function best_brewer_points($bid, $places, $entry_scores, $points_prefs, $tiebreaker) {
-	// Main points
-	$pts_first = $points_prefs[0]*$places[0]; // points for each first place position
-	$pts_second = $points_prefs[1]*$places[1]; // points for each secon place position
-	$pts_third = $points_prefs[2]*$places[2]; // points for each third place position
-	$pts_fourth = $points_prefs[3]*$places[3]; // points for each fourth place position
-	$pts_hm = $points_prefs[4]*$places[4]; // points for each honorable mention
-	// Tie breakers
+function best_brewer_points($bid, $places, $entry_scores, $points_prefs, $tiebreaker, $method="0") {
 
+	// Get number of entries for the user
+	$user_number_of_entries = total_paid_received("",$bid);
+
+	// Tie breakers
 	$pts_tb_num_places = 0;
 	$pts_tb_first_places = 0;
 	$pts_tb_num_entries = 0;
@@ -2140,56 +2231,98 @@ function best_brewer_points($bid, $places, $entry_scores, $points_prefs, $tiebre
 	$pts_tb_bos = 0;
 
 	$power = 0;
-
+	$points = 0;
 	$imax = count($tiebreaker) - 1;
 
-	$number_of_entries = total_paid_received("",$bid);
+	// Default Method
+	if ($method == 0) {
 
-	for ($i = 0; $i<= $imax; $i++) {
-		switch ($tiebreaker[$i]) {
-			// points for the number of 1st, 2nd, and 3rd places
-			case "TBTotalPlaces" :
-				$power  += 2;
-				$pts_tb_num_places = array_sum(array_slice($places,0,3))/pow(10,$power);
-				break;
-			// points for the number of 1st, 2nd, 3rd, 4th, HM places
-			case "TBTotalExtendedPlaces" :
-				$power  += 2;
-				$pts_tb_num_places = array_sum($places)/pow(10,$power);
-				break;
-			// points for number of first places
-			case "TBFirstPlaces" :
-				$power  += 2;
-				$pts_tb_first_places = $places[0]/pow(10,$power);
-				break;
-			// points for the number of competing entries (the smallest the better, of course)
-			case "TBNumEntries" :
-				$power  += 4;
-				if ($number_of_entries > 0) $pts_tb_num_entries = floor(100/$number_of_entries)/pow(10,$power);
-				else $pts_tb_num_entries = 0;
-				break;
-			// points for the minimum score
-			case "TBMinScore" :
-				$power  += 4;
-				$pts_tb_min_score = floor(10*min($entry_scores))/pow(10,$power);
-				break;
-			// points for the maximum score
-			case "TBMaxScore" :
-				$power  += 4;
-				$pts_tb_max_score = floor(10*max($entry_scores))/pow(10,$power);
-				break;
-			// points for the average score
-			case "TBAvgScore" :
-				$power  += 4;
-				if ($number_of_entries > 0) $pts_avg_score = floor(10*array_sum($entry_scores)/$number_of_entries)/pow(10,$power);
-				else $pts_avg_score = 0;
-				break;
+		// Main points
+		$pts_first = $points_prefs[0]*$places[0]; // points for each first place position
+		$pts_second = $points_prefs[1]*$places[1]; // points for each secon place position
+		$pts_third = $points_prefs[2]*$places[2]; // points for each third place position
+		$pts_fourth = $points_prefs[3]*$places[3]; // points for each fourth place position
+		$pts_hm = $points_prefs[4]*$places[4]; // points for each honorable mention
+
+		for ($i = 0; $i<= $imax; $i++) {
+			switch ($tiebreaker[$i]) {
+				// points for the number of 1st, 2nd, and 3rd places
+				case "TBTotalPlaces" :
+					$power  += 2;
+					$pts_tb_num_places = array_sum(array_slice($places,0,3))/pow(10,$power);
+					break;
+				// points for the number of 1st, 2nd, 3rd, 4th, HM places
+				case "TBTotalExtendedPlaces" :
+					$power  += 2;
+					$pts_tb_num_places = array_sum($places)/pow(10,$power);
+					break;
+				// points for number of first places
+				case "TBFirstPlaces" :
+					$power  += 2;
+					$pts_tb_first_places = $places[0]/pow(10,$power);
+					break;
+				// points for the number of competing entries (the smallest the better, of course)
+				case "TBNumEntries" :
+					$power  += 4;
+					if ($user_number_of_entries > 0) $pts_tb_num_entries = floor(100/$user_number_of_entries)/pow(10,$power);
+					else $pts_tb_num_entries = 0;
+					break;
+				// points for the minimum score
+				case "TBMinScore" :
+					$power  += 4;
+					$pts_tb_min_score = floor(10*min($entry_scores))/pow(10,$power);
+					break;
+				// points for the maximum score
+				case "TBMaxScore" :
+					$power  += 4;
+					$pts_tb_max_score = floor(10*max($entry_scores))/pow(10,$power);
+					break;
+				// points for the average score
+				case "TBAvgScore" :
+					$power  += 4;
+					if ($user_number_of_entries > 0) $pts_avg_score = floor(10*array_sum($entry_scores)/$user_number_of_entries)/pow(10,$power);
+					else $pts_avg_score = 0;
+					break;
+			}
+
+		}
+
+		$points = $pts_first + $pts_second + $pts_third + $pts_fourth + $pts_hm + $pts_tb_num_places + $pts_tb_first_places + $pts_tb_num_entries + $pts_tb_min_score + $pts_tb_max_score + $pts_tb_avg_score;
+	
+	}
+
+	// CoA Method
+	if ($method == 1) {
+
+		/**
+		 * The $points_prefs var has the Winner Place 
+		 * Distribution Method choice
+		 *  - For table winner place distribution (1), 
+		 *    this is the number of entries at the table
+		 *  - For category winner place distribution (2), 
+		 *    this is the number of entries in the overall category
+		 *  - For sub-category winner place distribution (3), 
+		 *    this is the number of entries in the sub-category
+		 * 
+		 * Also contains the number of total entries for the equation 
+		 * (table, category/style, sub-category/style).
+		 * 
+		 * Formula: (($tc_number_of_entries - $user_place) / $tc_number_of_entries) cubed.
+		 *  
+		 */
+		
+		foreach ($places as $key => $value) {
+
+			$tc_number_of_entries = $points_prefs[$key];
+			$points += pow((($tc_number_of_entries - $value) / $tc_number_of_entries),3);
+			//if ($points <= 0) $points = 0;
+		
 		}
 
 	}
 
-	$points = $pts_first + $pts_second + $pts_third + $pts_fourth + $pts_hm + $pts_tb_num_places + $pts_tb_first_places + $pts_tb_num_entries + $pts_tb_min_score + $pts_tb_max_score + $pts_tb_avg_score;
 	return $points;
+
 }
 
 function bjcp_rank($rank,$method) {
@@ -2310,6 +2443,10 @@ function brewer_info($uid,$filter="default") {
 		$row_brewer_info = mysqli_fetch_assoc($brewer_info);
 	}
 
+	$tbb = array();
+
+	if (($_SESSION['prefsProEdition'] == 1) && (!empty($row_brewer_info['brewerBreweryInfo']))) $ttb = json_decode($row_brewer_info['brewerBreweryInfo'],true);
+
 	$r = "";
 	$r .= $row_brewer_info['brewerFirstName']."^"; 		// 0
 	$r .= $row_brewer_info['brewerLastName']."^"; 		// 1
@@ -2332,7 +2469,8 @@ function brewer_info($uid,$filter="default") {
 	$r .= $row_brewer_info['brewerCountry']."^";		// 14
 	if ($_SESSION['prefsProEdition'] == 1) $r .= $row_brewer_info['brewerBreweryName']."^"; else $r .= "&nbsp;^"; // 15
 	if ($row_brewer_info['brewerJudgeMead'] == "Y") $r .= "Certified Mead Judge"; else $r .= "&nbsp;^"; // 16
-	if ($_SESSION['prefsProEdition'] == 1) $r .= $row_brewer_info['brewerBreweryTTB']."^"; else $r .= "&nbsp;^";// 17
+	if (($_SESSION['prefsProEdition'] == 1) && (isset($ttb['TTB'])) && (!empty($ttb['TTB']))) $r .= $ttb['TTB']."^"; else $r .= "&nbsp;^";// 17
+	if (($_SESSION['prefsProEdition'] == 1) && (isset($ttb['Production'])) && (!empty($ttb['Production']))) $r .= $ttb['Production']."^"; else $r .= "&nbsp;^";// 17
 	return $r;
 }
 
@@ -2399,7 +2537,11 @@ function get_participant_count($type,$filter="") {
 	if ($type == 'steward') $query_participant_count = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewerSteward='Y'",$brewer_db_table);
 	if ($type == 'staff') $query_participant_count = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewerStaff='Y'",$brewer_db_table);
 	if ($type == 'staff-assigned') $query_participant_count = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE staff_staff=1",$staff_db_table);
+	
+	if ($type == 'organizer-assigned') $query_participant_count = sprintf("SELECT a.uid, b.brewerFirstName, b.brewerLastName, b.uid FROM %s a, %s b WHERE a.staff_organizer=1 AND a.uid = b.uid LIMIT 1",$staff_db_table,$brewer_db_table);
+	
 	if ($type == 'received-entrant') $query_participant_count = sprintf("SELECT COUNT(DISTINCT brewBrewerID) as 'count' FROM %s WHERE brewReceived='1'",$brewing_db_table);
+	if ($type == 'with-entries') $query_participant_count = sprintf("SELECT COUNT(DISTINCT brewBrewerId) as 'count' FROM %s",$prefix."brewing");
 	if ($type == 'received-club') $query_participant_count = sprintf("SELECT COUNT(DISTINCT b.brewerClubs) as 'count' FROM %s a, %s b WHERE b.uid = a.brewBrewerID AND b.brewerClubs IS NOT NULL", $brewing_db_table, $brewer_db_table);
 	$participant_count = mysqli_query($connection,$query_participant_count) or die (mysqli_error($connection));
 	$row_participant_count = mysqli_fetch_assoc($participant_count);
@@ -2408,7 +2550,24 @@ function get_participant_count($type,$filter="") {
 	// they would like to be a judge, steward, or staff
 	// SELECT sum(count) AS total_count FROM ((SELECT COUNT(DISTINCT uid) as count FROM $brewer_db_table WHERE brewerJudge='Y' OR brewerSteward='Y' OR brewerStaff='Y') UNION ALL (SELECT COUNT(DISTINCT brewBrewerID) as count FROM $brewing_db_table))t;
 
-	return $row_participant_count['count'];
+	$return_arr = array();
+
+	if ($row_participant_count) {
+		
+		if ($type == 'organizer-assigned') {
+			$return_arr = array(
+				'first_name' => $row_participant_count['brewerFirstName'],
+				'last_name' => $row_participant_count['brewerLastName'],
+				'uid' => $row_participant_count['uid']
+			);
+
+			return $return_arr;
+		} 
+
+		else return $row_participant_count['count'];
+	}
+
+		
 }
 
 function display_place($place,$method) {
@@ -2498,61 +2657,79 @@ function minibos_check($id,$judging_scores_db_table) {
 }
 
 function winner_check($id,$judging_scores_db_table,$judging_tables_db_table,$brewing_db_table,$method) {
+	
 	require(CONFIG.'config.php');
 	mysqli_select_db($connection,$database);
+
+	/*
+	if (HOSTED) $styles_db_table = "bcoem_shared_styles";
+	else
+	*/
+	$styles_db_table = $prefix."styles";
 
 	if ($method == 6) { // reserved for NHC admin advance
 		$r = "Administrative Advance";
 	}
 
 	if ($method < 6) {
-	$query_scores = sprintf("SELECT eid,scorePlace,scoreTable FROM %s WHERE eid='%s'",$judging_scores_db_table,$id);
-	$scores = mysqli_query($connection,$query_scores) or die (mysqli_error($connection));
-	$row_scores = mysqli_fetch_assoc($scores);
 
-	if (($row_scores) && ($row_scores['scorePlace'] >= "1")) {
+		$query_scores = sprintf("SELECT eid,scorePlace,scoreTable FROM %s WHERE eid='%s'",$judging_scores_db_table,$id);
+		$scores = mysqli_query($connection,$query_scores) or die (mysqli_error($connection));
+		$row_scores = mysqli_fetch_assoc($scores);
 
-		if ($method == "0") {  // Display by Table
+		if (($row_scores) && ($row_scores['scorePlace'] >= "1")) {
 
-		$query_table = sprintf("SELECT tableName FROM $judging_tables_db_table WHERE id='%s'", $row_scores['scoreTable']);
-		$table = mysqli_query($connection,$query_table) or die (mysqli_error($connection));
-		$row_table = mysqli_fetch_assoc($table);
-		$r = display_place($row_scores['scorePlace'],1).": ".$row_table['tableName'];
-		}
+			if ($method == "0") {  // Display by Table
 
-		if ($method == "1") {  // Display by Category
-			$query_entry = sprintf("SELECT brewCategorySort,brewSubCategory FROM $brewing_db_table WHERE id='%s'", $row_scores['eid']);
+			$query_table = sprintf("SELECT tableName FROM $judging_tables_db_table WHERE id='%s'", $row_scores['scoreTable']);
+			$table = mysqli_query($connection,$query_table) or die (mysqli_error($connection));
+			$row_table = mysqli_fetch_assoc($table);
+			$r = display_place($row_scores['scorePlace'],1).": ".$row_table['tableName'];
+			}
+
+			if ($method == "1") {  // Display by Category
+				
+				$query_entry = sprintf("SELECT brewCategorySort,brewSubCategory FROM $brewing_db_table WHERE id='%s'", $row_scores['eid']);
+				$entry = mysqli_query($connection,$query_entry) or die (mysqli_error($connection));
+				$row_entry = mysqli_fetch_assoc($entry);
+				
+				if ($_SESSION['prefsStyleSet'] != "BA") $r = display_place($row_scores['scorePlace'],1).": ".style_convert($row_entry['brewCategorySort'],1);
+				
+				else {
+
+						if (is_numeric($row_entry['brewSubCategory'])) {
+							$style = $_SESSION['styles']['data'][$row_entry['brewSubCategory'] - 1]['category']['name'];
+							if ($style == "Hybrid/mixed Beer") $style = "Hybrid/Mixed Beer";
+							elseif ($style == "European-germanic Lager") $style = "European-Germanic Lager";
+							else $style = ucwords($style);
+						}
+						
+						else $style = "Custom Style";
+
+					$r = display_place($row_scores['scorePlace'],1).": ".$style;
+				}
+			
+			}
+
+			if ($method == "2") {  // Display by Sub-Category
+
+			$query_entry = sprintf("SELECT brewCategorySort,brewCategory,brewSubCategory FROM $brewing_db_table WHERE id='%s'", $row_scores['eid']);
 			$entry = mysqli_query($connection,$query_entry) or die (mysqli_error($connection));
 			$row_entry = mysqli_fetch_assoc($entry);
-			if ($_SESSION['prefsStyleSet'] != "BA") $r = display_place($row_scores['scorePlace'],1).": ".style_convert($row_entry['brewCategorySort'],1);
-			else {
 
-					if (is_numeric($row_entry['brewSubCategory'])) {
-						$style = $_SESSION['styles']['data'][$row_entry['brewSubCategory'] - 1]['category']['name'];
-						if ($style == "Hybrid/mixed Beer") $style = "Hybrid/Mixed Beer";
-						elseif ($style == "European-germanic Lager") $style = "European-Germanic Lager";
-						else $style = ucwords($style);
-					}
-					else $style = "Custom Style";
+			/*
+			if (HOSTED) $query_style = sprintf("SELECT brewStyle FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleGroup='%s' AND brewStyleNum='%s' UNION ALL SELECT brewStyle FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleGroup='%s' AND brewStyleNum='%s'", $styles_db_table, $_SESSION['prefsStyleSet'], $row_entry['brewCategorySort'],$row_entry['brewSubCategory'], $prefix."styles", $_SESSION['prefsStyleSet'], $row_entry['brewCategorySort'],$row_entry['brewSubCategory']);
+			else 
+			*/
+			$query_style = sprintf("SELECT brewStyle FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleGroup='%s' AND brewStyleNum='%s'", $styles_db_table, $_SESSION['prefsStyleSet'], $row_entry['brewCategorySort'], $row_entry['brewSubCategory']);
+			$style = mysqli_query($connection,$query_style) or die (mysqli_error($connection));
+			$row_style = mysqli_fetch_assoc($style);
 
-				$r = display_place($row_scores['scorePlace'],1).": ".$style;
+			$r = display_place($row_scores['scorePlace'],1).": ".$row_style['brewStyle']." (".$row_entry['brewCategory'].$row_entry['brewSubCategory'].")";
 			}
 		}
 
-		if ($method == "2") {  // Display by Sub-Category
-
-		$query_entry = sprintf("SELECT brewCategorySort,brewCategory,brewSubCategory FROM $brewing_db_table WHERE id='%s'", $row_scores['eid']);
-		$entry = mysqli_query($connection,$query_entry) or die (mysqli_error($connection));
-		$row_entry = mysqli_fetch_assoc($entry);
-
-		$query_style = sprintf("SELECT brewStyle FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleGroup='%s' AND brewStyleNum='%s'", $prefix."styles", $_SESSION['prefsStyleSet'], $row_entry['brewCategorySort'],$row_entry['brewSubCategory']);
-		$style = mysqli_query($connection,$query_style) or die (mysqli_error($connection));
-		$row_style = mysqli_fetch_assoc($style);
-
-		$r = display_place($row_scores['scorePlace'],1).": ".$row_style['brewStyle']." (".$row_entry['brewCategory'].$row_entry['brewSubCategory'].")";
-		}
-	}
-	else $r = "";
+		else $r = "";
 	}
 	//$r = "<td class=\"dataList\">".$query_scores."<br>".$query_table."</td>";
 	return $r;
@@ -2641,12 +2818,23 @@ function check_special_ingredients($style,$style_version) {
 	mysqli_select_db($connection,$database);
 	$style_explodies = explode("-",$style);
 
-	$query_brews = sprintf("SELECT brewStyleReqSpec FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleGroup='%s' AND brewStyleNum='%s'", $prefix."styles", $style_version, $style_explodies[0], $style_explodies[1]);
+	/*
+	if (HOSTED) $styles_db_table = "bcoem_shared_styles";
+	else
+	*/
+	$styles_db_table = $prefix."styles";
+
+	/*
+	if (HOSTED) $query_brews = sprintf("SELECT brewStyleReqSpec FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleGroup='%s' AND brewStyleNum='%s' UNION ALL SELECT brewStyleReqSpec FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleGroup='%s' AND brewStyleNum='%s'", $styles_db_table, $style_version, $style_explodies[0], $style_explodies[1], $prefix."styles", $style_version, $style_explodies[0], $style_explodies[1]);
+	else 
+	*/
+	$query_brews = sprintf("SELECT brewStyleReqSpec FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleGroup='%s' AND brewStyleNum='%s'", $styles_db_table, $style_version, $style_explodies[0], $style_explodies[1]);
 	$brews = mysqli_query($connection,$query_brews) or die (mysqli_error($connection));
 	$row_brews = mysqli_fetch_assoc($brews);
 
 	if ((!empty($row_brews)) && ($row_brews['brewStyleReqSpec'] == 1)) return TRUE;
 	else return FALSE;
+
 }
 
 function entries_no_special($user_id) {
@@ -2834,7 +3022,7 @@ function data_integrity_check() {
 	}
 
 	$update_table = $prefix."bcoem_sys";
-	$data = array('data_check' => $db_conn->now());
+	$data = array('data_check' => date('Y-m-d H:i:s', time()));
 	$db_conn->where ('id', 1);
 	$result = $db_conn->update ($update_table, $data);
 	if (!$result) $errors += 1;
@@ -2927,8 +3115,7 @@ function table_exists($table_name) {
 	else return FALSE;
 }
 
-function judge_assignment($uid, $loc_id)
-{
+function judge_assignment($uid, $loc_id) {
 	// Get judge table assignments by locations
 	require(CONFIG.'config.php');
 	mysqli_select_db($connection,$database);
@@ -2952,7 +3139,7 @@ function table_assignments($uid,$method,$time_zone,$date_format,$time_format,$me
 	if ($method2 == 2) $output = array();
 	else $output = "";
 
-	$query_table_assignments = sprintf("SELECT assignTable,assignRoles,assignFlight,assignRound FROM %s WHERE bid='%s' AND assignment='%s'",$prefix."judging_assignments",$uid,$method);
+	$query_table_assignments = sprintf("SELECT assignTable,assignRoles,assignFlight,assignRound FROM %s WHERE bid='%s' AND assignment='%s' ORDER BY assignTable ASC",$prefix."judging_assignments",$uid,$method);
 	$table_assignments = mysqli_query($connection,$query_table_assignments) or die (mysqli_error($connection));
 	$row_table_assignments = mysqli_fetch_assoc($table_assignments);
 	$totalRows_table_assignments = mysqli_num_rows($table_assignments);
@@ -2962,58 +3149,84 @@ function table_assignments($uid,$method,$time_zone,$date_format,$time_format,$me
 		require(LANG.'language.lang.php');
 
 		do {
+			
 			$table_info = explode("^",get_table_info(1,"basic",$row_table_assignments['assignTable'],"default","default"));
 			$location = "";
 			if (isset($table_info[2])) $location = explode("^",get_table_info($table_info[2],"location",$row_table_assignments['assignTable'],"default","default"));
 
-			if (!empty($row_table_assignments['assignRoles'])) {
-				$hj = "<span class=\"text-primary\"><i class=\"fa fa-gavel\"></i> ".$label_head_judge."</span>";
-				$lj = "<span class=\"text-purple\"><i class=\"fa fa-star\"></i> ".$label_lead_judge."</span>";
-				$mbos = "<span class=\"text-success\"><i class=\"fa fa-trophy\"></i> ".$label_mini_bos_judge."</span>";
-				$role_replace1 = array("HJ","LJ","MBOS",", ");
-				$role_replace2 = array($hj,$lj,$mbos,"&nbsp;&nbsp;&nbsp;");
-				$role = str_replace($role_replace1,$role_replace2,$row_table_assignments['assignRoles']);
-			}
+			if (!empty($location)) {
 
-			if ($method2 == 0) {
-				$output .= "\t\t<tr>\n";
-				$output .= "\t\t\t<td>".$location[2];
-				if (!empty($location[3]) && ($location[4] == "1")) $output .= "<br><em><small>".$location[3]."</small></em>";
-				$output .= "\t\t\t</td>";
-				$output .= "\t\t\t<td>";
-				$output .= getTimeZoneDateTime($time_zone, $location[0], $date_format,  $time_format, "short", "date-time");
-				if (!empty($location[1])) $output .= " - ".getTimeZoneDateTime($time_zone, $location[1], $date_format,  $time_format, "short", "date-time");
-				$output .= "</td>\n";
-				$output .= "\t\t\t<td>";
-				$output .= sprintf("%s %s - %s",$label_table,$table_info[0],$table_info[1]);
-				if ($_SESSION['jPrefsQueued'] == "N") {
-					$output .= "<br>".$label_round." ".$row_table_assignments['assignFlight'].", ".$label_flight." ".$row_table_assignments['assignFlight'];
+				if (!empty($row_table_assignments['assignRoles'])) {
+					$hj = "<span class=\"text-primary\"><i class=\"fa fa-gavel\"></i> ".$label_head_judge."</span>";
+					$lj = "<span class=\"text-purple\"><i class=\"fa fa-star\"></i> ".$label_lead_judge."</span>";
+					$mbos = "<span class=\"text-success\"><i class=\"fa fa-trophy\"></i> ".$label_mini_bos_judge."</span>";
+					$role_replace1 = array("HJ","LJ","MBOS",", ");
+					$role_replace2 = array($hj,$lj,$mbos,"&nbsp;&nbsp;&nbsp;");
+					$role = str_replace($role_replace1,$role_replace2,$row_table_assignments['assignRoles']);
 				}
-				if (!empty($row_table_assignments['assignRoles'])) $output .= "<br>".$role;
-				$output .= "</td>\n";
-				$output .= "\t\t</tr>\n";
-			}
 
-			elseif ($method2 == 1) {
-				if ((isset($table_info[0])) && (isset($table_info[1])) && (isset($table_info[3]))) {
-					if ($method == "J") $output .= "<a href='".$base_url."index.php?section=admin&amp;action=assign&amp;go=judging_tables&amp;filter=judges&id=".$table_info[3]."' data-toggle=\"tooltip\" title='Assign/Unassign Judges to Table ".$table_info[0]." - ".$table_info[1]."'>".$table_info[0]." - ".$table_info[1]."</a>,&nbsp;";
-					if ($method == "S") $output .= "<a href='".$base_url."index.php?section=admin&amp;action=assign&amp;go=judging_tables&amp;filter=stewards&id=".$table_info[3]."' data-toggle=\"tooltip\" title='Assign/Unassign Stewards to Table ".$table_info[0]." - ".$table_info[1]."'>".$table_info[0]." - ".$table_info[1]."</a>,&nbsp;";
-				}
-			}
-
-			elseif ($method2 == 2) {
-				if (isset($table_info[3])) $output[] = $table_info[3];
-				else $output[] = "";
-			}
-
-			else {
-				if (!empty($location)) {
-					$output .= "\t\t\t<td>".$location[2]."</td>\n";
-					$output .= "\t\t\t<td>".getTimeZoneDateTime($time_zone, $location[0], $date_format,  $time_format, "long", "date-time")."</td>\n";
-					$output .= sprintf("\t\t\t<td>%s %s - %s</td>\n",$label_table,$table_info[0],$table_info[1]);
+				if ($method2 == 0) {
+					$output .= "\t\t<tr>\n";
+					$output .= "\t\t\t<td>".$location[2];
+					if (!empty($location[3]) && ($location[4] == "1")) $output .= "<br><em><small>".$location[3]."</small></em>";
+					$output .= "\t\t\t</td>";
+					$output .= "\t\t\t<td>";
+					$output .= getTimeZoneDateTime($time_zone, $location[0], $date_format,  $time_format, "short", "date-time");
+					if (!empty($location[1])) $output .= " - ".getTimeZoneDateTime($time_zone, $location[1], $date_format,  $time_format, "short", "date-time");
+					$output .= "</td>\n";
+					$output .= "\t\t\t<td>";
+					$output .= sprintf("%s %s - %s",$label_table,$table_info[0],$table_info[1]);
+					if ($_SESSION['jPrefsQueued'] == "N") {
+						$output .= "<br>".$label_round." ".$row_table_assignments['assignFlight'].", ".$label_flight." ".$row_table_assignments['assignFlight'];
+					}
+					if (!empty($row_table_assignments['assignRoles'])) $output .= "<br>".$role;
+					$output .= "</td>\n";
 					$output .= "\t\t</tr>\n";
 				}
+
+				elseif ($method2 == 1) {
+					if ((isset($table_info[0])) && (isset($table_info[1])) && (isset($table_info[3]))) {
+						if ($method == "J") $output .= $table_info[0]." - <a href='".$base_url."index.php?section=admin&amp;action=assign&amp;go=judging_tables&amp;filter=judges&id=".$table_info[3]."' data-toggle=\"tooltip\" title='Assign/Unassign Judges to Table ".$table_info[0]." - ".$table_info[1]."'>".$table_info[1]."</a>,&nbsp;";
+						if ($method == "S") $output .= "<a href='".$base_url."index.php?section=admin&amp;action=assign&amp;go=judging_tables&amp;filter=stewards&id=".$table_info[3]."' data-toggle=\"tooltip\" title='Assign/Unassign Stewards to Table ".$table_info[0]." - ".$table_info[1]."'>".$table_info[0]." - ".$table_info[1]."</a>,&nbsp;";
+					}
+				}
+
+				elseif ($method2 == 2) {
+					if (isset($table_info[3])) $output[] = $table_info[3];
+					else $output[] = "";
+				}
+
+				elseif ($method2 == 3) {
+					$output .= "\t\t<tr>\n";
+					$output .= "\t\t\t<td>".$location[2];
+					if (!empty($location[3]) && ($location[4] == "1")) $output .= "<br><em><small>".$location[3]."</small></em>";
+					$output .= "\t\t\t</td>";
+					$output .= "\t\t\t<td>";
+					$output .= getTimeZoneDateTime($time_zone, $location[0], $date_format,  $time_format, "short", "date-time");
+					if (!empty($location[1])) $output .= " - ".getTimeZoneDateTime($time_zone, $location[1], $date_format,  $time_format, "short", "date-time");
+					$output .= "</td>\n";
+					$output .= "\t\t\t<td>";
+					$output .= sprintf("<a href=\"#table%s\">%s %s - %s</a>",$table_info[3],$label_table,$table_info[0],$table_info[1]);
+					if ($_SESSION['jPrefsQueued'] == "N") {
+						$output .= "<br>".$label_round." ".$row_table_assignments['assignFlight'].", ".$label_flight." ".$row_table_assignments['assignFlight'];
+					}
+					if (!empty($row_table_assignments['assignRoles'])) $output .= "<br>".$role;
+					$output .= "</td>\n";
+					$output .= "\t\t</tr>\n";
+				}
+
+				else {
+					if (!empty($location)) {
+						$output .= "\t\t\t<td>".$location[2]."</td>\n";
+						$output .= "\t\t\t<td>".getTimeZoneDateTime($time_zone, $location[0], $date_format,  $time_format, "long", "date-time")."</td>\n";
+						$output .= sprintf("\t\t\t<td>%s %s - %s</td>\n",$label_table,$table_info[0],$table_info[1]);
+						$output .= "\t\t</tr>\n";
+					}
+				}
+
 			}
+
+			
 
 		} while ($row_table_assignments = mysqli_fetch_assoc($table_assignments));
 
@@ -3304,15 +3517,21 @@ function open_or_closed($now,$date1,$date2) {
 
 function limit_subcategory($style,$pref_num,$pref_exception_sub_num,$pref_exception_sub_array,$uid) {
 
-	/*
-	$style = Style category and subcategory number
-	$pref_num = Subcategory limit number from preferences
-	$pref_exception_sub_num = The entry limit of EXCEPTED subcategories
-	$pref_exception_sub_array = Array of EXCEPTED subcategories
-	*/
+	/**
+	 * @param $style = Style category and subcategory number
+	 * @param $pref_num = Subcategory limit number from preferences
+	 * @param $pref_exception_sub_num = The entry limit of EXCEPTED subcategories
+	 * @param $pref_exception_sub_array = Array of EXCEPTED subcategories
+	 */
 
 	require(CONFIG.'config.php');
 	mysqli_select_db($connection,$database);
+
+	/*
+	if (HOSTED) $styles_db_table = "bcoem_shared_styles";
+	else
+	*/
+	$styles_db_table = $prefix."styles";
 
 	$limit_reached = FALSE;
 	$style_break = explode("-",$style);
@@ -3323,7 +3542,11 @@ function limit_subcategory($style,$pref_num,$pref_exception_sub_num,$pref_except
 	elseif ($style_break[0] <= 9) $style_num = sprintf('%02d',$style_break[0]);
 	else $style_num = $style_break[0];
 
-	$query_style = sprintf("SELECT id FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleGroup='%s' AND brewStyleNum='%s'",$prefix."styles", $_SESSION['prefsStyleSet'], $style_num, $style_break[1]);
+	/*
+	if (HOSTED) $query_style = sprintf("SELECT id FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleGroup='%s' AND brewStyleNum='%s' UNION ALL SELECT id FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleGroup='%s' AND brewStyleNum='%s'", $styles_db_table, $_SESSION['prefsStyleSet'], $style_num, $style_break[1], $prefix."styles", $_SESSION['prefsStyleSet'], $style_num, $style_break[1]);
+	else 
+	*/
+	$query_style = sprintf("SELECT id FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleGroup='%s' AND brewStyleNum='%s'",$styles_db_table, $_SESSION['prefsStyleSet'], $style_num, $style_break[1]);
 	$style = mysqli_query($connection,$query_style) or die (mysqli_error($connection));
 	$row_style = mysqli_fetch_assoc($style);
 
@@ -3358,6 +3581,7 @@ function limit_subcategory($style,$pref_num,$pref_exception_sub_num,$pref_except
 	return $limit_reached;
 }
 
+// Unused. 2.6.0.
 function highlight_required($msg,$method,$style_version) {
 
 	require(CONFIG.'config.php');
@@ -3461,15 +3685,19 @@ function judging_location_info($id) {
 	$row_judging_loc3 = mysqli_fetch_assoc($judging_loc3);
 	$totalRows_judging_loc3 = mysqli_num_rows($judging_loc3);
 
-	$return = "";
+	$return = array();
+	
 	if ($totalRows_judging_loc3 > 0) {
-		$return .= $totalRows_judging_loc3."^"; // 0
-		$return .= $row_judging_loc3['judgingLocName']."^"; // 1
-		$return .= $row_judging_loc3['judgingDate']."^"; // 2
-		$return .= $row_judging_loc3['judgingLocation']."^"; // 3
-		$return .= $row_judging_loc3['judgingDateEnd']."^"; // 4
-		$return .= $row_judging_loc3['judgingLocType']; // 5
+		
+		$return[0] = $totalRows_judging_loc3;
+		$return[1] = $row_judging_loc3['judgingLocName'];
+		$return[2] = $row_judging_loc3['judgingDate'];
+		$return[3] = $row_judging_loc3['judgingLocation'];
+		$return[4] = $row_judging_loc3['judgingDateEnd'];
+		$return[5] = $row_judging_loc3['judgingLocType'];
+
 	}
+
 	return $return;
 
 }
@@ -3511,6 +3739,12 @@ function styles_active($method,$archive="") {
 	require(CONFIG.'config.php');
 	mysqli_select_db($connection,$database);
 
+	/*
+	if (HOSTED) $styles_db_table = "bcoem_shared_styles";
+	else
+	*/
+	$styles_db_table = $prefix."styles";
+
 	if ((empty($archive)) || ($archive == "default")) {
 		$style_set = $_SESSION['prefsStyleSet'];
 		$style_types_db = $prefix."style_types";
@@ -3538,19 +3772,31 @@ function styles_active($method,$archive="") {
 
 	if ($method == 0) { // Active Styles
 
-		// $query_styles = sprintf("SELECT brewStyleGroup FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') AND brewStyleActive='Y' ORDER BY brewStyleGroup ASC",$prefix."styles",$style_set);
-
-		$query_styles = sprintf("SELECT brewStyleGroup FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom')",$prefix."styles",$style_set);
+		$a = array();
+		
+		/*
+		if (HOSTED) {
+			$query_styles = sprintf("SELECT DISTINCT brewStyleGroup FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') UNION ALL SELECT DISTINCT brewStyleGroup FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom')", $styles_db_table, $style_set, $prefix."styles", $style_set);
+		}
+		*/
+		
+		$query_styles = sprintf("SELECT DISTINCT brewStyleGroup FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom')", $styles_db_table, $style_set);
 		if ((empty($archive)) || ($archive == "default")) $query_styles .= " AND brewStyleActive='Y'";
 		$query_styles .= " ORDER BY brewStyleGroup ASC";
 
 		$styles = mysqli_query($connection,$query_styles) or die (mysqli_error($connection));
 		$row_styles = mysqli_fetch_assoc($styles);
 		$totalRows_styles = mysqli_num_rows($styles);
-		do { $a[] = $row_styles['brewStyleGroup']; } while ($row_styles = mysqli_fetch_assoc($styles));
+
+		if ($row_styles) {
+			do { 
+				$a[] = $row_styles['brewStyleGroup']; 
+			} while ($row_styles = mysqli_fetch_assoc($styles));
+		}
 
 		sort($a);
 		return $a;
+		
 	}
 
 	if ($method == 1) { // Style Types
@@ -3565,7 +3811,11 @@ function styles_active($method,$archive="") {
 
 	if ($method == 2) {
 		
-		$query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum,brewStyle FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom')",$prefix."styles",$style_set);
+		/*
+		if (HOSTED) $query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum,brewStyle FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom') UNION ALL SELECT brewStyleGroup,brewStyleNum,brewStyle FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom')", $styles_db_table, $style_set, $prefix."styles", $style_set);
+		else 
+		*/
+		$query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum,brewStyle FROM %s WHERE (brewStyleVersion='%s' OR brewStyleOwn='custom')", $styles_db_table, $style_set);
 		if ((empty($archive)) || ($archive == "default")) $query_styles .= " AND brewStyleActive='Y'";
 		$query_styles .= " ORDER BY brewStyleGroup,brewStyleNum ASC";
 
@@ -3608,10 +3858,12 @@ function open_limit($total,$limit,$registration_open) {
 	else return FALSE;
 }
 
-// Simple encrypt and decrypt
-// Useful for URL passed strings that need to be obfuscated for *casual* users
-// Thanks to https://bhoover.com/using-php-openssl_encrypt-openssl_decrypt-encrypt-decrypt-data/
-// Thanks to http://markgoldsmith.me/blog/url-safe-php-encryption-and-decryption-script/
+/**
+ * Simple encrypt and decrypt
+ * Useful for URL passed strings that need to be obfuscated for *casual* users
+ * Thanks to https://bhoover.com/using-php-openssl_encrypt-openssl_decrypt-encrypt-decrypt-data/
+ * Thanks to http://markgoldsmith.me/blog/url-safe-php-encryption-and-decryption-script/
+ */
 
 function obfuscateURL($data,$key) {
 
@@ -3731,7 +3983,7 @@ function get_ba_style_info($id) {
 	return $return;
 }
 
-
+// Unused.
 function convert_to_ba() {
 
 	require(CONFIG.'config.php');
@@ -3789,7 +4041,7 @@ function convert_to_ba() {
 	} while ($row_check = mysqli_fetch_assoc($check));
 
 	// Change preference
-	session_start();
+	if (session_status() === PHP_SESSION_NONE) session_start();
 	$_SESSION['prefsStyleSet'] = "BA";
 
 	$updateSQL = sprintf("UPDATE %s SET brewStyleActive='Y' WHERE brewStyleVersion='BA';",$prefix."brewing");
@@ -3800,8 +4052,7 @@ function convert_to_ba() {
 
 }
 
-//convert_to_ba();
-
+// Unused.
 function convert_to_pro() {
 
 	require(CONFIG.'config.php');
@@ -3926,17 +4177,18 @@ function remove_sensitive_data() {
 	$row_check_user = mysqli_fetch_assoc($check_user);
 
 	$user_array = "";
+	$user_name = $default_to."@brewingcompetitions.com";
 
 	do {
 			if ($row_check_user['userLevel'] > 1) {
 			$random = random_generator(7,2);
 			$updateSQL = sprintf("UPDATE %s
 						 SET
-						 user_name='prost@brewcompetition.com',
+						 user_name='%s',
 						 password='f52dde34d49c8d69ab7fa5ee9ca13c72',
 						 userQuestion='Randomly generated.',
 						 userQuestionAnswer='%s'
-						 WHERE id='%s'",  $prefix."users", $random, $row_check_user['id']);
+						 WHERE id='%s'",  $prefix."users", $user_name, $random, $row_check_user['id']);
 			mysqli_real_escape_string($connection,$updateSQL);
 			$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
 			$user_array[] = $row_check_user['id'];
@@ -3987,10 +4239,10 @@ function remove_sensitive_data() {
 							 brewerZip='',
 							 brewerPhone1='303-555-1234',
 							 brewerPhone2='303-555-9876',
-							 brewerEmail='prost@brewcompetition.com',
+							 brewerEmail='%s',
 							 brewerJudgeID='A0000',
 							 brewerClubs='%s'
-							 WHERE id='%s'", $prefix."brewer", $first_name, $last_name, $club_name, $row_check_brewer['id']);
+							 WHERE id='%s'", $prefix."brewer", $first_name, $last_name, $user_name, $club_name, $row_check_brewer['id']);
 						mysqli_real_escape_string($connection,$updateSQL);
 						$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
 					}
@@ -4171,7 +4423,11 @@ function is_html($string) {
 function style_number_const($style_category_number,$style_sub,$style_set_display_separator,$method) {
 	switch ($method) {
 		case 0:
-			if ((isset($_SESSION['prefsStyleSet'])) && ($_SESSION['prefsStyleSet'] != "BA")) return ltrim($style_category_number,"0").$style_set_display_separator.ltrim($style_sub,"0");
+			if (isset($_SESSION['prefsStyleSet'])) {
+				if ($_SESSION['prefsStyleSet'] == "BA") return "";
+				elseif (($_SESSION['prefsStyleSet'] == "BJCP2021") || ($_SESSION['prefsStyleSet'] == "BJCP2015")) return ltrim($style_category_number,"0").$style_set_display_separator.ltrim($style_sub,"0");
+				else return $style_category_number.$style_set_display_separator.$style_sub;
+			}
 			else return "";
 		break;
 
@@ -4331,187 +4587,535 @@ function eval_exits($eid="default",$method="default",$dbTable) {
 
 // See https://core.trac.wordpress.org/browser/tags/4.1/src/wp-includes/formatting.php
 function remove_accents($string) {
+
+	// Converts all accent characters to ASCII characters.
+	// If there are no accent characters, then the string given is just returned.
+
     if (!preg_match('/[\x80-\xff]/', $string)) return $string;
 
     $chars = array(
-    // Decompositions for Latin-1 Supplement
-	chr(194).chr(170) => 'a', chr(194).chr(186) => 'o',
-	chr(195).chr(128) => 'A', chr(195).chr(129) => 'A',
-	chr(195).chr(130) => 'A', chr(195).chr(131) => 'A',
-	chr(195).chr(132) => 'A', chr(195).chr(133) => 'A',
-	chr(195).chr(134) => 'AE',chr(195).chr(135) => 'C',
-	chr(195).chr(136) => 'E', chr(195).chr(137) => 'E',
-	chr(195).chr(138) => 'E', chr(195).chr(139) => 'E',
-	chr(195).chr(140) => 'I', chr(195).chr(141) => 'I',
-	chr(195).chr(142) => 'I', chr(195).chr(143) => 'I',
-	chr(195).chr(144) => 'D', chr(195).chr(145) => 'N',
-	chr(195).chr(146) => 'O', chr(195).chr(147) => 'O',
-	chr(195).chr(148) => 'O', chr(195).chr(149) => 'O',
-	chr(195).chr(150) => 'O', chr(195).chr(153) => 'U',
-	chr(195).chr(154) => 'U', chr(195).chr(155) => 'U',
-	chr(195).chr(156) => 'U', chr(195).chr(157) => 'Y',
-	chr(195).chr(158) => 'TH',chr(195).chr(159) => 's',
-	chr(195).chr(160) => 'a', chr(195).chr(161) => 'a',
-	chr(195).chr(162) => 'a', chr(195).chr(163) => 'a',
-	chr(195).chr(164) => 'a', chr(195).chr(165) => 'a',
-	chr(195).chr(166) => 'ae',chr(195).chr(167) => 'c',
-	chr(195).chr(168) => 'e', chr(195).chr(169) => 'e',
-	chr(195).chr(170) => 'e', chr(195).chr(171) => 'e',
-	chr(195).chr(172) => 'i', chr(195).chr(173) => 'i',
-	chr(195).chr(174) => 'i', chr(195).chr(175) => 'i',
-	chr(195).chr(176) => 'd', chr(195).chr(177) => 'n',
-	chr(195).chr(178) => 'o', chr(195).chr(179) => 'o',
-	chr(195).chr(180) => 'o', chr(195).chr(181) => 'o',
-	chr(195).chr(182) => 'o', chr(195).chr(184) => 'o',
-	chr(195).chr(185) => 'u', chr(195).chr(186) => 'u',
-	chr(195).chr(187) => 'u', chr(195).chr(188) => 'u',
-	chr(195).chr(189) => 'y', chr(195).chr(190) => 'th',
-	chr(195).chr(191) => 'y', chr(195).chr(152) => 'O',
-	// Decompositions for Latin Extended-A
-	chr(196).chr(128) => 'A', chr(196).chr(129) => 'a',
-	chr(196).chr(130) => 'A', chr(196).chr(131) => 'a',
-	chr(196).chr(132) => 'A', chr(196).chr(133) => 'a',
-	chr(196).chr(134) => 'C', chr(196).chr(135) => 'c',
-	chr(196).chr(136) => 'C', chr(196).chr(137) => 'c',
-	chr(196).chr(138) => 'C', chr(196).chr(139) => 'c',
-	chr(196).chr(140) => 'C', chr(196).chr(141) => 'c',
-	chr(196).chr(142) => 'D', chr(196).chr(143) => 'd',
-	chr(196).chr(144) => 'D', chr(196).chr(145) => 'd',
-	chr(196).chr(146) => 'E', chr(196).chr(147) => 'e',
-	chr(196).chr(148) => 'E', chr(196).chr(149) => 'e',
-	chr(196).chr(150) => 'E', chr(196).chr(151) => 'e',
-	chr(196).chr(152) => 'E', chr(196).chr(153) => 'e',
-	chr(196).chr(154) => 'E', chr(196).chr(155) => 'e',
-	chr(196).chr(156) => 'G', chr(196).chr(157) => 'g',
-	chr(196).chr(158) => 'G', chr(196).chr(159) => 'g',
-	chr(196).chr(160) => 'G', chr(196).chr(161) => 'g',
-	chr(196).chr(162) => 'G', chr(196).chr(163) => 'g',
-	chr(196).chr(164) => 'H', chr(196).chr(165) => 'h',
-	chr(196).chr(166) => 'H', chr(196).chr(167) => 'h',
-	chr(196).chr(168) => 'I', chr(196).chr(169) => 'i',
-	chr(196).chr(170) => 'I', chr(196).chr(171) => 'i',
-	chr(196).chr(172) => 'I', chr(196).chr(173) => 'i',
-	chr(196).chr(174) => 'I', chr(196).chr(175) => 'i',
-	chr(196).chr(176) => 'I', chr(196).chr(177) => 'i',
-	chr(196).chr(178) => 'IJ',chr(196).chr(179) => 'ij',
-	chr(196).chr(180) => 'J', chr(196).chr(181) => 'j',
-	chr(196).chr(182) => 'K', chr(196).chr(183) => 'k',
-	chr(196).chr(184) => 'k', chr(196).chr(185) => 'L',
-	chr(196).chr(186) => 'l', chr(196).chr(187) => 'L',
-	chr(196).chr(188) => 'l', chr(196).chr(189) => 'L',
-	chr(196).chr(190) => 'l', chr(196).chr(191) => 'L',
-	chr(197).chr(128) => 'l', chr(197).chr(129) => 'L',
-	chr(197).chr(130) => 'l', chr(197).chr(131) => 'N',
-	chr(197).chr(132) => 'n', chr(197).chr(133) => 'N',
-	chr(197).chr(134) => 'n', chr(197).chr(135) => 'N',
-	chr(197).chr(136) => 'n', chr(197).chr(137) => 'N',
-	chr(197).chr(138) => 'n', chr(197).chr(139) => 'N',
-	chr(197).chr(140) => 'O', chr(197).chr(141) => 'o',
-	chr(197).chr(142) => 'O', chr(197).chr(143) => 'o',
-	chr(197).chr(144) => 'O', chr(197).chr(145) => 'o',
-	chr(197).chr(146) => 'OE',chr(197).chr(147) => 'oe',
-	chr(197).chr(148) => 'R',chr(197).chr(149) => 'r',
-	chr(197).chr(150) => 'R',chr(197).chr(151) => 'r',
-	chr(197).chr(152) => 'R',chr(197).chr(153) => 'r',
-	chr(197).chr(154) => 'S',chr(197).chr(155) => 's',
-	chr(197).chr(156) => 'S',chr(197).chr(157) => 's',
-	chr(197).chr(158) => 'S',chr(197).chr(159) => 's',
-	chr(197).chr(160) => 'S', chr(197).chr(161) => 's',
-	chr(197).chr(162) => 'T', chr(197).chr(163) => 't',
-	chr(197).chr(164) => 'T', chr(197).chr(165) => 't',
-	chr(197).chr(166) => 'T', chr(197).chr(167) => 't',
-	chr(197).chr(168) => 'U', chr(197).chr(169) => 'u',
-	chr(197).chr(170) => 'U', chr(197).chr(171) => 'u',
-	chr(197).chr(172) => 'U', chr(197).chr(173) => 'u',
-	chr(197).chr(174) => 'U', chr(197).chr(175) => 'u',
-	chr(197).chr(176) => 'U', chr(197).chr(177) => 'u',
-	chr(197).chr(178) => 'U', chr(197).chr(179) => 'u',
-	chr(197).chr(180) => 'W', chr(197).chr(181) => 'w',
-	chr(197).chr(182) => 'Y', chr(197).chr(183) => 'y',
-	chr(197).chr(184) => 'Y', chr(197).chr(185) => 'Z',
-	chr(197).chr(186) => 'z', chr(197).chr(187) => 'Z',
-	chr(197).chr(188) => 'z', chr(197).chr(189) => 'Z',
-	chr(197).chr(190) => 'z', chr(197).chr(191) => 's',
-	// Decompositions for Latin Extended-B
-	chr(200).chr(152) => 'S', chr(200).chr(153) => 's',
-	chr(200).chr(154) => 'T', chr(200).chr(155) => 't',
-	// Euro Sign
-	chr(226).chr(130).chr(172) => 'E',
-	// GBP (Pound) Sign
-	chr(194).chr(163) => '',
-	// Vowels with diacritic (Vietnamese)
-	// unmarked
-	chr(198).chr(160) => 'O', chr(198).chr(161) => 'o',
-	chr(198).chr(175) => 'U', chr(198).chr(176) => 'u',
-	// grave accent
-	chr(225).chr(186).chr(166) => 'A', chr(225).chr(186).chr(167) => 'a',
-	chr(225).chr(186).chr(176) => 'A', chr(225).chr(186).chr(177) => 'a',
-	chr(225).chr(187).chr(128) => 'E', chr(225).chr(187).chr(129) => 'e',
-	chr(225).chr(187).chr(146) => 'O', chr(225).chr(187).chr(147) => 'o',
-	chr(225).chr(187).chr(156) => 'O', chr(225).chr(187).chr(157) => 'o',
-	chr(225).chr(187).chr(170) => 'U', chr(225).chr(187).chr(171) => 'u',
-	chr(225).chr(187).chr(178) => 'Y', chr(225).chr(187).chr(179) => 'y',
-	// hook
-	chr(225).chr(186).chr(162) => 'A', chr(225).chr(186).chr(163) => 'a',
-	chr(225).chr(186).chr(168) => 'A', chr(225).chr(186).chr(169) => 'a',
-	chr(225).chr(186).chr(178) => 'A', chr(225).chr(186).chr(179) => 'a',
-	chr(225).chr(186).chr(186) => 'E', chr(225).chr(186).chr(187) => 'e',
-	chr(225).chr(187).chr(130) => 'E', chr(225).chr(187).chr(131) => 'e',
-	chr(225).chr(187).chr(136) => 'I', chr(225).chr(187).chr(137) => 'i',
-	chr(225).chr(187).chr(142) => 'O', chr(225).chr(187).chr(143) => 'o',
-	chr(225).chr(187).chr(148) => 'O', chr(225).chr(187).chr(149) => 'o',
-	chr(225).chr(187).chr(158) => 'O', chr(225).chr(187).chr(159) => 'o',
-	chr(225).chr(187).chr(166) => 'U', chr(225).chr(187).chr(167) => 'u',
-	chr(225).chr(187).chr(172) => 'U', chr(225).chr(187).chr(173) => 'u',
-	chr(225).chr(187).chr(182) => 'Y', chr(225).chr(187).chr(183) => 'y',
-	// tilde
-	chr(225).chr(186).chr(170) => 'A', chr(225).chr(186).chr(171) => 'a',
-	chr(225).chr(186).chr(180) => 'A', chr(225).chr(186).chr(181) => 'a',
-	chr(225).chr(186).chr(188) => 'E', chr(225).chr(186).chr(189) => 'e',
-	chr(225).chr(187).chr(132) => 'E', chr(225).chr(187).chr(133) => 'e',
-	chr(225).chr(187).chr(150) => 'O', chr(225).chr(187).chr(151) => 'o',
-	chr(225).chr(187).chr(160) => 'O', chr(225).chr(187).chr(161) => 'o',
-	chr(225).chr(187).chr(174) => 'U', chr(225).chr(187).chr(175) => 'u',
-	chr(225).chr(187).chr(184) => 'Y', chr(225).chr(187).chr(185) => 'y',
-	// acute accent
-	chr(225).chr(186).chr(164) => 'A', chr(225).chr(186).chr(165) => 'a',
-	chr(225).chr(186).chr(174) => 'A', chr(225).chr(186).chr(175) => 'a',
-	chr(225).chr(186).chr(190) => 'E', chr(225).chr(186).chr(191) => 'e',
-	chr(225).chr(187).chr(144) => 'O', chr(225).chr(187).chr(145) => 'o',
-	chr(225).chr(187).chr(154) => 'O', chr(225).chr(187).chr(155) => 'o',
-	chr(225).chr(187).chr(168) => 'U', chr(225).chr(187).chr(169) => 'u',
-	// dot below
-	chr(225).chr(186).chr(160) => 'A', chr(225).chr(186).chr(161) => 'a',
-	chr(225).chr(186).chr(172) => 'A', chr(225).chr(186).chr(173) => 'a',
-	chr(225).chr(186).chr(182) => 'A', chr(225).chr(186).chr(183) => 'a',
-	chr(225).chr(186).chr(184) => 'E', chr(225).chr(186).chr(185) => 'e',
-	chr(225).chr(187).chr(134) => 'E', chr(225).chr(187).chr(135) => 'e',
-	chr(225).chr(187).chr(138) => 'I', chr(225).chr(187).chr(139) => 'i',
-	chr(225).chr(187).chr(140) => 'O', chr(225).chr(187).chr(141) => 'o',
-	chr(225).chr(187).chr(152) => 'O', chr(225).chr(187).chr(153) => 'o',
-	chr(225).chr(187).chr(162) => 'O', chr(225).chr(187).chr(163) => 'o',
-	chr(225).chr(187).chr(164) => 'U', chr(225).chr(187).chr(165) => 'u',
-	chr(225).chr(187).chr(176) => 'U', chr(225).chr(187).chr(177) => 'u',
-	chr(225).chr(187).chr(180) => 'Y', chr(225).chr(187).chr(181) => 'y',
-	// Vowels with diacritic (Chinese, Hanyu Pinyin)
-	chr(201).chr(145) => 'a',
-	// macron
-	chr(199).chr(149) => 'U', chr(199).chr(150) => 'u',
-	// acute accent
-	chr(199).chr(151) => 'U', chr(199).chr(152) => 'u',
-	// caron
-	chr(199).chr(141) => 'A', chr(199).chr(142) => 'a',
-	chr(199).chr(143) => 'I', chr(199).chr(144) => 'i',
-	chr(199).chr(145) => 'O', chr(199).chr(146) => 'o',
-	chr(199).chr(147) => 'U', chr(199).chr(148) => 'u',
-	chr(199).chr(153) => 'U', chr(199).chr(154) => 'u',
-	// grave accent
-	chr(199).chr(155) => 'U', chr(199).chr(156) => 'u',
-    );
+	    // Decompositions for Latin-1 Supplement
+		chr(194).chr(170) => 'a', chr(194).chr(186) => 'o',
+		chr(195).chr(128) => 'A', chr(195).chr(129) => 'A',
+		chr(195).chr(130) => 'A', chr(195).chr(131) => 'A',
+		chr(195).chr(132) => 'A', chr(195).chr(133) => 'A',
+		chr(195).chr(134) => 'AE',chr(195).chr(135) => 'C',
+		chr(195).chr(136) => 'E', chr(195).chr(137) => 'E',
+		chr(195).chr(138) => 'E', chr(195).chr(139) => 'E',
+		chr(195).chr(140) => 'I', chr(195).chr(141) => 'I',
+		chr(195).chr(142) => 'I', chr(195).chr(143) => 'I',
+		chr(195).chr(144) => 'D', chr(195).chr(145) => 'N',
+		chr(195).chr(146) => 'O', chr(195).chr(147) => 'O',
+		chr(195).chr(148) => 'O', chr(195).chr(149) => 'O',
+		chr(195).chr(150) => 'O', chr(195).chr(153) => 'U',
+		chr(195).chr(154) => 'U', chr(195).chr(155) => 'U',
+		chr(195).chr(156) => 'U', chr(195).chr(157) => 'Y',
+		chr(195).chr(158) => 'TH',chr(195).chr(159) => 's',
+		chr(195).chr(160) => 'a', chr(195).chr(161) => 'a',
+		chr(195).chr(162) => 'a', chr(195).chr(163) => 'a',
+		chr(195).chr(164) => 'a', chr(195).chr(165) => 'a',
+		chr(195).chr(166) => 'ae',chr(195).chr(167) => 'c',
+		chr(195).chr(168) => 'e', chr(195).chr(169) => 'e',
+		chr(195).chr(170) => 'e', chr(195).chr(171) => 'e',
+		chr(195).chr(172) => 'i', chr(195).chr(173) => 'i',
+		chr(195).chr(174) => 'i', chr(195).chr(175) => 'i',
+		chr(195).chr(176) => 'd', chr(195).chr(177) => 'n',
+		chr(195).chr(178) => 'o', chr(195).chr(179) => 'o',
+		chr(195).chr(180) => 'o', chr(195).chr(181) => 'o',
+		chr(195).chr(182) => 'o', chr(195).chr(184) => 'o',
+		chr(195).chr(185) => 'u', chr(195).chr(186) => 'u',
+		chr(195).chr(187) => 'u', chr(195).chr(188) => 'u',
+		chr(195).chr(189) => 'y', chr(195).chr(190) => 'th',
+		chr(195).chr(191) => 'y', chr(195).chr(152) => 'O',
+		// Decompositions for Latin Extended-A
+		chr(196).chr(128) => 'A', chr(196).chr(129) => 'a',
+		chr(196).chr(130) => 'A', chr(196).chr(131) => 'a',
+		chr(196).chr(132) => 'A', chr(196).chr(133) => 'a',
+		chr(196).chr(134) => 'C', chr(196).chr(135) => 'c',
+		chr(196).chr(136) => 'C', chr(196).chr(137) => 'c',
+		chr(196).chr(138) => 'C', chr(196).chr(139) => 'c',
+		chr(196).chr(140) => 'C', chr(196).chr(141) => 'c',
+		chr(196).chr(142) => 'D', chr(196).chr(143) => 'd',
+		chr(196).chr(144) => 'D', chr(196).chr(145) => 'd',
+		chr(196).chr(146) => 'E', chr(196).chr(147) => 'e',
+		chr(196).chr(148) => 'E', chr(196).chr(149) => 'e',
+		chr(196).chr(150) => 'E', chr(196).chr(151) => 'e',
+		chr(196).chr(152) => 'E', chr(196).chr(153) => 'e',
+		chr(196).chr(154) => 'E', chr(196).chr(155) => 'e',
+		chr(196).chr(156) => 'G', chr(196).chr(157) => 'g',
+		chr(196).chr(158) => 'G', chr(196).chr(159) => 'g',
+		chr(196).chr(160) => 'G', chr(196).chr(161) => 'g',
+		chr(196).chr(162) => 'G', chr(196).chr(163) => 'g',
+		chr(196).chr(164) => 'H', chr(196).chr(165) => 'h',
+		chr(196).chr(166) => 'H', chr(196).chr(167) => 'h',
+		chr(196).chr(168) => 'I', chr(196).chr(169) => 'i',
+		chr(196).chr(170) => 'I', chr(196).chr(171) => 'i',
+		chr(196).chr(172) => 'I', chr(196).chr(173) => 'i',
+		chr(196).chr(174) => 'I', chr(196).chr(175) => 'i',
+		chr(196).chr(176) => 'I', chr(196).chr(177) => 'i',
+		chr(196).chr(178) => 'IJ',chr(196).chr(179) => 'ij',
+		chr(196).chr(180) => 'J', chr(196).chr(181) => 'j',
+		chr(196).chr(182) => 'K', chr(196).chr(183) => 'k',
+		chr(196).chr(184) => 'k', chr(196).chr(185) => 'L',
+		chr(196).chr(186) => 'l', chr(196).chr(187) => 'L',
+		chr(196).chr(188) => 'l', chr(196).chr(189) => 'L',
+		chr(196).chr(190) => 'l', chr(196).chr(191) => 'L',
+		chr(197).chr(128) => 'l', chr(197).chr(129) => 'L',
+		chr(197).chr(130) => 'l', chr(197).chr(131) => 'N',
+		chr(197).chr(132) => 'n', chr(197).chr(133) => 'N',
+		chr(197).chr(134) => 'n', chr(197).chr(135) => 'N',
+		chr(197).chr(136) => 'n', chr(197).chr(137) => 'N',
+		chr(197).chr(138) => 'n', chr(197).chr(139) => 'N',
+		chr(197).chr(140) => 'O', chr(197).chr(141) => 'o',
+		chr(197).chr(142) => 'O', chr(197).chr(143) => 'o',
+		chr(197).chr(144) => 'O', chr(197).chr(145) => 'o',
+		chr(197).chr(146) => 'OE',chr(197).chr(147) => 'oe',
+		chr(197).chr(148) => 'R',chr(197).chr(149) => 'r',
+		chr(197).chr(150) => 'R',chr(197).chr(151) => 'r',
+		chr(197).chr(152) => 'R',chr(197).chr(153) => 'r',
+		chr(197).chr(154) => 'S',chr(197).chr(155) => 's',
+		chr(197).chr(156) => 'S',chr(197).chr(157) => 's',
+		chr(197).chr(158) => 'S',chr(197).chr(159) => 's',
+		chr(197).chr(160) => 'S', chr(197).chr(161) => 's',
+		chr(197).chr(162) => 'T', chr(197).chr(163) => 't',
+		chr(197).chr(164) => 'T', chr(197).chr(165) => 't',
+		chr(197).chr(166) => 'T', chr(197).chr(167) => 't',
+		chr(197).chr(168) => 'U', chr(197).chr(169) => 'u',
+		chr(197).chr(170) => 'U', chr(197).chr(171) => 'u',
+		chr(197).chr(172) => 'U', chr(197).chr(173) => 'u',
+		chr(197).chr(174) => 'U', chr(197).chr(175) => 'u',
+		chr(197).chr(176) => 'U', chr(197).chr(177) => 'u',
+		chr(197).chr(178) => 'U', chr(197).chr(179) => 'u',
+		chr(197).chr(180) => 'W', chr(197).chr(181) => 'w',
+		chr(197).chr(182) => 'Y', chr(197).chr(183) => 'y',
+		chr(197).chr(184) => 'Y', chr(197).chr(185) => 'Z',
+		chr(197).chr(186) => 'z', chr(197).chr(187) => 'Z',
+		chr(197).chr(188) => 'z', chr(197).chr(189) => 'Z',
+		chr(197).chr(190) => 'z', chr(197).chr(191) => 's',
+		// Decompositions for Latin Extended-B
+		chr(200).chr(152) => 'S', chr(200).chr(153) => 's',
+		chr(200).chr(154) => 'T', chr(200).chr(155) => 't',
+		// Euro Sign
+		chr(226).chr(130).chr(172) => 'E',
+		// GBP (Pound) Sign
+		chr(194).chr(163) => '',
+		// Vowels with diacritic (Vietnamese)
+		// unmarked
+		chr(198).chr(160) => 'O', chr(198).chr(161) => 'o',
+		chr(198).chr(175) => 'U', chr(198).chr(176) => 'u',
+		// grave accent
+		chr(225).chr(186).chr(166) => 'A', chr(225).chr(186).chr(167) => 'a',
+		chr(225).chr(186).chr(176) => 'A', chr(225).chr(186).chr(177) => 'a',
+		chr(225).chr(187).chr(128) => 'E', chr(225).chr(187).chr(129) => 'e',
+		chr(225).chr(187).chr(146) => 'O', chr(225).chr(187).chr(147) => 'o',
+		chr(225).chr(187).chr(156) => 'O', chr(225).chr(187).chr(157) => 'o',
+		chr(225).chr(187).chr(170) => 'U', chr(225).chr(187).chr(171) => 'u',
+		chr(225).chr(187).chr(178) => 'Y', chr(225).chr(187).chr(179) => 'y',
+		// hook
+		chr(225).chr(186).chr(162) => 'A', chr(225).chr(186).chr(163) => 'a',
+		chr(225).chr(186).chr(168) => 'A', chr(225).chr(186).chr(169) => 'a',
+		chr(225).chr(186).chr(178) => 'A', chr(225).chr(186).chr(179) => 'a',
+		chr(225).chr(186).chr(186) => 'E', chr(225).chr(186).chr(187) => 'e',
+		chr(225).chr(187).chr(130) => 'E', chr(225).chr(187).chr(131) => 'e',
+		chr(225).chr(187).chr(136) => 'I', chr(225).chr(187).chr(137) => 'i',
+		chr(225).chr(187).chr(142) => 'O', chr(225).chr(187).chr(143) => 'o',
+		chr(225).chr(187).chr(148) => 'O', chr(225).chr(187).chr(149) => 'o',
+		chr(225).chr(187).chr(158) => 'O', chr(225).chr(187).chr(159) => 'o',
+		chr(225).chr(187).chr(166) => 'U', chr(225).chr(187).chr(167) => 'u',
+		chr(225).chr(187).chr(172) => 'U', chr(225).chr(187).chr(173) => 'u',
+		chr(225).chr(187).chr(182) => 'Y', chr(225).chr(187).chr(183) => 'y',
+		// tilde
+		chr(225).chr(186).chr(170) => 'A', chr(225).chr(186).chr(171) => 'a',
+		chr(225).chr(186).chr(180) => 'A', chr(225).chr(186).chr(181) => 'a',
+		chr(225).chr(186).chr(188) => 'E', chr(225).chr(186).chr(189) => 'e',
+		chr(225).chr(187).chr(132) => 'E', chr(225).chr(187).chr(133) => 'e',
+		chr(225).chr(187).chr(150) => 'O', chr(225).chr(187).chr(151) => 'o',
+		chr(225).chr(187).chr(160) => 'O', chr(225).chr(187).chr(161) => 'o',
+		chr(225).chr(187).chr(174) => 'U', chr(225).chr(187).chr(175) => 'u',
+		chr(225).chr(187).chr(184) => 'Y', chr(225).chr(187).chr(185) => 'y',
+		// acute accent
+		chr(225).chr(186).chr(164) => 'A', chr(225).chr(186).chr(165) => 'a',
+		chr(225).chr(186).chr(174) => 'A', chr(225).chr(186).chr(175) => 'a',
+		chr(225).chr(186).chr(190) => 'E', chr(225).chr(186).chr(191) => 'e',
+		chr(225).chr(187).chr(144) => 'O', chr(225).chr(187).chr(145) => 'o',
+		chr(225).chr(187).chr(154) => 'O', chr(225).chr(187).chr(155) => 'o',
+		chr(225).chr(187).chr(168) => 'U', chr(225).chr(187).chr(169) => 'u',
+		// dot below
+		chr(225).chr(186).chr(160) => 'A', chr(225).chr(186).chr(161) => 'a',
+		chr(225).chr(186).chr(172) => 'A', chr(225).chr(186).chr(173) => 'a',
+		chr(225).chr(186).chr(182) => 'A', chr(225).chr(186).chr(183) => 'a',
+		chr(225).chr(186).chr(184) => 'E', chr(225).chr(186).chr(185) => 'e',
+		chr(225).chr(187).chr(134) => 'E', chr(225).chr(187).chr(135) => 'e',
+		chr(225).chr(187).chr(138) => 'I', chr(225).chr(187).chr(139) => 'i',
+		chr(225).chr(187).chr(140) => 'O', chr(225).chr(187).chr(141) => 'o',
+		chr(225).chr(187).chr(152) => 'O', chr(225).chr(187).chr(153) => 'o',
+		chr(225).chr(187).chr(162) => 'O', chr(225).chr(187).chr(163) => 'o',
+		chr(225).chr(187).chr(164) => 'U', chr(225).chr(187).chr(165) => 'u',
+		chr(225).chr(187).chr(176) => 'U', chr(225).chr(187).chr(177) => 'u',
+		chr(225).chr(187).chr(180) => 'Y', chr(225).chr(187).chr(181) => 'y',
+		// Vowels with diacritic (Chinese, Hanyu Pinyin)
+		chr(201).chr(145) => 'a',
+		// macron
+		chr(199).chr(149) => 'U', chr(199).chr(150) => 'u',
+		// acute accent
+		chr(199).chr(151) => 'U', chr(199).chr(152) => 'u',
+		// caron
+		chr(199).chr(141) => 'A', chr(199).chr(142) => 'a',
+		chr(199).chr(143) => 'I', chr(199).chr(144) => 'i',
+		chr(199).chr(145) => 'O', chr(199).chr(146) => 'o',
+		chr(199).chr(147) => 'U', chr(199).chr(148) => 'u',
+		chr(199).chr(153) => 'U', chr(199).chr(154) => 'u',
+		// grave accent
+		chr(199).chr(155) => 'U', chr(199).chr(156) => 'u',
+
+		'ª' => 'a',
+		'º' => 'o',
+		'À' => 'A',
+		'Á' => 'A',
+		'Â' => 'A',
+		'Ã' => 'A',
+		'Ä' => 'A',
+		'Å' => 'A',
+		'Æ' => 'AE',
+		'Ç' => 'C',
+		'È' => 'E',
+		'É' => 'E',
+		'Ê' => 'E',
+		'Ë' => 'E',
+		'Ì' => 'I',
+		'Í' => 'I',
+		'Î' => 'I',
+		'Ï' => 'I',
+		'Ð' => 'D',
+		'Ñ' => 'N',
+		'Ò' => 'O',
+		'Ó' => 'O',
+		'Ô' => 'O',
+		'Õ' => 'O',
+		'Ö' => 'O',
+		'Ù' => 'U',
+		'Ú' => 'U',
+		'Û' => 'U',
+		'Ü' => 'U',
+		'Ý' => 'Y',
+		'Þ' => 'TH',
+		'ß' => 's',
+		'à' => 'a',
+		'á' => 'a',
+		'â' => 'a',
+		'ã' => 'a',
+		'ä' => 'a',
+		'å' => 'a',
+		'æ' => 'ae',
+		'ç' => 'c',
+		'è' => 'e',
+		'é' => 'e',
+		'ê' => 'e',
+		'ë' => 'e',
+		'ì' => 'i',
+		'í' => 'i',
+		'î' => 'i',
+		'ï' => 'i',
+		'ð' => 'd',
+		'ñ' => 'n',
+		'ò' => 'o',
+		'ó' => 'o',
+		'ô' => 'o',
+		'õ' => 'o',
+		'ö' => 'o',
+		'ø' => 'o',
+		'ù' => 'u',
+		'ú' => 'u',
+		'û' => 'u',
+		'ü' => 'u',
+		'ý' => 'y',
+		'þ' => 'th',
+		'ÿ' => 'y',
+		'Ø' => 'O',
+		// Decompositions for Latin Extended-A.
+		'Ā' => 'A',
+		'ā' => 'a',
+		'Ă' => 'A',
+		'ă' => 'a',
+		'Ą' => 'A',
+		'ą' => 'a',
+		'Ć' => 'C',
+		'ć' => 'c',
+		'Ĉ' => 'C',
+		'ĉ' => 'c',
+		'Ċ' => 'C',
+		'ċ' => 'c',
+		'Č' => 'C',
+		'č' => 'c',
+		'Ď' => 'D',
+		'ď' => 'd',
+		'Đ' => 'D',
+		'đ' => 'd',
+		'Ē' => 'E',
+		'ē' => 'e',
+		'Ĕ' => 'E',
+		'ĕ' => 'e',
+		'Ė' => 'E',
+		'ė' => 'e',
+		'Ę' => 'E',
+		'ę' => 'e',
+		'Ě' => 'E',
+		'ě' => 'e',
+		'Ĝ' => 'G',
+		'ĝ' => 'g',
+		'Ğ' => 'G',
+		'ğ' => 'g',
+		'Ġ' => 'G',
+		'ġ' => 'g',
+		'Ģ' => 'G',
+		'ģ' => 'g',
+		'Ĥ' => 'H',
+		'ĥ' => 'h',
+		'Ħ' => 'H',
+		'ħ' => 'h',
+		'Ĩ' => 'I',
+		'ĩ' => 'i',
+		'Ī' => 'I',
+		'ī' => 'i',
+		'Ĭ' => 'I',
+		'ĭ' => 'i',
+		'Į' => 'I',
+		'į' => 'i',
+		'İ' => 'I',
+		'ı' => 'i',
+		'Ĳ' => 'IJ',
+		'ĳ' => 'ij',
+		'Ĵ' => 'J',
+		'ĵ' => 'j',
+		'Ķ' => 'K',
+		'ķ' => 'k',
+		'ĸ' => 'k',
+		'Ĺ' => 'L',
+		'ĺ' => 'l',
+		'Ļ' => 'L',
+		'ļ' => 'l',
+		'Ľ' => 'L',
+		'ľ' => 'l',
+		'Ŀ' => 'L',
+		'ŀ' => 'l',
+		'Ł' => 'L',
+		'ł' => 'l',
+		'Ń' => 'N',
+		'ń' => 'n',
+		'Ņ' => 'N',
+		'ņ' => 'n',
+		'Ň' => 'N',
+		'ň' => 'n',
+		'ŉ' => 'n',
+		'Ŋ' => 'N',
+		'ŋ' => 'n',
+		'Ō' => 'O',
+		'ō' => 'o',
+		'Ŏ' => 'O',
+		'ŏ' => 'o',
+		'Ő' => 'O',
+		'ő' => 'o',
+		'Œ' => 'OE',
+		'œ' => 'oe',
+		'Ŕ' => 'R',
+		'ŕ' => 'r',
+		'Ŗ' => 'R',
+		'ŗ' => 'r',
+		'Ř' => 'R',
+		'ř' => 'r',
+		'Ś' => 'S',
+		'ś' => 's',
+		'Ŝ' => 'S',
+		'ŝ' => 's',
+		'Ş' => 'S',
+		'ş' => 's',
+		'Š' => 'S',
+		'š' => 's',
+		'Ţ' => 'T',
+		'ţ' => 't',
+		'Ť' => 'T',
+		'ť' => 't',
+		'Ŧ' => 'T',
+		'ŧ' => 't',
+		'Ũ' => 'U',
+		'ũ' => 'u',
+		'Ū' => 'U',
+		'ū' => 'u',
+		'Ŭ' => 'U',
+		'ŭ' => 'u',
+		'Ů' => 'U',
+		'ů' => 'u',
+		'Ű' => 'U',
+		'ű' => 'u',
+		'Ų' => 'U',
+		'ų' => 'u',
+		'Ŵ' => 'W',
+		'ŵ' => 'w',
+		'Ŷ' => 'Y',
+		'ŷ' => 'y',
+		'Ÿ' => 'Y',
+		'Ź' => 'Z',
+		'ź' => 'z',
+		'Ż' => 'Z',
+		'ż' => 'z',
+		'Ž' => 'Z',
+		'ž' => 'z',
+		'ſ' => 's',
+		// Decompositions for Latin Extended-B.
+		'Ə' => 'E',
+		'ǝ' => 'e',
+		'Ș' => 'S',
+		'ș' => 's',
+		'Ț' => 'T',
+		'ț' => 't',
+		// Euro sign.
+		'€' => 'E',
+		// GBP (Pound) sign.
+		'£' => '',
+		// Vowels with diacritic (Vietnamese). Unmarked.
+		'Ơ' => 'O',
+		'ơ' => 'o',
+		'Ư' => 'U',
+		'ư' => 'u',
+		// Grave accent.
+		'Ầ' => 'A',
+		'ầ' => 'a',
+		'Ằ' => 'A',
+		'ằ' => 'a',
+		'Ề' => 'E',
+		'ề' => 'e',
+		'Ồ' => 'O',
+		'ồ' => 'o',
+		'Ờ' => 'O',
+		'ờ' => 'o',
+		'Ừ' => 'U',
+		'ừ' => 'u',
+		'Ỳ' => 'Y',
+		'ỳ' => 'y',
+		// Hook.
+		'Ả' => 'A',
+		'ả' => 'a',
+		'Ẩ' => 'A',
+		'ẩ' => 'a',
+		'Ẳ' => 'A',
+		'ẳ' => 'a',
+		'Ẻ' => 'E',
+		'ẻ' => 'e',
+		'Ể' => 'E',
+		'ể' => 'e',
+		'Ỉ' => 'I',
+		'ỉ' => 'i',
+		'Ỏ' => 'O',
+		'ỏ' => 'o',
+		'Ổ' => 'O',
+		'ổ' => 'o',
+		'Ở' => 'O',
+		'ở' => 'o',
+		'Ủ' => 'U',
+		'ủ' => 'u',
+		'Ử' => 'U',
+		'ử' => 'u',
+		'Ỷ' => 'Y',
+		'ỷ' => 'y',
+		// Tilde.
+		'Ẫ' => 'A',
+		'ẫ' => 'a',
+		'Ẵ' => 'A',
+		'ẵ' => 'a',
+		'Ẽ' => 'E',
+		'ẽ' => 'e',
+		'Ễ' => 'E',
+		'ễ' => 'e',
+		'Ỗ' => 'O',
+		'ỗ' => 'o',
+		'Ỡ' => 'O',
+		'ỡ' => 'o',
+		'Ữ' => 'U',
+		'ữ' => 'u',
+		'Ỹ' => 'Y',
+		'ỹ' => 'y',
+		// Acute accent.
+		'Ấ' => 'A',
+		'ấ' => 'a',
+		'Ắ' => 'A',
+		'ắ' => 'a',
+		'Ế' => 'E',
+		'ế' => 'e',
+		'Ố' => 'O',
+		'ố' => 'o',
+		'Ớ' => 'O',
+		'ớ' => 'o',
+		'Ứ' => 'U',
+		'ứ' => 'u',
+		// Dot below.
+		'Ạ' => 'A',
+		'ạ' => 'a',
+		'Ậ' => 'A',
+		'ậ' => 'a',
+		'Ặ' => 'A',
+		'ặ' => 'a',
+		'Ẹ' => 'E',
+		'ẹ' => 'e',
+		'Ệ' => 'E',
+		'ệ' => 'e',
+		'Ị' => 'I',
+		'ị' => 'i',
+		'Ọ' => 'O',
+		'ọ' => 'o',
+		'Ộ' => 'O',
+		'ộ' => 'o',
+		'Ợ' => 'O',
+		'ợ' => 'o',
+		'Ụ' => 'U',
+		'ụ' => 'u',
+		'Ự' => 'U',
+		'ự' => 'u',
+		'Ỵ' => 'Y',
+		'ỵ' => 'y',
+		// Vowels with diacritic (Chinese, Hanyu Pinyin).
+		'ɑ' => 'a',
+		// Macron.
+		'Ǖ' => 'U',
+		'ǖ' => 'u',
+		// Acute accent.
+		'Ǘ' => 'U',
+		'ǘ' => 'u',
+		// Caron.
+		'Ǎ' => 'A',
+		'ǎ' => 'a',
+		'Ǐ' => 'I',
+		'ǐ' => 'i',
+		'Ǒ' => 'O',
+		'ǒ' => 'o',
+		'Ǔ' => 'U',
+		'ǔ' => 'u',
+		'Ǚ' => 'U',
+		'ǚ' => 'u',
+		// Grave accent.
+		'Ǜ' => 'U',
+		'ǜ' => 'u',
+		'Ä' => 'Ae',
+		'ä' => 'ae',
+		'Ö' => 'Oe',
+		'ö' => 'oe',
+		'Ü' => 'Ue',
+		'ü' => 'ue',
+		'ß' => 'ss',
+		'Æ' => 'Ae',
+		'æ' => 'ae',
+		'Ø' => 'Oe',
+		'ø' => 'oe',
+		'Å' => 'Aa',
+		'å' => 'aa',
+		'l·l' => 'll',
+		'Đ' => 'DJ',
+		'đ' => 'dj',
+	);
 
     $string = strtr($string, $chars);
 
     return $string;
+
 }
 
 function truncate_string($string, $limit, $break=".", $pad="...") {
@@ -4564,10 +5168,101 @@ function clean_up_text($text) {
 
 function prep_redirect_link($link) {
 	$pattern = array('\'', '"');
-	$link = filter_var($link,FILTER_SANITIZE_STRING);
 	$link = str_replace($pattern, "", $link);
+	$link = sterilize($link);
 	$link = stripslashes($link);
+	$link = html_entity_decode($link);
+	$link = htmlspecialchars_decode($link);
 	return $link;
 }
 
+function display_array_content_style($arrayname,$method,$base_url) {
+	include (LANG.'language.lang.php');
+	$a = "";
+	sort($arrayname);
+	while(list($key, $value) = each($arrayname)) {
+
+		if (is_array($value)) {
+			$c = display_array_content($value,'');
+			$d = ltrim($c,"0");
+			$d = str_replace("-","",$c);
+			$a .= "<a href=\"#\" data-toggle=\"modal\" data-target=\"#".$d."\">".$d."</a>";
+		}
+
+		else {
+			$value = explode("|",$value);
+			$e = str_replace("-","",$value[0]);
+			$e = ltrim($e,"0");
+			$a .= sprintf("<a href=\"#\" data-toggle=\"modal\" data-target=\"#".$value[0]."\" data-tooltip=\"true\" title=\"%s ".$e.": ".$value[1]."\">".$e."</a>",$brew_text_000);
+		}
+		if ($method == "1") $a .= "";
+		if ($method == "2") $a .= "&nbsp;&nbsp;";
+		if ($method == "3") $a .= ", ";
+	}
+	$b = rtrim($a, "&nbsp;&nbsp;");
+	$b = rtrim($a, ", ;");
+	$b = rtrim($b, "  ");
+
+	return $b;
+}
+
+function admin_relocate($user_level,$go,$referrer) {
+	$list = FALSE;
+	if (strstr($referrer,"list")) $list = TRUE;
+	if (strstr($referrer,"entries")) $list = FALSE;
+	if (strstr($referrer,"0-A")) $list = FALSE;
+	if (($user_level <= 1) && ($go == "entries") && (!$list)) $output = "admin";
+	elseif (($user_level <= 1) && ($go == "entries") && ($list)) $output = "list";
+	else $output = "list";
+	return $output;
+}
+
+function scrub_filename($filename) {
+	$scrub_characters = array("&" => "", "?" => "", "=" => "", "%" => "", "\"" => "", "'" => "", "$" => "", "*" => "");
+	$filename = strtr($filename, $scrub_characters);
+	return $filename;
+}
+
+function clean_filename($filename) {
+
+	// Get the file extension
+	$file_extension = pathinfo($filename, PATHINFO_EXTENSION);
+
+	// Get the file name without the extension 
+	$file_name = pathinfo($filename, PATHINFO_FILENAME); 
+
+	// Call function in common.lib.php to convert accented characters to ASCII
+	$file_name = remove_accents($file_name);
+
+	// Call function in common.lib.php to remove characters like &, $, etc.
+	$file_name = scrub_filename($file_name);
+
+	// Replace spaces with dashes
+	$file_name = str_replace(' ', '-', $file_name);
+
+	// Replace underscores with dashes
+	$file_name = str_replace('_', '-', $file_name);
+
+	// Remove any remaining special characters
+	$file_name = preg_replace('/[^A-Za-z0-9\-\_]/', '', $file_name); 
+
+	// Strip any html or php tags
+	$file_name = strip_tags($file_name);
+
+	// Strip any slashes
+	$file_name = stripcslashes($file_name);
+	$file_name = stripslashes($file_name);
+
+	// Failsafe in case the remove_accents function missed something
+	$file_name = filter_var($file_name, FILTER_UNSAFE_RAW, FILTER_FLAG_ENCODE_LOW | FILTER_FLAG_ENCODE_HIGH);
+
+	// Replace two or more dashes together with a single dash
+	$file_name = preg_replace('/-+/', '-', $file_name); 
+
+	// Add extension back
+	$cleaned_file = $file_name.".".$file_extension;
+
+	return $cleaned_file;
+
+}
 ?>

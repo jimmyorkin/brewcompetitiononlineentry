@@ -1,4 +1,5 @@
 <?php
+
 $flaws_table = "";
 $entry_flaws = "";  
 

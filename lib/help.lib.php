@@ -46,12 +46,14 @@ function bcoem_dashboard_help($content) {
 		$bcoem_dashboard_help_body .= "<p>Once the registration period and entry window for your competition passes, the next step in the process, after picking up entries from various drop off points, is to sort them. BCOE&amp;M provides tools to assist in sorting entries.</p>";
 		$bcoem_dashboard_help_body .= "<p>Under the Entry Sorting heading, administrators are presented with some options specific to the task, namely:";
 		$bcoem_dashboard_help_body .= "<ul>";
-		$bcoem_dashboard_help_body .= "<li>Checking-in entries (marking them as paid and received) <a href=\"".$base_url."index.php?section=admin&amp;go=entries\">manually</a> or, if enabled, <a href=\"".$base_url."index.php?section=admin&amp;go=checkin\">via barcode scanner</a>.</li>";
+		$bcoem_dashboard_help_body .= "<li>Checking-in entries (marking them as paid and received) <a href=\"".$base_url."index.php?section=admin&amp;go=entries\">manually</a>";
+		if ($_SESSION['userAdminObfuscate'] == 0) $bcoem_dashboard_help_body .= " or, if enabled, <a href=\"".$base_url."index.php?section=admin&amp;go=checkin\">via barcode scanner</a>";
+		$bcoem_dashboard_help_body .= ".</li>";
 		$bcoem_dashboard_help_body .= "<li>Printing sorting sheets by entry numbers or judging numbers.</li>";
 		$bcoem_dashboard_help_body .= "<li>Printing entry number/judging number cheat sheets organized by style.</li>";
 		$bcoem_dashboard_help_body .= "<li>Printing labels for individual bottles with their unique entry or judging number. Available formats are letter (<a class=\"hide-loader\" href=\"http://www.avery.com/avery/en_us/Products/Labels/Addressing-Labels/Easy-Peel-White-Address-Labels_05160.htm\" target=\"_blank\">Avery 5160</a>) and A4 (<a class=\"hide-loader\" href=\"http://www.avery.se/avery/en_se/Products/Labels/Multipurpose/White-Multipurpose-Labels-Permanent/General-Usage-Labels-White_3422.htm\" target=\"_blank\">Avery 3422</a>) for rectangular labels, 0.50 inch/13mm round (<a class=\"hide-loader\" href=\"http://www.onlinelabels.com/Products/OL32.htm\" target=\"_blank\">Online Labels OL32</a>) or 0.75 inch/19 mm round (<a class=\"hide-loader\" href=\"http://www.onlinelabels.com/Products/OL5275WR.htm\" target=\"_blank\">Online Lables OL5275WR</a>).</li>";
 		$bcoem_dashboard_help_body .= "</ul>";
-		$bcoem_dashboard_help_body .= "<p>Of note is the Regenerate Judging Numbers function. If your competition is not utilizing the barcode check-in feature, administrators can make extra sure that all entries in the database are assigned a unique judging number by activating this function.</p>";
+		if ($_SESSION['userAdminObfuscate'] == 0) $bcoem_dashboard_help_body .= "<p>Of note is the Regenerate Judging Numbers function. If your competition is not utilizing the barcode check-in feature, administrators can make extra sure that all entries in the database are assigned a unique judging number by activating this function.</p>";
 
 		break;
 
@@ -67,7 +69,7 @@ function bcoem_dashboard_help($content) {
 		$bcoem_dashboard_help_body .= "<li>Assign <a href=\"".$base_url."index.php?section=admin&amp;go=judging_flights&amp;action=assign&amp;filter=rounds\">tables to rounds</a>.</li>";
 		$bcoem_dashboard_help_body .= "<li>Assign judges and stewards to tables (and flights, if applicable).</li>";
 		$bcoem_dashboard_help_body .= "</ol>";
-		$bcoem_dashboard_help_body .= "<p>Once these tasks have been completed, you are ready to print reports you need prior to judging: pullsheets, table cards, assignment lists, sign-in sheets, scoresheet lables, and name tags. See the Reports section.</p>";
+		if ($_SESSION['userAdminObfuscate'] == 0) $bcoem_dashboard_help_body .= "<p>Once these tasks have been completed, you are ready to print reports you need prior to judging: pullsheets, table cards, assignment lists, sign-in sheets, scoresheet lables, and name tags. See the Reports section.</p>";
 		break;
 
 		case "scoring":
@@ -89,18 +91,20 @@ function bcoem_dashboard_help($content) {
 		$bcoem_dashboard_help_body .= "<p>BCOE&amp;M offers several options for printing and reporting competition related data and results. In general, the reports generated fall into three categories: before judging, during judging, and after judging.</p>";
 		$bcoem_dashboard_help_body .= "<p><strong>Before Judging</strong></p>";
 		$bcoem_dashboard_help_body .= "<ul>";
-		$bcoem_dashboard_help_body .= "<li>Pullsheets for each table defined in the system, using entry numbers or judging numbers.</li>";
+		if ($_SESSION['userAdminObfuscate'] == 0) $bcoem_dashboard_help_body .= "<li>Pullsheets for each table defined in the system, using entry numbers or judging numbers.</li>";
 		$bcoem_dashboard_help_body .= "<li>Table cards for each table.</li>";
 		$bcoem_dashboard_help_body .= "<li>Assignment lists for judges and stewards.</li>";
 		$bcoem_dashboard_help_body .= "<li>Sign-in sheets for judges and stewards.</li>";
 		$bcoem_dashboard_help_body .= "<li>Judge, steward, and staff name tags.</li>";
 		$bcoem_dashboard_help_body .= "<li>Judge scoresheet labels in letter (<a class=\"hide-loader\" href=\"http://www.avery.com/avery/en_us/Products/Labels/Addressing-Labels/Easy-Peel-White-Address-Labels_05160.htm\" target=\"_blank\">Avery 5160</a>) and A4 (<a class=\"hide-loader\" href=\"http://www.avery.se/avery/en_se/Products/Labels/Multipurpose/White-Multipurpose-Labels-Permanent/General-Usage-Labels-White_3422.htm\" target=\"_blank\">Avery 3422</a>) format.</li>";
 		$bcoem_dashboard_help_body .= "</ul>";
-		$bcoem_dashboard_help_body .= "<p><strong>During Judging</strong></p>";
-		$bcoem_dashboard_help_body .= "<ul>";
-		$bcoem_dashboard_help_body .= "<li>Best of Show (BOS) pullsheets for all designated style types.</li>";
-		$bcoem_dashboard_help_body .= "<li>Best of Show (BOS) cup mats for judges to use while judging the BOS round. These are inteneded to be printed in the landscape format.</li>";
-		$bcoem_dashboard_help_body .= "</ul>";
+		if ($_SESSION['userAdminObfuscate'] == 0) {
+			$bcoem_dashboard_help_body .= "<p><strong>During Judging</strong></p>";
+			$bcoem_dashboard_help_body .= "<ul>";
+			$bcoem_dashboard_help_body .= "<li>Best of Show (BOS) pullsheets for all designated style types.</li>";
+			$bcoem_dashboard_help_body .= "<li>Best of Show (BOS) cup mats for judges to use while judging the BOS round. These are inteneded to be printed in the landscape format.</li>";
+			$bcoem_dashboard_help_body .= "</ul>";
+		}
 		$bcoem_dashboard_help_body .= "<p><strong>After Judging</strong></p>";
 		$bcoem_dashboard_help_body .= "<ul>";
 		$bcoem_dashboard_help_body .= "<li>A results report, with and without scores - PDF or HTML.</li>";
@@ -146,7 +150,7 @@ function bcoem_dashboard_help($content) {
 
 		case "check-in":
 		$bcoem_dashboard_help_title .= "How Do I Check In Received Entries?";
-		$bcoem_dashboard_help_body .= "<p>If your competition is utilizing the <a class=\"hide-loader\" href=\"http://brewcompetition.com/barcode-labels\" target=\"_blank\">barcode option</a> on bottle labels, you can check-in entries using a barcode scanner via the <a href=\"".$base_url."index.php?section=admin&amp;go=checkin\">Check-In Entries with a Barcode Reader/Scanner</a> function.</p>";
+		$bcoem_dashboard_help_body .= "<p>If your competition is utilizing the <a class=\"hide-loader\" href=\"http://brewingcompetitions.com/barcode-labels\" target=\"_blank\">barcode option</a> on bottle labels, you can check-in entries using a barcode scanner via the <a href=\"".$base_url."index.php?section=admin&amp;go=checkin\">Check-In Entries with a Barcode Reader/Scanner</a> function.</p>";
 		$bcoem_dashboard_help_body .= "<p>If your competition is <em>not</em> utilizing the barcode option on bottle labels, you can check-in entries via the <a href=\"".$base_url."index.php?section=admin&amp;go=entries\">Manage Entries</a> function.</p>";
 		break;
 
@@ -176,7 +180,7 @@ function bcoem_dashboard_help($content) {
 		$bcoem_dashboard_help_body .= "<p>After all tables have been defined and judges and stewards have been assigned to them, you are now ready to print the materials needed to help run the competition.</p>";
 		$bcoem_dashboard_help_body .= "<p>Available materials are:</p>";
 		$bcoem_dashboard_help_body .= "<ul>";
-		$bcoem_dashboard_help_body .= "<li>Pullsheets detailing the entries cellarpeople retrieve for each table.</li>";
+		if ($_SESSION['userLevel'] == 0) $bcoem_dashboard_help_body .= "<li>Pullsheets detailing the entries cellarpeople retrieve for each table.</li>";
 		$bcoem_dashboard_help_body .= "<li>Table cards to identify physical tables, detailing the table name and the judges and stewards assigned to it.</li>";
 		$bcoem_dashboard_help_body .= "<li>Sign-in sheets for judges and stewards.</li>";
 		$bcoem_dashboard_help_body .= "<li>Assignment sheets for judges and stewards.</li>";
@@ -237,65 +241,58 @@ function bcoem_dashboard_help($content) {
 function bcoem_help($section,$go,$action,$filter) {
 	require(CONFIG.'config.php');
 	require(INCLUDES.'url_variables.inc.php');
+	
 	// Define default variables
 	$return = "";
 	$content = FALSE;
 	$bcoem_help_title = "";
 	$bcoem_help_body = "";
 
+	/**
+	 * 2.6.2: Use translations for all public pages.
+	 */
+
+	if ((isset($_SESSION['prefsLanguage'])) && (!empty($_SESSION['prefsLanguage']))) $prefsLanguage = $_SESSION['prefsLanguage'];
+	else $prefsLanguage = "en-US";
+	if ((isset($_SESSION['prefsLanguageFolder'])) && (!empty($_SESSION['prefsLanguageFolder']))) $prefsLanguageFolder = $_SESSION['prefsLanguageFolder'];
+	else $prefsLanguageFolder = $prefsLanguageFolder = "en";
+
+	$language_file = $prefsLanguage."_help.lang.php";
+	require(LANG.$prefsLanguageFolder.DIRECTORY_SEPARATOR.$language_file);
+
 	// --------------------- General user sections ---------------------
 	// My account
 	if ($section == "list") {
-		$bcoem_help_title .= "My Account Help";
-		$bcoem_help_body .= "<p>This is a comprehensive snapshot of your account information.</p>";
-		$bcoem_help_body .= "<p>Here, you can view your personal information including name, address, phone number(s), clubs, AHA member number, BJCP ID, BJCP judge rank, judging preferences, and stewarding preferences.</p>";
-		$bcoem_help_body .= "<ul>";
-		$bcoem_help_body .= "<li>Select the &ldquo;Edit Account&rdquo; button to update your personal information.</li>";
-		$bcoem_help_body .= "<li>Select the &ldquo;Change Email&rdquo; button to update your email address. <strong>Note:</strong> your email address is also your user name.</li>";
-		$bcoem_help_body .= "<li>Select the &ldquo;Change Password&rdquo; button to update your account password.</li>";
-		$bcoem_help_body .= "</ul>";
-
-			$bcoem_help_body .= "<p>At the bottom of the page is your list of entries.</p>";
-			$bcoem_help_body .= "<ul>";
-			$bcoem_help_body .= "<li>Select the printer icon <span class=\"fa fa-print\"></span> to print the necessary documentation for each entry (bottle labels, etc.).</li>";
-			$bcoem_help_body .= "<li>Select the pencil icon <span class=\"fa fa-pencil\"></span> to edit the entry.</li>";
-			$bcoem_help_body .= "<li>Select the trash can icon <span class=\"fa fa-trash-o\"></span> to delete the entry.</li>";
-			$bcoem_help_body .= "</ul>";
-
+		$bcoem_help_title .= $list_help_title;
+		$bcoem_help_body .= $list_help_body;
 		$content = TRUE;
 	}
 
 	// Edit account
 	if (($section == "brewer") && ($go == "account") && ($action == "edit")) {
-		$bcoem_help_title .= "Edit Account Help";
-		$bcoem_help_body .= "<p>Here, you can update your account information including address/phone, AHA member number, BJCP ID, BJCP judge rank, judging or stewarding location availability and preferences, and so on.";
+		$bcoem_help_title .= $brewer_acct_edit_help_title;
+		$bcoem_help_body .= $brewer_acct_edit_help_body;
 		$content = TRUE;
 	}
 
 	// Pay fees
 	if ($section == "pay") {
-		$bcoem_help_title .= "Pay Entry Fees Help";
-		$bcoem_help_body .= "<p>This screen details your unpaid entries and associated fees. If the competition organizers have designated a discount for participants with a code, you can enter the code before paying for your entries.</p>";
-		$bcoem_help_body .= "<p>For the ".$_SESSION['contestName'].", accepted payment methods are:</p>";
-		$bcoem_help_body .= "<ul>";
-		if ($_SESSION['prefsCash'] == "Y") $bcoem_help_body .= "<li><strong>Cash.</strong> Put cash in an envelope and attach to one of your bottles. Please, for the sanity of the organizing staff, do not pay with coins.</li>";
-		if ($_SESSION['prefsCheck'] == "Y") $bcoem_help_body .= "<li><strong>Check.</strong> Make your check out to ".$_SESSION['prefsCheckPayee']." for the full amount of your entry fees, place in an envelope, and attach to one of your bottles. It would be extremely helpful for competition staff if you would list your entry numbers in the memo section.</li>";
-		if ($_SESSION['prefsPaypal'] == "Y") $bcoem_help_body .= "<li><strong>Credit/Debit Card via PayPal.</strong> To pay your entry fees with a credit or debit card, select the &ldquo;Pay with PayPal&rdquo; button. A PayPal account is not necessary. After you have paid, be sure to click the &ldquo;Return to...&rdquo; link on the PayPal confirmation screen. This will ensure that your entries are marked as paid for this competition.</li>";
-		$bcoem_help_body .= "</ul>";
+		$bcoem_help_title .= $pay_help_title;
+		$bcoem_help_body .= $pay_help_body;
 		$content = TRUE;
 	}
 
 	// Change username
 	if (($section == "user") && ($go == "account") && ($action == "username")) {
-		$bcoem_help_title .= "Change Email Address Help";
-		$bcoem_help_body .= "<p>Here, you can change your email address.</p><p><strong>Please Note:</strong> your email address also serves as your user name to access your account on this site.</p>";
+		$bcoem_help_title .= $username_help_title;
+		$bcoem_help_body .= $username_help_body;
 		$content = TRUE;
 	}
 
 	// Change password
 	if (($section == "user") && ($go == "account") && ($action == "password")) {
-		$bcoem_help_title .= "Change Password Help";
-		$bcoem_help_body .= "<p>Here, you can change your access password to this site. The more secure, the better &ndash; include special characters and/or numbers.</p>";
+		$bcoem_help_title .= $password_help_title;
+		$bcoem_help_body .= $password_help_body;
 		$content = TRUE;
 	}
 

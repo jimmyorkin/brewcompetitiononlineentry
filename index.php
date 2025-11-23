@@ -11,6 +11,7 @@ require_once ('paths.php');
 require_once (CONFIG.'bootstrap.php');
 require_once (DB.'mods.db.php');
 
+//Bluebonnet
 if ($BBOOneHourUnpaidDelete == 1) {
 		require_once (MODS.'bbo-delete-unpaids.php');
 }
@@ -18,7 +19,6 @@ if ($BBOOneHourUnpaidDelete == 1) {
 $account_pages = array("list","pay","brewer","user","brew","pay","evaluation");
 
 if ((!$logged_in) && (in_array($section,$account_pages))) {
-
     $redirect = $base_url."index.php?section=login&msg=99";
     $redirect = prep_redirect_link($redirect);
     $redirect_go_to = sprintf("Location: %s", $redirect);
@@ -27,14 +27,16 @@ if ((!$logged_in) && (in_array($section,$account_pages))) {
 }
 
 if (MAINT) {
-    $redirect = $base_url."maintenance.php";
-    $redirect = prep_redirect_link($redirect);
-    $redirect_go_to = sprintf("Location: %s", $redirect);
-    header($redirect_go_to);
-    exit();
-}
 
-// ---------------------------------------------------------------------------------
+    if ((!$logged_in) || (($logged_in) && ($_SESSION['userLevel'] > 0))) {
+        $redirect = $base_url."maintenance.php";
+        $redirect = prep_redirect_link($redirect);
+        $redirect_go_to = sprintf("Location: %s", $redirect);
+        header($redirect_go_to);
+        exit();
+    }
+
+}
 
 // ---------------------------- Admin Only Functions -------------------------------
 
@@ -69,74 +71,13 @@ if ($section == "admin") {
     require_once (DB.'contacts.db.php');
 }
 
-// ---------------------------------------------------------------------------------
+// ---------------------------- Other Top-Level Constants -------------------------------
 
-// ---------------------------- Various Functions ----------------------------------
+require_once (INCLUDES.'constants_post_lang.inc.php');
 
-// Testing
-if ((TESTING) || (DEBUG)) {
-    $mtime = microtime();
-    $mtime = explode(" ",$mtime);
-    $mtime = $mtime[1] + $mtime[0];
-    $starttime = $mtime;
-}
-
-if (DEBUG) include (DEBUGGING.'query_count_begin.debug.php');
-
-// Hosted installations
+// Hosted installations only
 if (HOSTED) require_once (LIB.'hosted.lib.php');
 
-// Perform version check if NOT going into setup
-if (strpos($section, 'step') === FALSE)  {
-    version_check($version,$current_version,$current_version_date_display);
-}
-
-// Bootstrap layout containers
-if (($section == "admin") || ($view == "admin")) {
-    $container_main = "container-fluid";
-    $nav_container = "navbar-inverse";
-}
-
-else {
-    $container_main = "container";
-    $nav_container = "navbar-default";
-}
-
-$security_question = array($label_secret_01, $label_secret_05, $label_secret_06, $label_secret_07, $label_secret_08, $label_secret_09, $label_secret_10, $label_secret_11, $label_secret_12, $label_secret_13, $label_secret_14, $label_secret_15, $label_secret_16, $label_secret_17, $label_secret_18, $label_secret_19, $label_secret_20, $label_secret_21, $label_secret_22, $label_secret_23, $label_secret_25, $label_secret_26, $label_secret_27);
-
-if ($section == "past-winners") {
-
-    $query_disp_archive_winners = sprintf("SELECT * FROM %s WHERE archiveSuffix='%s'",$prefix."archive",$go);
-    $disp_archive_winners = mysqli_query($connection,$query_disp_archive_winners);
-    $row_disp_archive_winners = mysqli_fetch_assoc($disp_archive_winners);
-    $totalRows_disp_archive_winners = mysqli_num_rows($disp_archive_winners);
-    
-    $archive_winner_display = FALSE;
-    
-    if (($totalRows_disp_archive_winners > 0) && ($row_disp_archive_winners['archiveDisplayWinners'] == "Y") && ($row_disp_archive_winners['archiveStyleSet'] != "")) {
-
-        $query_disp_archive_winners = sprintf("SELECT * FROM %s WHERE archiveSuffix='%s'",$prefix."archive",$go);
-        $disp_archive_winners = mysqli_query($connection,$query_disp_archive_winners);
-        $row_disp_archive_winners = mysqli_fetch_assoc($disp_archive_winners);
-
-        if ((check_setup($prefix."brewer_".$go,$database)) && (check_setup($prefix."brewing_".$go,$database)) && (check_setup($prefix."judging_scores_".$go,$database))) {
-
-            $archive_count = get_archive_count($prefix."judging_scores_".$go);
-            if ($archive_count > 0) $archive_winner_display = TRUE;
-        }
-
-    }
-
-    if (!$archive_winner_display) header(sprintf("Location: %s", $base_url."index.php?msg=8"));
-}
-
-if (($row_system) && (!empty($row_system['update_date'])) && ($row_system['update_date'] >= (time() - 86400))) {
-    $recently_updated = TRUE;
-    $_SESSION['update_summary'] = $row_system['update_summary'];
-    if (strpos($row_system['update_summary'], 'Warning: Errors') !== false) $_SESSION['update_errors'] = 1;
-}
-
-// ---------------------------------------------------------------------------------
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -151,29 +92,28 @@ if (($row_system) && (!empty($row_system['update_date'])) && ($row_system['updat
     else include (INCLUDES.'load_local_libraries.inc.php');
 ?>
     <!-- Load BCOE&M Custom CSS - Contains Bootstrap overrides and custom classes common to all BCOE&M themes -->
-    <link rel="stylesheet" type="text/css" href="<?php echo $base_url."css/common.css"; ?>" />
+    <link rel="stylesheet" type="text/css" href="<?php echo $css_common_url; ?>" />
     <link rel="stylesheet" type="text/css" href="<?php echo $theme; ?>" />
 
     <script type="text/javascript">
-        var username_url = "<?php echo $base_url; ?>ajax/username.ajax.php";
-        var email_url="<?php echo $base_url; ?>ajax/valid_email.ajax.php";
+        var username_url = "<?php echo $ajax_url; ?>username.ajax.php";
+        var email_url="<?php echo $ajax_url; ?>valid_email.ajax.php";
         var user_agent_msg = "<?php echo $alert_text_086; ?>";
         var setup = 0;
     </script>
-    
-    <!-- Load BCOE&M Custom JS -->
-    <script src="<?php echo $base_url; ?>js_includes/bcoem_custom.min.js"></script>
     
     <!-- Open Graph Implementation -->
 <?php if (!empty($_SESSION['contestName'])) { ?>
     <meta property="og:title" content="<?php echo $_SESSION['contestName']?>" />
 <?php } ?>
 <?php if (!empty($_SESSION['contestLogo'])) { ?>
-    <meta property="og:image" content="<?php echo $base_url."user_images/".$_SESSION['contestLogo']?>" />
+    <meta property="og:image" content="<?php echo $base_url."user_images/".$_SESSION['contestLogo']; ?>" />
 <?php } ?>
     <meta property="og:url" content="<?php echo "http" . ((!empty($_SERVER['HTTPS'])) ? "s://" : "://") . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']; ?>" />
 </head>
 <body>
+
+<a name="top"></a>
 
 <!-- LOADER -->
 <div id="loader-submit">
@@ -192,38 +132,59 @@ if (($row_system) && (!empty($row_system['update_date'])) && ($row_system['updat
 
 <!-- ALERTS -->
 <div class="<?php echo $container_main; ?> bcoem-warning-container">
-    <?php
     
-    if ((!empty($_SESSION['error_output'])) || (!empty($error_output))) {
-        
-        echo "<div class=\"bcoem-admin-element\">";
-        echo "<div class=\"alert alert-danger alert-dismissible hidden-print fade in\">";
-        echo "<p><span class=\"fa fa-lg fa-exclamation-circle\"></span> <strong>MySQL Error(s)</strong></p>";
-        echo "<p>The following errors were logged on the last MySQL server call:</p>";
-        echo "<ul>";
-        
-        if (!empty($error_output)) {
-            foreach ($error_output as $key => $value) {
-                echo "<li>".$value."</li>";
-            }
-        }
+<?php
 
-        if (!empty($_SESSION['error_output'])) {
-            foreach ($_SESSION['error_output'] as $key => $value) {
-                echo "<li>".$value."</li>";
-            }
+$errors_display = "";
+
+if ((!empty($_SESSION['error_output'])) || (!empty($error_output))) {
+    
+    $errors_display .= "<div class=\"bcoem-admin-element\">";
+    $errors_display .= "<div class=\"alert alert-danger alert-dismissible hidden-print fade in\">";
+    $errors_display .= "<p><span class=\"fa fa-lg fa-exclamation-circle\"></span> <strong>Error(s)</strong></p>";
+    $errors_display .= "<p>The following errors were logged on the last MySQL server call:</p>";
+    $errors_display .= "<ul>";
+    
+    if (!empty($error_output)) {
+        foreach ($error_output as $key => $value) {
+            $errors_display .= "<li>".$value."</li>";
         }
-            
-        echo "</ul>";
-        echo "</div>";
-        echo "</div>";
     }
 
-    include (SECTIONS.'alerts.sec.php'); 
+    if (!empty($_SESSION['error_output'])) {
+        foreach ($_SESSION['error_output'] as $key => $value) {
+            $errors_display .= "<li>".$value."</li>";
+        }
+    }
+        
+    $errors_display .= "</ul>";
+    $errors_display .= "</div>";
+    $errors_display .= "</div>";
+    
+}
 
-    ?>
+if (!empty($errors_display)) echo $errors_display;
+
+include (SECTIONS.'alerts.sec.php'); 
+
+?>
+
 </div><!-- ./container -->
 <!-- ./ALERTS -->
+
+<!-- Top line JS -->
+<script>
+    $("#no-js-alert").hide();
+    try {
+        var ua = window.navigator.userAgent;
+        var msie = ua.indexOf("MSIE ");
+        if (msie > 0 || !!navigator.userAgent.match(/Trident.*rv\:11\./)) {
+            alert(user_agent_msg)
+        }
+    } catch (error) {
+        console.error('Error checking user agent.', error)
+    }
+</script>
 
 <!-- DEBUG -->
 <div class="<?php echo $container_main; ?> hidden-print">
@@ -272,7 +233,7 @@ if (($row_system) && (!empty($row_system['update_date'])) && ($row_system['updat
             if ($go == "entries") include (ADMIN.'entries.admin.php');
             if ($go == "contacts") include (ADMIN.'contacts.admin.php');
             if ($go == "dropoff") include (ADMIN.'dropoff.admin.php');
-            if ($go == "checkin") include (ADMIN.'barcode_check-in-bbo.admin.php');
+            if ($go == "checkin") include (ADMIN.'barcode_check-in.admin.php');
             if ($go == "count_by_style") include (ADMIN.'entries_by_style.admin.php');
             if ($go == "count_by_substyle") include (ADMIN.'entries_by_substyle.admin.php');
             if ($action == "register") include (SECTIONS.'register.sec.php');
@@ -394,7 +355,7 @@ echo $output_query_count;
 <?php 
 session_write_close(); 
 if ($logged_in) {
-$session_end_seconds = (time() + $session_expire_after_seconds);
+$session_end_seconds = (time() + ($session_expire_after * 60));
 $session_end = date('Y-m-d H:i:s',$session_end_seconds);
 if (!empty($error_output)) $_SESSION['error_output'] = $error_output;
 ?>
@@ -412,7 +373,7 @@ if (!empty($error_output)) $_SESSION['error_output'] = $error_output;
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $label_stay_here; ?></button>
         <button type="button" class="btn btn-success" data-dismiss="modal" onclick="window.location.reload()"><?php echo $label_refresh; ?></button>
-        <button type="button" class="btn btn-danger" data-dismiss="modal" onclick="window.location.replace('<?php echo $base_url; ?>includes/logout.inc.php')"><?php echo $label_log_out; ?></button>
+        <button type="button" class="btn btn-danger" data-dismiss="modal" onclick="window.location.replace('<?php echo $base_url; ?>includes/process.inc.php?section=logout&action=logout')"><?php echo $label_log_out; ?></button>
       </div>
     </div>
   </div>
@@ -430,25 +391,108 @@ if (!empty($error_output)) $_SESSION['error_output'] = $error_output;
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-success" data-dismiss="modal" onclick="window.location.reload()"><?php echo $label_refresh; ?></button>
-        <button type="button" class="btn btn-danger" data-dismiss="modal" onclick="window.location.replace('<?php echo $base_url; ?>includes/logout.inc.php')"><?php echo $label_log_out; ?></button>
+        <button type="button" class="btn btn-danger" data-dismiss="modal" onclick="window.location.replace('<?php echo $base_url; ?>includes/process.inc.php?section=logout&action=logout')"><?php echo $label_log_out; ?></button>
       </div>
     </div>
   </div>
 </div>
-<!-- Session Timer Displays and Auto Logout -->
+
+<script src="<?php echo $js_app_url; ?>"></script>
+
 <?php if ((!in_array($go,$datetime_load)) || ($go == "default")) { ?>
+<!-- Session Timer Displays and Auto Logout -->
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.32/moment-timezone-with-data.min.js"></script>
 <script>
 var session_end = moment.tz("<?php echo $session_end; ?>","<?php echo get_timezone($_SESSION['prefsTimeZone']); ?>");
 var session_end_min = "<?php echo $session_expire_after; ?>";
 var session_end_seconds = "<?php echo $session_end_seconds; ?>";
-var session_end_redirect = "<?php echo $base_url; ?>includes/logout.inc.php";
+var session_end_redirect = "<?php echo $base_url; ?>includes/process.inc.php?section=logout&action=logout";
 </script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.countdown/2.2.0/jquery.countdown.min.js"></script>
-<script type="text/javascript" src="<?php echo $base_url; ?>js_includes/autologout.min.js"></script>
+<script type="text/javascript" src="<?php echo $js_url; ?>autologout.min.js"></script>
 <?php } ?>
+
 <?php if (($_SESSION['prefsEval'] == 1) && ($section == "evaluation")) include (EVALS.'warnings.eval.php'); ?>
+
+<?php 
+
+    $brewery_ttb = "false";
+    $brewery_prod = "false";
+
+    if (isset($row_brewer['brewerBreweryInfo'])) { 
+        $brewery_info = json_decode($row_brewer['brewerBreweryInfo'],true); 
+        if (isset($brewery_info['TTB'])) $brewery_ttb = "true";
+        if (isset($brewery_info['Production'])) $brewery_prod = "true";
+    }
+
+?>
+
+<script type="text/javascript">
+<?php if ($section == "brewer") { ?>
+    var club_other = <?php if ($club_other) echo "true"; else echo "false"; ?>;
+<?php } ?>
+    var brewer_country = "<?php if (isset($row_brewer)) echo $row_brewer['brewerCountry']; ?>";
+    var brewer_judge = "<?php if (isset($row_brewer)) echo $row_brewer['brewerJudge']; ?>";
+    var brewer_steward = "<?php if (isset($row_brewer)) echo $row_brewer['brewerSteward']; ?>";
+    var brewer_staff = "<?php if (isset($row_brewer)) echo $row_brewer['brewerStaff']; ?>";
+    var brewer_brewery_ttb = <?php echo $brewery_ttb; ?>;
+    var brewer_brewery_prod = <?php echo $brewery_prod; ?>;
+    var user_question_answer = "<?php if (isset($_SESSION['userQuestionAnswer'])) echo $_SESSION['userQuestionAnswer']; ?>";
+</script>
+
 <?php } // end if ($logged_in) ?>
-<script type="text/javascript" src="<?php echo $base_url; ?>js_includes/loader_target.min.js"></script>
+
+<script type="text/javascript">
+    var section = "<?php echo $section; ?>";
+    var action = "<?php echo $action; ?>";
+    var go = "<?php echo $go; ?>";
+    var edit_style = "<?php echo $action; ?>";
+    var user_level = "<?php if ((isset($_SESSION['userLevel'])) && ($bid != "default")) echo $_SESSION['userLevel']; else echo "2"; ?>";
+</script>
+
+<?php if (($section == "admin") && ($go == "styles") && ($action != "default")) { ?>
+<script>
+    var specialty_ipa_subs = <?php echo json_encode($specialty_ipa_subs); ?>;
+    var historical_subs = <?php echo json_encode($historical_subs); ?>;
+    if (edit_style == "edit") {
+        var req_special = "<?php echo $row_styles['brewStyleReqSpec']; ?>";
+        var style_type = "<?php echo $row_styles['brewStyleType']; ?>";
+    } else { 
+        var req_special = "0";
+        var style_type = "1";
+    }
+</script>
+<?php } ?>
+
+<?php if ($section == "brew") { ?>   
+<script type="text/javascript">
+    var style_set = "<?php echo $_SESSION['prefsStyleSet']; ?>";
+    var req_pouring = <?php echo json_encode($req_pouring); ?>;
+    var req_special_ing_styles = <?php echo json_encode($req_special_ing_styles); ?>;
+    var req_strength_styles = <?php echo json_encode($req_strength_styles); ?>;
+    var req_sweetness_styles = <?php echo json_encode($req_sweetness_styles); ?>;
+    var req_carb_styles = <?php echo json_encode($req_carb_styles); ?>;
+    var cider_sweetness_custom_styles = <?php echo json_encode($cider_sweetness_custom_styles); ?>;
+    var mead_sweetness_custom_styles = <?php echo json_encode($mead_sweetness_custom_styles); ?>;
+    var optional_info_styles = <?php echo json_encode($optional_info_styles); ?>;
+    var edit_style = "<?php echo ltrim($view,"0"); ?>";
+    var label_this_style = "<?php echo $label_this_style; ?>";
+    var req_special_ing_style_info = <?php echo json_encode($styles_entry_text, JSON_UNESCAPED_SLASHES); ?>;
+    <?php if (($action == "edit") && (!empty($row_log['brewPossAllergens']))) { ?>
+    var possible_allergens = "<?php echo $row_log['brewPossAllergens']; ?>";
+    <?php } else { ?>
+    possible_allergens = null;      
+    <?php } ?>
+</script>
+<?php } // end if ($section == "brew") 
+
+if (($_SESSION['prefsEval'] == 1) && ($section == "evaluation")) include (EVALS.'warnings.eval.php'); 
+
+// Perform version check if NOT going into setup
+if (strpos($section, 'step') === FALSE)  {
+    version_check($version,$current_version,$current_version_date_display);
+}
+
+?>
 </body>
 </html>

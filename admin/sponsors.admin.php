@@ -1,4 +1,13 @@
 <?php
+
+// Redirect if directly accessed without authenticated session
+if ((!isset($_SESSION['loginUsername'])) || ((isset($_SESSION['loginUsername'])) && ($_SESSION['userLevel'] > 0))) {
+    $redirect = "../../403.php";
+    $redirect_go_to = sprintf("Location: %s", $redirect);
+    header($redirect_go_to);
+    exit();
+}
+
 include (DB.'sponsors.db.php');
 
 if ($dbTable == "default") {
@@ -16,7 +25,7 @@ $(document).ready(function () {
     disable_update_button('sponsors');
 });
 </script>
-<script src="<?php echo $base_url;?>js_includes/admin_ajax.min.js"></script>
+<script src="<?php echo $js_url; ?>admin_ajax.min.js"></script>
 <p class="lead"><?php echo $_SESSION['contestName']; if ($action == "add") echo ": Add a Sponsor"; elseif ($action == "edit") echo ": Edit a Sponsor"; else echo " Sponsors"; if ($dbTable != "default") echo " (Archive ".$archive_suffix.")"; ?></p>
 <div class="bcoem-admin-element hidden-print">
 <?php if (($action == "add") || ($action == "edit")) { ?>
@@ -50,6 +59,7 @@ $(document).ready(function () {
 <?php } ?>
 <?php if ($action == "default") { ?>
 <form name="form1" method="post" action="<?php echo $base_url; ?>includes/process.inc.php?action=update&amp;dbTable=<?php echo $sponsors_db_table; ?>">
+<input type="hidden" name="token" value ="<?php if (isset($_SESSION['token'])) echo $_SESSION['token']; ?>">
 <script type="text/javascript" language="javascript">
 	 $(document).ready(function() {
 		$('#sortable').dataTable( {
@@ -196,14 +206,14 @@ if ($action == "default") { ?>
 <?php } } ?>
 <?php if (($action == "add") || ($action == "edit")) { ?>
 <form data-toggle="validator" role="form" class="form-horizontal" method="post" action="<?php echo $base_url; ?>includes/process.inc.php?action=<?php echo $action; ?>&amp;dbTable=<?php echo $sponsors_db_table; ?><?php if ($action == "edit") echo "&amp;id=".$id; ?>" name="form1">
-
+<input type="hidden" name="token" value ="<?php if (isset($_SESSION['token'])) echo $_SESSION['token']; ?>">
 <div class="form-group"><!-- Form Group REQUIRED Text Input -->
     <label for="sponsorName" class="col-lg-2 col-md-3 col-sm-4 col-xs-12 control-label">Name</label>
     <div class="col-lg-6 col-md-6 col-sm-8 col-xs-12">
         <div class="input-group has-warning">
             <!-- Input Here -->
             <input class="form-control" id="sponsorName" name="sponsorName" type="text" maxlength="255" value="<?php if ($action == "edit") echo $row_sponsors['sponsorName']; ?>" placeholder="" data-error="The sponsor's name is required" autofocus required>
-            <span class="input-group-addon" id="sponsorName-addon2"><span class="fa fa-star"></span></span>
+            <span class="input-group-addon" id="sponsorName-addon2" data-tooltip="true" title="<?php echo $form_required_fields_02; ?>"><span class="fa fa-star"></span></span>
         </div>
         <div class="help-block with-errors"></div>
     </div>
