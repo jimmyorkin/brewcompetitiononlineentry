@@ -42,7 +42,8 @@ $print_bottle_labels = FALSE;
 if (($dropoff_window_open == 1) || ($shipping_window_open == 1) || ($entry_window_open == 1)) $print_bottle_labels = TRUE;
 
 $multiple_bottle_ids = FALSE;
-if (($_SESSION['prefsEntryForm'] >= "5") && ($print_bottle_labels)) $multiple_bottle_ids = TRUE;
+//Bluebonnet BBO next statement breaks the entry sheet and labels.
+//if (($_SESSION['prefsEntryForm'] >= "5") && ($print_bottle_labels)) $multiple_bottle_ids = TRUE;
 
 if (!$show_scores) {
 
