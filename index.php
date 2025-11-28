@@ -233,7 +233,8 @@ include (SECTIONS.'alerts.sec.php');
             if ($go == "entries") include (ADMIN.'entries.admin.php');
             if ($go == "contacts") include (ADMIN.'contacts.admin.php');
             if ($go == "dropoff") include (ADMIN.'dropoff.admin.php');
-            if ($go == "checkin") include (ADMIN.'barcode_check-in.admin.php');
+// Bluebonnet BBO changed next line
+            if ($go == "checkin") include (ADMIN.'barcode_check-in-bbo.admin.php');
             if ($go == "count_by_style") include (ADMIN.'entries_by_style.admin.php');
             if ($go == "count_by_substyle") include (ADMIN.'entries_by_substyle.admin.php');
             if ($action == "register") include (SECTIONS.'register.sec.php');
