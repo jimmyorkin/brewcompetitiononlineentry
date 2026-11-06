@@ -249,6 +249,66 @@ class SourceHardeningTest extends TestCase
     }
 
     /**
+     * P2 SQLi migration, task 1a (common.lib.php financial/fee functions):
+     * total_paid_received()'s $id>0 branch and its $archive suffix branch
+     * ARE reachable in production - a fix-loop correction after an
+     * independent reviewer found the original task-1a report wrongly
+     * classified both as dead/unreachable:
+     *
+     * - $id>0: lib/common.lib.php's best_brewer_points($bid, ...) calls
+     *   total_paid_received("", $bid) with a real brewer uid. That function
+     *   is called from awards.php (the public awards/results presentation)
+     *   and sections/bestbrewer.sec.php (included from sections/default.sec.php,
+     *   output/results.output.php, and output/export.output.php) - the
+     *   Best Brewer / Best Club scoring feature.
+     * - $archive: output/export.output.php's $tb=="circuit" branch calls
+     *   total_paid_received("judging_scores", 0, $filter) with a
+     *   request-derived $filter, for the archived-year circuit export
+     *   (admin/archive.admin.php and admin/default.admin.php both link to
+     *   this export with a real archive suffix in $filter).
+     *
+     * Neither is covered by a behavioural (Playwright) test, for the same
+     * reason sections/winners.sec.php's queries are not (see
+     * test_winners_and_brewer_entries_style_lookups_stay_parameterized
+     * above): reaching best_brewer_points() requires flipping this shared,
+     * long-lived stack's prefsDisplayWinners/judging-window state (both
+     * awards.php and sections/default.sec.php's bestbrewer.sec.php include
+     * are gated on it), and reaching the circuit export's $archive branch
+     * requires an actual archive, which admin/archive.admin.php creates by
+     * relocating the competition's live brewing/judging_scores/brewer
+     * tables into archived, suffixed copies - the same class of
+     * one-time/destructive operation that
+     * test_convert_bjcp_2021_stays_parameterized above documents as unsafe
+     * to run against this shared stack's real data. Both branches' query
+     * shape and injection-safety (an injection-shaped $id still resolves to
+     * the scoped, not full-table, count; an injection-shaped $archive
+     * sanitizes to a safe identifier fragment instead of being concatenated
+     * raw) were verified directly against this stack's live database via
+     * the PHP CLI inside the web container - see the task-1a report for
+     * that script and its output.
+     */
+    public function test_total_paid_received_id_and_archive_branches_stay_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/common.lib.php');
+        $this->assertNotFalse($source);
+
+        $totalPaidReceived = $this->extractFunction($source, 'total_paid_received');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $totalPaidReceived), 'total_paid_received() has reverted to raw mysqli_query()');
+
+        // $id>0 branch: bound `?` placeholder, not string-concatenated.
+        $this->assertStringContainsString(
+            '{ $query_entry_count .= " WHERE brewBrewerID=? AND brewPaid=\'1\' AND brewReceived=\'1\'"; $params_entry_count[] = $id; }',
+            $totalPaidReceived
+        );
+        $this->assertStringContainsString('$db_conn->rawQueryOne($query_entry_count, $params_entry_count)', $totalPaidReceived);
+
+        // $archive branch: sanitized to alphanumeric-only before use as a
+        // table-name identifier suffix (never bound as a `?` value, since
+        // identifiers can't be parameterized).
+        $this->assertStringContainsString('preg_replace("/[^a-zA-Z0-9]+/", "", $archive)', $totalPaidReceived);
+    }
+
+    /**
      * Returns the source text of a single top-level function, from its
      * `function name(` line through the line containing the next top-level
      * `function ` declaration (exclusive). Good enough for the narrow,

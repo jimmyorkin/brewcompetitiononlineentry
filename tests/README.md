@@ -68,3 +68,18 @@ app), so there is no page to exercise them through. Their conversion to
 `$db_conn->where()/getOne()` was verified directly against this stack's live
 database via the PHP CLI inside the web container instead - see the task-1a
 report for that script and its output.
+
+It also guards `total_paid_received()`'s `$id>0` and `$archive` branches
+(same task). Unlike the two functions above, these branches are **not** dead
+code - `best_brewer_points()` calls the `$id>0` form with a real brewer uid
+(reachable from `awards.php` and `sections/bestbrewer.sec.php`), and
+`output/export.output.php`'s circuit export calls the `$archive` form with a
+request-derived archive suffix. Both are source-guarded rather than
+e2e-tested because reaching them safely on this shared stack would mean
+flipping `prefsDisplayWinners`/judging-window state (same constraint as the
+`winners.sec.php` guard above) or creating a real archive, which relocates
+the competition's live tables - the same class of destructive one-time
+operation `convert_bjcp_2021.inc.php` is guarded for. Query shape and
+injection-safety for both branches were verified directly against this
+stack's live database via the PHP CLI inside the web container - see the
+task-1a report.
