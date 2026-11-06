@@ -61,3 +61,10 @@ contact and first-run setup forms), and `includes/process.inc.php` forcing
 `display_errors` on. They are coarse by design. The browser-level cookie test is
 `e2e/tests/xss-cookies.spec.ts`; the setup form is only reachable during first-run
 setup, so it is covered by the source guard alone.
+
+It also guards `lib/common.lib.php`'s `total_entries_brewer()` and `total_paid()`
+(P2 SQLi migration, task 1a) - both are dead code (no caller anywhere in the
+app), so there is no page to exercise them through. Their conversion to
+`$db_conn->where()/getOne()` was verified directly against this stack's live
+database via the PHP CLI inside the web container instead - see the task-1a
+report for that script and its output.

@@ -219,4 +219,46 @@ class SourceHardeningTest extends TestCase
         $this->assertStringContainsString("\$db_conn->where('brewStyleVersion', array('BJCP2015','BJCP2021'), 'in');", $source);
         $this->assertStringContainsString('$rows_style_ids = $db_conn->get($styles_db_table, null, "id, brewStyleGroup, brewStyleNum, brewStyleVersion");', $source);
     }
+
+    /**
+     * P2 SQLi migration, task 1a (common.lib.php financial/fee functions):
+     * total_entries_brewer() and total_paid() were converted from raw
+     * mysqli_query()/sprintf() to $db_conn->where()/getOne(), matching
+     * upstream/master's own conversion byte-for-byte. Neither function has
+     * any caller anywhere in the app (confirmed by a full-repo grep), so
+     * there is no page to exercise them through - this is a source guard
+     * rather than a behavioural test. Their query shape was verified
+     * directly against this stack's live database via the PHP CLI inside
+     * the web container - see the task-1a report for that script and its
+     * output.
+     */
+    public function test_dead_code_fee_functions_stay_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/common.lib.php');
+        $this->assertNotFalse($source);
+
+        $totalEntriesBrewer = $this->extractFunction($source, 'total_entries_brewer');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $totalEntriesBrewer), 'total_entries_brewer() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString("\$db_conn->where('brewBrewerID', \$bid);", $totalEntriesBrewer);
+        $this->assertStringContainsString('$db_conn->getOne($prefix."brewing", "COUNT(*) as \'count\'");', $totalEntriesBrewer);
+
+        $totalPaid = $this->extractFunction($source, 'total_paid');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $totalPaid), 'total_paid() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString("\$db_conn->where('brewPaid', '1');", $totalPaid);
+        $this->assertStringContainsString('$db_conn->getOne($prefix."brewing", "COUNT(*) as \'count\'");', $totalPaid);
+    }
+
+    /**
+     * Returns the source text of a single top-level function, from its
+     * `function name(` line through the line containing the next top-level
+     * `function ` declaration (exclusive). Good enough for the narrow,
+     * well-formed functions this guard checks - not a general PHP parser.
+     */
+    private function extractFunction(string $source, string $name): string
+    {
+        $start = strpos($source, "function {$name}(");
+        $this->assertNotFalse($start, "function {$name}() not found in source");
+        $nextFunction = strpos($source, "\nfunction ", $start + 1);
+        return $nextFunction === false ? substr($source, $start) : substr($source, $start, $nextFunction - $start);
+    }
 }

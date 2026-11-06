@@ -782,30 +782,45 @@ function currency_info($input,$method) {
 
 function total_fees($entry_fee, $entry_fee_discount, $entry_discount, $entry_discount_number, $cap_no, $special_discount_number, $bid, $filter, $comp_id) {
 	require(CONFIG.'config.php');
+	$db_conn = new MysqliDb($connection);
 
 	// ----------------------------------------------------------------------
 	if (($bid == "default") && ($filter == "default")) {
 
-		mysqli_select_db($connection,$database);
-		$query_users = sprintf("SELECT id,user_name FROM %s",$prefix."users");
-		$users = mysqli_query($connection,$query_users) or die (mysqli_error($connection));
-		$row_users = mysqli_fetch_assoc($users);
-		$totalRows_users = mysqli_num_rows($users);
+		$rows_users = $db_conn->get($prefix."users", null, "id,user_name");
+		$totalRows_users = $db_conn->count;
 
-		do { $user_id_1[] = $row_users['id']; } while ($row_users = mysqli_fetch_assoc($users));
+		$user_id_1 = array();
+		foreach ($rows_users as $row_users) { $user_id_1[] = $row_users['id']; }
 		sort($user_id_1);
 
-		foreach ($user_id_1 as $id_1) {
-			// Get each entrant's number of entries
-			mysqli_select_db($connection,$database);
-			$query_entries = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewBrewerID='%s'",$prefix."brewing", $id_1);
-			$entries = mysqli_query($connection,$query_entries) or die (mysqli_error($connection));
-			$row_entries = mysqli_fetch_array($entries, MYSQLI_BOTH);
-			$totalRows_entries = $row_entries['count'];
+		// Batch what used to be 2 queries per user (entry count + brewer
+		// discount flag) into 2 queries total, run once up front - this
+		// function is called on every admin page load via admin_common.db.php.
+		$entry_counts_by_user_1 = array();
+		$discount_by_user_1 = array();
+		if (!empty($user_id_1)) {
+			$db_conn->where('brewBrewerID', $user_id_1, 'in');
+			$db_conn->groupBy('brewBrewerID');
+			$rows_entry_counts_1 = $db_conn->get($prefix."brewing", null, "brewBrewerID, COUNT(*) as count");
+			foreach ($rows_entry_counts_1 as $row_ec_1) {
+				$entry_counts_by_user_1[$row_ec_1['brewBrewerID']] = $row_ec_1['count'];
+			}
 
-			$query_brewer = sprintf("SELECT brewerDiscount FROM %s WHERE uid='%s'",$prefix."brewer", $id_1);
-			$brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
-			$row_brewer = mysqli_fetch_array($brewer, MYSQLI_BOTH);
+			$db_conn->where('uid', $user_id_1, 'in');
+			$rows_discounts_1 = $db_conn->get($prefix."brewer", null, "uid, brewerDiscount");
+			foreach ($rows_discounts_1 as $row_d_1) {
+				$discount_by_user_1[$row_d_1['uid']] = $row_d_1['brewerDiscount'];
+			}
+		}
+
+		foreach ($user_id_1 as $id_1) {
+			// Pulled from the batched fetch above instead of 2 fresh queries per user.
+			// array_key_exists (not isset) - brewerDiscount is often NULL in the DB, and
+			// isset() treats a NULL value as "not set", which would wrongly drop users
+			// with no discount flag out of the fee calculation entirely.
+			$totalRows_entries = $entry_counts_by_user_1[$id_1] ?? 0;
+			$row_brewer = array_key_exists($id_1, $discount_by_user_1) ? array('brewerDiscount' => $discount_by_user_1[$id_1]) : null;
 
 			if (($totalRows_entries > 0) && ($row_brewer)) {
 				if (($row_brewer['brewerDiscount'] == "Y") && ($special_discount_number != "")) {
@@ -848,15 +863,13 @@ function total_fees($entry_fee, $entry_fee_discount, $entry_discount, $entry_dis
 	// ----------------------------------------------------------------------
 	if (($bid != "default") && ($filter == "default")) {
 	// Get each entrant's number of entries
-	mysqli_select_db($connection,$database);
-		$query_entries = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewBrewerID='%s' AND brewConfirmed='1'", $prefix."brewing", $bid);
-		$entries = mysqli_query($connection,$query_entries) or die (mysqli_error($connection));
-		$row_entries = mysqli_fetch_array($entries);
+	$db_conn->where('brewBrewerID', $bid);
+	$db_conn->where('brewConfirmed', '1');
+	$row_entries = $db_conn->getOne($prefix."brewing", "COUNT(*) as 'count'");
 		$totalRows_entries = $row_entries['count'];
 
-		$query_brewer = sprintf("SELECT brewerDiscount FROM %s WHERE uid='%s'", $prefix."brewer", $bid);
-		$brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
-		$row_brewer = mysqli_fetch_array($brewer);
+		$db_conn->where('uid', $bid);
+		$row_brewer = $db_conn->getOne($prefix."brewer", "brewerDiscount");
 
 		if ($totalRows_entries > 0) {
 				if (($row_brewer['brewerDiscount'] == "Y") && ($special_discount_number != "")) {
@@ -901,26 +914,42 @@ function total_fees($entry_fee, $entry_fee_discount, $entry_discount, $entry_dis
 	// ----------------------------------------------------------------------
 	if (($bid == "default") && ($filter != "default")) {
 
-	mysqli_select_db($connection,$database);
-		$query_users = sprintf("SELECT id,user_name FROM %s",$prefix."users");
-		$users = mysqli_query($connection,$query_users) or die (mysqli_error($connection));
-		$row_users = mysqli_fetch_assoc($users);
-		$totalRows_users = mysqli_num_rows($users);
+		$rows_users = $db_conn->get($prefix."users", null, "id,user_name");
+		$totalRows_users = $db_conn->count;
 
-		do { $user_id_1[] = $row_users['id']; } while ($row_users = mysqli_fetch_assoc($users));
-		sort($user_id_1);
+		$user_id_3 = array();
+		foreach ($rows_users as $row_users) { $user_id_3[] = $row_users['id']; }
+		sort($user_id_3);
 
-		foreach ($user_id_1 as $id_1) {
-			// Get each entrant's number of entries
-			mysqli_select_db($connection,$database);
-			$query_entries = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewBrewerID='%s' AND brewCategorySort='%s'",$prefix."brewing",$id_1,$filter);
-			$entries = mysqli_query($connection,$query_entries) or die (mysqli_error($connection));
-			$row_entries = mysqli_fetch_array($entries);
-			$totalRows_entries = $row_entries['count'];
+		// Batch what used to be 2 queries per user (entry count filtered by
+		// style + brewer discount flag) into 2 queries total, run once up
+		// front - this function is called on every admin page load via
+		// admin_common.db.php.
+		$entry_counts_by_user_3 = array();
+		$discount_by_user_3 = array();
+		if (!empty($user_id_3)) {
+			$db_conn->where('brewBrewerID', $user_id_3, 'in');
+			$db_conn->where('brewCategorySort', $filter);
+			$db_conn->groupBy('brewBrewerID');
+			$rows_entry_counts_3 = $db_conn->get($prefix."brewing", null, "brewBrewerID, COUNT(*) as count");
+			foreach ($rows_entry_counts_3 as $row_ec_3) {
+				$entry_counts_by_user_3[$row_ec_3['brewBrewerID']] = $row_ec_3['count'];
+			}
 
-			$query_brewer = sprintf("SELECT brewerDiscount FROM %s WHERE uid='%s'",$prefix."brewer", $id_1);
-			$brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
-			$row_brewer = mysqli_fetch_array($brewer);
+			$db_conn->where('uid', $user_id_3, 'in');
+			$rows_discounts_3 = $db_conn->get($prefix."brewer", null, "uid, brewerDiscount");
+			foreach ($rows_discounts_3 as $row_d_3) {
+				$discount_by_user_3[$row_d_3['uid']] = $row_d_3['brewerDiscount'];
+			}
+		}
+
+		foreach ($user_id_3 as $id_3) {
+			// Pulled from the batched fetch above instead of 2 fresh queries per user.
+			// array_key_exists (not isset) - brewerDiscount is often NULL in the DB, and
+			// isset() treats a NULL value as "not set", which would wrongly drop users
+			// with no discount flag out of the fee calculation entirely.
+			$totalRows_entries = $entry_counts_by_user_3[$id_3] ?? 0;
+			$row_brewer = array_key_exists($id_3, $discount_by_user_3) ? array('brewerDiscount' => $discount_by_user_3[$id_3]) : null;
 
 			if ($totalRows_entries > 0) {
 				if (($row_brewer['brewerDiscount'] == "Y") && ($special_discount_number != "")) {
@@ -964,36 +993,56 @@ function total_fees($entry_fee, $entry_fee_discount, $entry_discount, $entry_dis
 
 function total_fees_paid($entry_fee, $entry_fee_discount, $entry_discount, $entry_discount_number, $cap_no, $special_discount_number, $bid, $filter, $comp_id) {
 	require(CONFIG.'config.php');
-	mysqli_select_db($connection,$database);
+	$db_conn = new MysqliDb($connection);
 	// echo "<br>entry_fee:".$entry_fee."<br>entry_fee_discount:".$entry_fee_discount."<br>entry_discount:".$entry_discount."<br>entry_discount_number:".$entry_discount_number."<br>cap_no:".$cap_no."<br>special_discount_amount:".$special_discount_number."<br>bid:".$bid."<br>filter:".$filter."<br>";
 	// ----------------------------------------------------------------------
 	if (($bid == "default") && ($filter == "default")) {
-		$query_users = sprintf("SELECT id,user_name FROM %s", $prefix."users");
-		$users = mysqli_query($connection,$query_users) or die (mysqli_error($connection));
-		$row_users = mysqli_fetch_assoc($users);
-		$totalRows_users = mysqli_num_rows($users);
+		$rows_users = $db_conn->get($prefix."users", null, "id,user_name");
+		$totalRows_users = $db_conn->count;
 
-		do { $user_id_2[] = $row_users['id']; } while ($row_users = mysqli_fetch_assoc($users));
+		$user_id_2 = array();
+		foreach ($rows_users as $row_users) { $user_id_2[] = $row_users['id']; }
 		sort($user_id_2);
 
+		// Batch what used to be 3 queries per user (entry count, paid-entry
+		// count, brewer discount flag) into 3 queries total, run once up
+		// front - this function is called on every admin page load via
+		// admin_common.db.php.
+		$entry_counts_by_user_2 = array();
+		$paid_counts_by_user_2 = array();
+		$discount_by_user_2 = array();
+		if (!empty($user_id_2)) {
+			$db_conn->where('brewBrewerID', $user_id_2, 'in');
+			$db_conn->groupBy('brewBrewerID');
+			$rows_entry_counts_2 = $db_conn->get($prefix."brewing", null, "brewBrewerID, COUNT(*) as count");
+			foreach ($rows_entry_counts_2 as $row_ec_2) {
+				$entry_counts_by_user_2[$row_ec_2['brewBrewerID']] = $row_ec_2['count'];
+			}
+
+			$db_conn->where('brewBrewerID', $user_id_2, 'in');
+			$db_conn->where('brewPaid', '1');
+			$db_conn->groupBy('brewBrewerID');
+			$rows_paid_counts_2 = $db_conn->get($prefix."brewing", null, "brewBrewerID, COUNT(*) as count");
+			foreach ($rows_paid_counts_2 as $row_pc_2) {
+				$paid_counts_by_user_2[$row_pc_2['brewBrewerID']] = $row_pc_2['count'];
+			}
+
+			$db_conn->where('uid', $user_id_2, 'in');
+			$rows_discounts_2 = $db_conn->get($prefix."brewer", null, "uid, brewerDiscount");
+			foreach ($rows_discounts_2 as $row_d_2) {
+				$discount_by_user_2[$row_d_2['uid']] = $row_d_2['brewerDiscount'];
+			}
+		}
+
 		foreach ($user_id_2 as $id_2) {
-			// Get each entrant's number of entries
-			mysqli_select_db($connection,$database);
-			$query_entries = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewBrewerID='%s'", $prefix."brewing", $id_2);
-			$entries = mysqli_query($connection,$query_entries) or die (mysqli_error($connection));
-			$row_entries = mysqli_fetch_array($entries);
-			$totalRows_entries = $row_entries['count'];
-
-			$query_paid = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewBrewerID='%s' AND brewPaid='1'",$prefix."brewing", $id_2);
-			$paid = mysqli_query($connection,$query_paid) or die (mysqli_error($connection));
-			$row_paid = mysqli_fetch_array($paid);
-			$totalRows_paid = $row_paid['count'];
-
-			$totalRows_not_paid = ($row_entries['count'] - $row_paid['count']);
-
-			$query_brewer = sprintf("SELECT brewerDiscount FROM %s WHERE uid='%s'",$prefix."brewer", $id_2);
-			$brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
-			$row_brewer = mysqli_fetch_array($brewer);
+			// Pulled from the batched fetch above instead of 3 fresh queries per user.
+			// array_key_exists (not isset) - brewerDiscount is often NULL in the DB, and
+			// isset() treats a NULL value as "not set", which would wrongly drop users
+			// with no discount flag out of the fee calculation entirely.
+			$totalRows_entries = $entry_counts_by_user_2[$id_2] ?? 0;
+			$totalRows_paid = $paid_counts_by_user_2[$id_2] ?? 0;
+			$totalRows_not_paid = ($totalRows_entries - $totalRows_paid);
+			$row_brewer = array_key_exists($id_2, $discount_by_user_2) ? array('brewerDiscount' => $discount_by_user_2[$id_2]) : null;
 
 			if (($totalRows_entries > 0) && ($row_brewer)) {
 
@@ -1072,22 +1121,18 @@ function total_fees_paid($entry_fee, $entry_fee_discount, $entry_discount, $entr
 	if (($bid != "default") && ($filter == "default")) {
 
 	// Get the entrant's number of entries
-	mysqli_select_db($connection,$database);
-
-	$query_entries = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewBrewerID='%s'", $prefix."brewing", $bid);
-	$entries = mysqli_query($connection,$query_entries) or die (mysqli_error($connection));
-	$row_entries = mysqli_fetch_array($entries);
+	$db_conn->where('brewBrewerID', $bid);
+	$row_entries = $db_conn->getOne($prefix."brewing", "COUNT(*) as 'count'");
 	$totalRows_entries = $row_entries['count'];
 
-	$query_paid = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewBrewerID='%s' AND brewPaid='1'", $prefix."brewing", $bid);
-	$paid = mysqli_query($connection,$query_paid) or die (mysqli_error($connection));
-	$row_paid = mysqli_fetch_array($paid);
+	$db_conn->where('brewBrewerID', $bid);
+	$db_conn->where('brewPaid', '1');
+	$row_paid = $db_conn->getOne($prefix."brewing", "COUNT(*) as 'count'");
 	$totalRows_paid = $row_paid['count'];
 	$totalRows_not_paid = ($totalRows_entries - $totalRows_paid);
 
-	$query_brewer = sprintf("SELECT brewerDiscount FROM %s WHERE uid='%s'", $prefix."brewer", $bid);
-	$brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
-	$row_brewer = mysqli_fetch_array($brewer);
+	$db_conn->where('uid', $bid);
+	$row_brewer = $db_conn->getOne($prefix."brewer", "brewerDiscount");
 
 	//echo "Discount? ".$row_brewer['brewerDiscount']."<br>";
 		if ($totalRows_entries > 0) {
@@ -1164,32 +1209,54 @@ function total_fees_paid($entry_fee, $entry_fee_discount, $entry_discount, $entr
 
 	if (($bid == "default") && ($filter != "default")) {
 
-		$query_users = sprintf("SELECT id,user_name FROM %s", $prefix."users");
-		$users = mysqli_query($connection,$query_users) or die (mysqli_error($connection));
-		$row_users = mysqli_fetch_assoc($users);
-		$totalRows_users = mysqli_num_rows($users);
+		$rows_users = $db_conn->get($prefix."users", null, "id,user_name");
+		$totalRows_users = $db_conn->count;
 
-		do { $user_id_2[] = $row_users['id']; } while ($row_users = mysqli_fetch_assoc($users));
-		sort($user_id_2);
+		$user_id_3 = array();
+		foreach ($rows_users as $row_users) { $user_id_3[] = $row_users['id']; }
+		sort($user_id_3);
 
-		foreach ($user_id_2 as $id_2) {
-			// Get each entrant's number of entries
-			mysqli_select_db($connection,$database);
-			$query_entries = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewBrewerID='%s' AND brewCategorySort='%s'",$prefix."brewing", $id_2, $filter);
-			$entries = mysqli_query($connection,$query_entries) or die (mysqli_error($connection));
-			$row_entries = mysqli_fetch_array($entries);
-			$totalRows_entries = $row_entries['count'];
+		// Batch what used to be 3 queries per user (entry count filtered by
+		// style, paid-entry count filtered by style, brewer discount flag)
+		// into 3 queries total, run once up front - this function is called
+		// on every admin page load via admin_common.db.php.
+		$entry_counts_by_user_3 = array();
+		$paid_counts_by_user_3 = array();
+		$discount_by_user_3 = array();
+		if (!empty($user_id_3)) {
+			$db_conn->where('brewBrewerID', $user_id_3, 'in');
+			$db_conn->where('brewCategorySort', $filter);
+			$db_conn->groupBy('brewBrewerID');
+			$rows_entry_counts_3 = $db_conn->get($prefix."brewing", null, "brewBrewerID, COUNT(*) as count");
+			foreach ($rows_entry_counts_3 as $row_ec_3) {
+				$entry_counts_by_user_3[$row_ec_3['brewBrewerID']] = $row_ec_3['count'];
+			}
 
-			$query_paid = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewBrewerID='%s' AND brewPaid='1' AND brewCategorySort='%s'",$prefix."brewing", $id_2, $filter);
-			$paid = mysqli_query($connection,$query_paid) or die (mysqli_error($connection));
-			$row_paid = mysqli_fetch_array($paid);
-			$totalRows_paid = $row_paid['count'];
+			$db_conn->where('brewBrewerID', $user_id_3, 'in');
+			$db_conn->where('brewPaid', '1');
+			$db_conn->where('brewCategorySort', $filter);
+			$db_conn->groupBy('brewBrewerID');
+			$rows_paid_counts_3 = $db_conn->get($prefix."brewing", null, "brewBrewerID, COUNT(*) as count");
+			foreach ($rows_paid_counts_3 as $row_pc_3) {
+				$paid_counts_by_user_3[$row_pc_3['brewBrewerID']] = $row_pc_3['count'];
+			}
 
-			$totalRows_not_paid = ($row_entries['count'] - $row_paid['count']);
+			$db_conn->where('uid', $user_id_3, 'in');
+			$rows_discounts_3 = $db_conn->get($prefix."brewer", null, "uid, brewerDiscount");
+			foreach ($rows_discounts_3 as $row_d_3) {
+				$discount_by_user_3[$row_d_3['uid']] = $row_d_3['brewerDiscount'];
+			}
+		}
 
-			$query_brewer = sprintf("SELECT brewerDiscount FROM %s WHERE uid='%s'", $prefix."brewer", $id_2);
-			$brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
-			$row_brewer = mysqli_fetch_array($brewer);
+		foreach ($user_id_3 as $id_3) {
+			// Pulled from the batched fetch above instead of 3 fresh queries per user.
+			// array_key_exists (not isset) - brewerDiscount is often NULL in the DB, and
+			// isset() treats a NULL value as "not set", which would wrongly drop users
+			// with no discount flag out of the fee calculation entirely.
+			$totalRows_entries = $entry_counts_by_user_3[$id_3] ?? 0;
+			$totalRows_paid = $paid_counts_by_user_3[$id_3] ?? 0;
+			$totalRows_not_paid = ($totalRows_entries - $totalRows_paid);
+			$row_brewer = array_key_exists($id_3, $discount_by_user_3) ? array('brewerDiscount' => $discount_by_user_3[$id_3]) : null;
 
 			if ($totalRows_entries > 0) {
 				if (($row_brewer['brewerDiscount'] == "Y") && ($special_discount_number != "")) {
@@ -1268,11 +1335,10 @@ function total_fees_paid($entry_fee, $entry_fee_discount, $entry_discount, $entr
 
 function total_entries_brewer($bid) {
 	require(CONFIG.'config.php');
-	mysqli_select_db($connection,$database);
+	$db_conn = new MysqliDb($connection);
 
-	$query_all = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewBrewerID='%s'", $prefix."brewing", $bid);
-	$all = mysqli_query($connection,$query_all) or die (mysqli_error($connection));
-	$row_all = mysqli_fetch_assoc($all);
+	$db_conn->where('brewBrewerID', $bid);
+	$row_all = $db_conn->getOne($prefix."brewing", "COUNT(*) as 'count'");
 
 	return $row_all['count'];
 }
@@ -1280,16 +1346,16 @@ function total_entries_brewer($bid) {
 
 function total_not_paid_brewer($bid) {
 	require(CONFIG.'config.php');
-	mysqli_select_db($connection,$database);
+	$db_conn = new MysqliDb($connection);
 
-	$query_all = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewBrewerID='%s' AND brewConfirmed='1'", $prefix."brewing", $bid);
-	$all = mysqli_query($connection,$query_all) or die (mysqli_error($connection));
-	$row_all = mysqli_fetch_assoc($all);
+	$db_conn->where('brewBrewerID', $bid);
+	$db_conn->where('brewConfirmed', '1');
+	$row_all = $db_conn->getOne($prefix."brewing", "COUNT(*) as 'count'");
 	$totalRows_all = $row_all['count'];
 
-	$query_paid = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewBrewerID='%s' AND brewPaid='1'", $prefix."brewing", $bid);
-	$paid = mysqli_query($connection,$query_paid) or die (mysqli_error($connection));
-	$row_paid = mysqli_fetch_assoc($paid);
+	$db_conn->where('brewBrewerID', $bid);
+	$db_conn->where('brewPaid', '1');
+	$row_paid = $db_conn->getOne($prefix."brewing", "COUNT(*) as 'count'");
 	$totalRows_paid = $row_paid['count'];
 
 	$total_not_paid = ($totalRows_all - $totalRows_paid);
@@ -1298,41 +1364,42 @@ function total_not_paid_brewer($bid) {
 
 function total_paid_received($go,$id,$archive="") {
 	require(CONFIG.'config.php');
-	mysqli_select_db($connection,$database);
+	$db_conn = new MysqliDb($connection);
 
 	$archive_suffix = "";
+	// $archive is restricted to alphanumeric characters before use in a
+	// table-name identifier - it can never be bound as a `?` value, so it is
+	// sanitized here instead (upstream/master's own fix for this function).
 	if ((isset($archive)) && (!empty($archive)) && ($archive != "default")) {
-		$archive_suffix = "_".$archive;
+		$archive_suffix = "_".preg_replace("/[^a-zA-Z0-9]+/", "", $archive);
 	}
 
-	$query_entry_count =  sprintf("SELECT COUNT(*) as 'count' FROM %s", $prefix."brewing".$archive_suffix);
+	$query_entry_count = "SELECT COUNT(*) as 'count' FROM ".$prefix."brewing".$archive_suffix;
+	$params_entry_count = array();
 	if (($go == "judging_scores") || ($go == "judging_tables")) $query_entry_count .= " WHERE brewPaid='1' AND brewReceived='1'";
-	if (($id > 0) && ($id !="default")) $query_entry_count .= " WHERE brewBrewerID='$id' AND brewPaid='1' AND brewReceived='1'";
-	$result = mysqli_query($connection,$query_entry_count) or die (mysqli_error($connection));
-	$row = mysqli_fetch_array($result);
+	if (($id > 0) && ($id !="default")) { $query_entry_count .= " WHERE brewBrewerID=? AND brewPaid='1' AND brewReceived='1'"; $params_entry_count[] = $id; }
+	$row = (!empty($params_entry_count)) ? $db_conn->rawQueryOne($query_entry_count, $params_entry_count) : $db_conn->rawQueryOne($query_entry_count);
 	return $row['count'];
 }
 
 function total_paid() {
 	require(CONFIG.'config.php');
-	mysqli_select_db($connection,$database);
+	$db_conn = new MysqliDb($connection);
 
-	$query_entry_count =  sprintf("SELECT COUNT(*) as 'count' FROM %s", $prefix."brewing");
-	$query_entry_count .= " WHERE brewPaid='1'";
-	$result = mysqli_query($connection,$query_entry_count) or die (mysqli_error($connection));
-	$row = mysqli_fetch_array($result);
+	$db_conn->where('brewPaid', '1');
+	$row = $db_conn->getOne($prefix."brewing", "COUNT(*) as 'count'");
 	return $row['count'];
 }
 
 function total_nopay_received($go, $id, $comp_id) {
 	require(CONFIG.'config.php');
-	mysqli_select_db($connection,$database);
+	$db_conn = new MysqliDb($connection);
 
-	$query_entry_count =  sprintf("SELECT COUNT(*) as 'count' FROM %s", $prefix."brewing");
+	$query_entry_count = "SELECT COUNT(*) as 'count' FROM ".$prefix."brewing";
+	$params_entry_count = array();
 	if ($go == "entries") $query_entry_count .= " WHERE brewPaid='0' AND brewReceived='1'";
-	if (($id != "default") && ($id > 0)) $query_entry_count .= " WHERE brewBrewerID='$id' AND brewPaid='0' AND brewReceived='1'";
-	$result = mysqli_query($connection,$query_entry_count) or die (mysqli_error($connection));
-	$row = mysqli_fetch_array($result);
+	if (($id != "default") && ($id > 0)) { $query_entry_count .= " WHERE brewBrewerID=? AND brewPaid='0' AND brewReceived='1'"; $params_entry_count[] = $id; }
+	$row = (!empty($params_entry_count)) ? $db_conn->rawQueryOne($query_entry_count, $params_entry_count) : $db_conn->rawQueryOne($query_entry_count);
 	return $row['count'];
 }
 
