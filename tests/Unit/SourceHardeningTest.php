@@ -347,6 +347,176 @@ class SourceHardeningTest extends TestCase
     }
 
     /**
+     * P2 SQLi migration, task 1c (common.lib.php style/table-info/display
+     * formatting functions): get_table_info() (14 calls), style_convert()
+     * (7 calls), style_type() (2 calls), and table_location() (2 calls) were
+     * converted from raw mysqli_query()/sprintf() to $db_conn (MysqliDb
+     * builder where()/getOne()/get(), or rawQuery()/rawQueryOne() with `?`
+     * placeholders for the queries built from optional/variable fragments),
+     * matching upstream/master's own conversion of the same functions. The
+     * fork lacks upstream's later "current" dbTable alias in
+     * get_table_info() and the extra judgingLocNotes field in its
+     * "location" method's return (both confirmed absent everywhere in this
+     * fork by a full-repo grep) - preserved as-is rather than backported,
+     * since adding them would change this fork's existing result shape.
+     *
+     * Behavioural coverage lives in
+     * e2e/tests/sqli-migration-style-table-functions.spec.ts (admin judging
+     * tables page exercises get_table_info()'s count_total/list/assigned/
+     * count/score_total branches, style_convert()'s always-executed
+     * top-of-function lookup, and table_location()'s "default" method; the
+     * custom-style-type flow exercises style_type()'s method=2/source=custom
+     * branch). This guard catches a reversion to raw mysqli_query() plus the
+     * specific query shapes for the branches not reachable from the pages
+     * used in that spec (get_table_info()'s "basic"/"styles"/"count_scores"/
+     * "count_single_table" methods, and style_convert()'s cases 6-9, which
+     * render only in CSV export, judging-flights admin, and pullsheet output
+     * contexts). All branches were also verified directly against this
+     * stack's live database via the PHP CLI inside the web container with
+     * injection-shaped id/style/archive values (no SQL error; a bound,
+     * non-numeric injection string that would have widened the old raw
+     * query to every row instead resolves - if at all - only via MySQL's
+     * ordinary numeric-string coercion of the single bound value, never by
+     * breaking out of the query) - see the task-1c report for that script
+     * and its output.
+     */
+    public function test_get_table_info_style_convert_style_type_table_location_stay_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/common.lib.php');
+        $this->assertNotFalse($source);
+
+        $getTableInfo = $this->extractFunction($source, 'get_table_info');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $getTableInfo), 'get_table_info() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString('$rows_table = (!empty($params_table)) ? $db_conn->rawQuery($query_table, $params_table) : $db_conn->rawQuery($query_table);', $getTableInfo);
+        $this->assertStringContainsString("\$db_conn->where('id', \$input);\n\t\t\$row_judging_location = \$db_conn->getOne(\$prefix.\"judging_locations\");", $getTableInfo);
+        $this->assertStringContainsString('$rows_table_info = $db_conn->get($judging_tables_db_table, null, "id,tableNumber,tableName,tableStyles");', $getTableInfo);
+        $this->assertStringContainsString('$db_conn->getOne($styles_db_table, "brewStyleGroup,brewStyleNum");', $getTableInfo);
+        $this->assertStringContainsString("\$db_conn->where('scoreTable', \$table_id);\n\t\t\$row_score_count = \$db_conn->getOne(\$judging_scores_db_table, \"COUNT(*) as 'count'\");", $getTableInfo);
+        $this->assertStringContainsString("\$db_conn->where('scoreTable', \$input);\n\t\t\$row_score_count = \$db_conn->getOne(\$judging_scores_db_table, \"COUNT(*) as 'count'\");", $getTableInfo);
+        // fork lacks upstream's "current" dbTable alias - confirmed by a
+        // full-repo grep finding zero callers pass "current" anywhere.
+        $this->assertSame(0, preg_match('/db_table == "current"/', $getTableInfo));
+
+        $styleConvert = $this->extractFunction($source, 'style_convert');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $styleConvert), 'style_convert() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString('$row_style = $db_conn->rawQueryOne($query_style, array($number, $style_set));', $styleConvert);
+        $this->assertStringContainsString("\$db_conn->where('archiveSuffix', \$archive);\n\t\t\$row_archive_db = \$db_conn->getOne(\$prefix.\"archive\", \"archiveStyleSet\");", $styleConvert);
+        $this->assertStringContainsString('$row_style = $db_conn->rawQueryOne($query_style, array($number[0], $number[1], $number[2]));', $styleConvert);
+
+        $styleType = $this->extractFunction($source, 'style_type');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $styleType), 'style_type() has reverted to raw mysqli_query()');
+        $this->assertSame(2, substr_count($styleType, '$row_style_type = $db_conn->getOne($prefix."style_types", "styleTypeName");'), 'style_type() method=2/source=custom and method=3 should both use the same converted lookup');
+
+        $tableLocation = $this->extractFunction($source, 'table_location');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $tableLocation), 'table_location() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString('$row_table = $db_conn->getOne($prefix."judging_tables", "tableLocation");', $tableLocation);
+        $this->assertStringContainsString('$rows_location = $db_conn->get($prefix."judging_locations");', $tableLocation);
+    }
+
+    /**
+     * P2 SQLi migration, task 1c: styles_active() (4 calls) converted to
+     * $db_conn builder/rawQuery() with `?` placeholders for the bound value
+     * (style set / archive suffix), matching upstream/master's own
+     * conversion (adapted for this fork's lack of upstream's later
+     * BJCP2025/BJCP2026/AABC2025 style-set branching - confirmed absent
+     * everywhere in this fork by a full-repo grep for those names, the same
+     * divergence already documented for winner_check() in task 1b and
+     * limit_subcategory() in this task).
+     *
+     * styles_active() has three callers, all gated behind this shared
+     * stack's winners-display/judging-window state (sections/default.sec.php,
+     * awards.php, includes/db/scores_bestbrewer.db.php) or deep in a
+     * judging-window-gated export branch (output/export.output.php) - the
+     * same category of state this stack can't safely flip that
+     * sections/winners.sec.php's own queries and total_paid_received()'s
+     * $id>0 branch are already documented as unable to reach in
+     * tests/Unit/SourceHardeningTest.php and TESTING.md. Covered by this
+     * source guard plus a direct PHP CLI verification against the live
+     * database (all three methods return real, non-empty results; an
+     * injection-shaped $archive produces no SQL error) - see the task-1c
+     * report.
+     *
+     * The style_types_db.$archive table-name fragment in method 1 is a
+     * table identifier, not a value, so it stays interpolated per this
+     * migration's standing constraint (identifiers can't be bound as `?`).
+     */
+    public function test_styles_active_stays_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/common.lib.php');
+        $this->assertNotFalse($source);
+
+        $stylesActive = $this->extractFunction($source, 'styles_active');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $stylesActive), 'styles_active() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString("\$db_conn->where('archiveSuffix', \$archive_suffix);\n\t\t\$row_archive_style_set = \$db_conn->getOne(\$prefix.\"archive\", \"archiveStyleSet\");", $stylesActive);
+        $this->assertStringContainsString('$query_styles = "SELECT DISTINCT brewStyleGroup FROM ".$styles_db_table." WHERE (brewStyleVersion=? OR brewStyleOwn=\'custom\')";', $stylesActive);
+        $this->assertStringContainsString('$rows_styles = $db_conn->rawQuery($query_styles, array($style_set));', $stylesActive);
+        $this->assertStringContainsString('$row_style_types_active = $db_conn->rawQueryOne("SELECT COUNT(*) as \'count\' FROM ".$style_types_db.$archive." WHERE styleTypeBOS=\'Y\'");', $stylesActive);
+        $this->assertStringContainsString('$query_styles = "SELECT brewStyleGroup,brewStyleNum,brewStyle FROM ".$styles_db_table." WHERE (brewStyleVersion=? OR brewStyleOwn=\'custom\')";', $stylesActive);
+    }
+
+    /**
+     * P2 SQLi migration, task 1c: limit_subcategory() (3 calls) converted to
+     * $db_conn->rawQueryOne() (style lookup, built from a fixed string plus
+     * three bound values) and where()/getOne() (the BA vs. other brewing
+     * count), matching upstream/master's own conversion (adapted for this
+     * fork's lack of upstream's later BJCP2025/BJCP2026 style-set branching
+     * and $_SESSION['style_set_no_numbering'] helper - confirmed absent
+     * everywhere in this fork by a full-repo grep; this fork keeps its own
+     * `$_SESSION['prefsStyleSet'] == "BA"` check and `[C,M,P]` regex
+     * without upstream's added "L" case).
+     *
+     * Reachable from the brew entry form (sections/brew.sec.php, every
+     * style option in the add/edit-entry dropdown) and exercised there by
+     * e2e/tests/sqli-migration-style-table-functions.spec.ts, but this
+     * fork's default prefsUserSubCatLimit (empty -> brew.sec.php substitutes
+     * 99999) makes the page-visible enabled/disabled state insensitive to
+     * the function's actual return value for any realistically-sized test
+     * dataset, so that e2e assertion alone wouldn't catch a conversion bug
+     * that silently miscounts. This guard plus a direct PHP CLI
+     * verification against the live database (normal and injection-shaped
+     * $style/$uid values; no SQL error, no scope-widening) close that gap -
+     * see the task-1c report for that script and its output.
+     */
+    public function test_limit_subcategory_stays_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/common.lib.php');
+        $this->assertNotFalse($source);
+
+        $limitSubcategory = $this->extractFunction($source, 'limit_subcategory');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $limitSubcategory), 'limit_subcategory() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString('$row_style = $db_conn->rawQueryOne($query_style, array($_SESSION[\'prefsStyleSet\'], $style_num, $style_break[1]));', $limitSubcategory);
+        $this->assertStringContainsString("\$db_conn->where('brewBrewerID', \$uid);\n\t\t\$db_conn->where('brewSubCategory', \$style_break[1]);\n\t\t\$row_check = \$db_conn->getOne(\$prefix.\"brewing\", \"COUNT(*) as 'count'\");", $limitSubcategory);
+        $this->assertStringContainsString("\$db_conn->where('brewBrewerID', \$uid);\n\t\t\$db_conn->where('brewCategorySort', \$style_num);\n\t\t\$db_conn->where('brewSubCategory', \$style_break[1]);", $limitSubcategory);
+        // fork divergence: no upstream BJCP2025/2026 $chosen_style_set branching.
+        $this->assertSame(0, preg_match('/chosen_style_set/', $limitSubcategory));
+    }
+
+    /**
+     * P2 SQLi migration, task 1c: highlight_required() (4 calls) converted
+     * to $db_conn->rawQueryOne() with `?` placeholders. This function has no
+     * upstream/master counterpart at all (confirmed by a full upstream-tree
+     * grep - it was removed or never ported upstream) and no caller
+     * anywhere in this fork (confirmed by a full-repo grep beyond its own
+     * definition), consistent with its own "// Unused. 2.6.0." comment -
+     * genuinely dead code, same precedent as task 1a's
+     * total_entries_brewer()/total_paid() and task 1b's
+     * check_judging_flights()/check_judging_numbers() guards above.
+     */
+    public function test_highlight_required_dead_code_stays_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/common.lib.php');
+        $this->assertNotFalse($source);
+
+        $highlightRequired = $this->extractFunction($source, 'highlight_required');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $highlightRequired), 'highlight_required() has reverted to raw mysqli_query()');
+        $this->assertSame(4, substr_count($highlightRequired, '$db_conn->rawQueryOne($query_check, array($style_version,$explodies[1],$explodies[2]));'), 'all four highlight_required() branches should use the converted, bound query');
+        $this->assertStringContainsString('"SELECT brewStyleSweet FROM ".$prefix."styles WHERE (brewStyleVersion=? OR brewStyleOwn=\'custom\') AND brewStyleGroup=? AND brewStyleNum=?"', $highlightRequired);
+        $this->assertStringContainsString('"SELECT brewStyleReqSpec FROM ".$prefix."styles WHERE (brewStyleVersion=? OR brewStyleOwn=\'custom\') AND brewStyleGroup=? AND brewStyleNum=?"', $highlightRequired);
+        $this->assertStringContainsString('"SELECT brewStyleCarb FROM ".$prefix."styles WHERE (brewStyleVersion=? OR brewStyleOwn=\'custom\') AND brewStyleGroup=? AND brewStyleNum=?"', $highlightRequired);
+        $this->assertStringContainsString('"SELECT brewStyleStrength FROM ".$prefix."styles WHERE (brewStyleVersion=? OR brewStyleOwn=\'custom\') AND brewStyleGroup=? AND brewStyleNum=?"', $highlightRequired);
+    }
+
+    /**
      * Returns the source text of a single top-level function, from its
      * `function name(` line through the line containing the next top-level
      * `function ` declaration (exclusive). Good enough for the narrow,

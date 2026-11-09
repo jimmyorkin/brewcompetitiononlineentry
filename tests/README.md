@@ -7,7 +7,7 @@ Approval tiers still need the database prefix and schema work described in
 
 ```bash
 composer install            # first time only
-vendor/bin/phpunit          # 226 tests, 5 skipped, no database needed
+vendor/bin/phpunit          # 230 tests, 5 skipped, no database needed
 ```
 
 `tests/bootstrap.php` defines the path constants and stubs, then loads
@@ -98,3 +98,35 @@ reference entirely. The guard asserts this too. Task 1b's other four
 functions - `winner_check()`, `score_count()`, `score_check()`, and
 `minibos_check()` - are reachable in production and are covered by
 `e2e/tests/sqli-migration-judging-scoring-functions.spec.ts` instead.
+
+It also guards `lib/common.lib.php`'s `get_table_info()`, `style_convert()`,
+`style_type()`, and `table_location()` (P2 SQLi migration, task 1c) - the
+branches not reachable from the admin judging-tables pages that
+`e2e/tests/sqli-migration-style-table-functions.spec.ts` exercises (e.g.
+`get_table_info()`'s `"basic"`/`"styles"`/`"count_scores"`/
+`"count_single_table"` methods, and `style_convert()`'s cases 6-9, which
+render only in CSV export, judging-flights admin, or pullsheet output). All
+four functions' converted query shapes were also verified directly against
+this stack's live database via the PHP CLI inside the web container, with
+injection-shaped id/style/archive values - see the task-1c report.
+
+It also guards `styles_active()` (same task) - its three callers are all
+gated behind this shared stack's winners-display/judging-window state
+(same unreachable category as the `winners.sec.php` guard and
+`total_paid_received()`'s `$id>0` branch above), or sit deep inside a
+judging-window-gated export branch. Covered by this source guard plus the
+same direct PHP CLI verification.
+
+It also guards `limit_subcategory()` (same task) - reachable from the brew
+entry form's style dropdown (`sections/brew.sec.php`), but this fork's
+default, unset `prefsUserSubCatLimit` makes the page's enabled/disabled
+style option insensitive to the function's actual return value for any
+realistically-sized test dataset, so a page-renders check alone wouldn't
+catch a conversion bug that silently miscounts. Covered by this source guard
+plus the same direct PHP CLI verification (normal and injection-shaped
+`$style`/`$uid` values).
+
+It also guards `highlight_required()` (same task) - genuinely dead code, no
+caller anywhere in this fork, and no counterpart at all in `upstream/master`
+(confirmed by a full-repo grep of both), consistent with its own
+`// Unused. 2.6.0.` comment.
