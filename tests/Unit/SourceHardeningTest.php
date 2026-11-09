@@ -309,6 +309,44 @@ class SourceHardeningTest extends TestCase
     }
 
     /**
+     * P2 SQLi migration, task 1b (common.lib.php judging/scoring functions):
+     * check_judging_flights() and check_judging_numbers() were converted
+     * from raw mysqli_query()/sprintf() to $db_conn->where()/getOne(),
+     * matching upstream/master's own conversion byte-for-byte. Neither
+     * function has any caller anywhere in this fork or upstream/master
+     * (confirmed by a full-repo grep for both names) - this is a source
+     * guard rather than a behavioural test, same as task 1a's
+     * total_entries_brewer()/total_paid() guard above.
+     *
+     * check_judging_flights() also had a pre-existing bug independent of
+     * this migration: its third query referenced an undefined
+     * `$query_flights` variable (instead of `$query_check_flights`), which
+     * would emit a PHP warning and pass `null` to mysqli_query(). Since the
+     * function has no caller, this never surfaced in production; converting
+     * to the builder call (matching upstream, which never had this bug)
+     * removes the stray variable reference entirely rather than preserving
+     * it.
+     */
+    public function test_dead_code_judging_check_functions_stay_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/common.lib.php');
+        $this->assertNotFalse($source);
+
+        $checkJudgingNumbers = $this->extractFunction($source, 'check_judging_numbers');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $checkJudgingNumbers), 'check_judging_numbers() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString("\$db_conn->where('brewJudgingNumber IS NULL');", $checkJudgingNumbers);
+        $this->assertStringContainsString('$db_conn->getOne($prefix."brewing", "COUNT(*) as count");', $checkJudgingNumbers);
+
+        $checkJudgingFlights = $this->extractFunction($source, 'check_judging_flights');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $checkJudgingFlights), 'check_judging_flights() has reverted to raw mysqli_query()');
+        $this->assertSame(0, preg_match('/\$query_flights\b/', $checkJudgingFlights), 'check_judging_flights() still references the undefined $query_flights variable');
+        $this->assertStringContainsString('$db_conn->getOne($prefix."judging_tables", "COUNT(*) AS \'count\'");', $checkJudgingFlights);
+        $this->assertStringContainsString("\$db_conn->where('brewReceived', '1');", $checkJudgingFlights);
+        $this->assertStringContainsString('$db_conn->getOne($prefix."brewing", "COUNT(*) AS \'count\'");', $checkJudgingFlights);
+        $this->assertStringContainsString('$db_conn->getOne($prefix."judging_flights", "COUNT(*) AS \'count\'");', $checkJudgingFlights);
+    }
+
+    /**
      * Returns the source text of a single top-level function, from its
      * `function name(` line through the line containing the next top-level
      * `function ` declaration (exclusive). Good enough for the narrow,

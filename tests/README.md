@@ -7,7 +7,7 @@ Approval tiers still need the database prefix and schema work described in
 
 ```bash
 composer install            # first time only
-vendor/bin/phpunit          # 223 tests, 5 skipped, no database needed
+vendor/bin/phpunit          # 226 tests, 5 skipped, no database needed
 ```
 
 `tests/bootstrap.php` defines the path constants and stubs, then loads
@@ -83,3 +83,18 @@ operation `convert_bjcp_2021.inc.php` is guarded for. Query shape and
 injection-safety for both branches were verified directly against this
 stack's live database via the PHP CLI inside the web container - see the
 task-1a report.
+
+It also guards `lib/common.lib.php`'s `check_judging_flights()` and
+`check_judging_numbers()` (P2 SQLi migration, task 1b) - both converted to
+`$db_conn->where()/getOne()`, matching `upstream/master`'s own conversion
+byte-for-byte. Like `total_entries_brewer()`/`total_paid()` above, both are
+dead code: a full-repo grep (and a check of `upstream/master`) found no
+caller anywhere for either function. `check_judging_flights()`'s conversion
+also incidentally fixed a pre-existing, migration-unrelated bug: its raw
+version referenced an undefined `$query_flights` variable in its third
+query (should have been `$query_check_flights`); since the function has no
+caller this never surfaced, and the builder conversion removes the stray
+reference entirely. The guard asserts this too. Task 1b's other four
+functions - `winner_check()`, `score_count()`, `score_check()`, and
+`minibos_check()` - are reachable in production and are covered by
+`e2e/tests/sqli-migration-judging-scoring-functions.spec.ts` instead.
