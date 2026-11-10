@@ -2736,7 +2736,7 @@ function brewer_assignment($user_id,$method,$id,$dbTable,$filter,$archive="defau
 
 	require(CONFIG.'config.php');
 	require(LANG.'language.lang.php');
-	mysqli_select_db($connection,$database);
+	$db_conn = new MysqliDb($connection);
 
 	if ($archive != "default") $staff_db_table = $prefix."staff_".$archive;
 	else $staff_db_table = $prefix."staff";
@@ -2744,10 +2744,9 @@ function brewer_assignment($user_id,$method,$id,$dbTable,$filter,$archive="defau
 	$totalRows_staff_check = 0;
 	$assignment = "";
 
-	$query_staff_check = sprintf("SELECT * FROM %s WHERE uid='%s'", $staff_db_table, $user_id);
-	$staff_check = mysqli_query($connection,$query_staff_check) or die (mysqli_error($connection));
-	$row_staff_check = mysqli_fetch_assoc($staff_check);
-	$totalRows_staff_check = mysqli_num_rows($staff_check);
+	$db_conn->where('uid', $user_id);
+	$row_staff_check = $db_conn->getOne($staff_db_table);
+	$totalRows_staff_check = $db_conn->count;
 
 	$assignment = "";
 	
@@ -3120,11 +3119,10 @@ function table_exists($table_name) {
 function judge_assignment($uid, $loc_id) {
 	// Get judge table assignments by locations
 	require(CONFIG.'config.php');
-	mysqli_select_db($connection,$database);
+	$db_conn = new MysqliDb($connection);
 
-	$query_judge_assignment = sprintf("SELECT assignTable,assignRoles,assignFlight,assignRound,tableName,tableNumber FROM %s a JOIN %s t on t.id = a.assignTable WHERE a.bid='%s' AND a.assignLocation='%s'",$prefix."judging_assignments",$prefix."judging_tables", $uid, $loc_id);
-	$judge_assignment = mysqli_query($connection,$query_judge_assignment) or die (mysqli_error($connection));
-	$row_judge_assignment = mysqli_fetch_assoc($judge_assignment);
+	$query_judge_assignment = "SELECT assignTable,assignRoles,assignFlight,assignRound,tableName,tableNumber FROM ".$prefix."judging_assignments"." a JOIN ".$prefix."judging_tables"." t on t.id = a.assignTable WHERE a.bid=? AND a.assignLocation=?";
+	$row_judge_assignment = $db_conn->rawQueryOne($query_judge_assignment, array($uid, $loc_id));
 	//$totalRows_table_assignments = mysqli_num_rows($table_assignments);
 
 	return $row_judge_assignment;
@@ -3136,21 +3134,23 @@ function table_assignments($uid,$method,$time_zone,$date_format,$time_format,$me
 	
 	// Gather and output the judging or stewarding assignments for a user
 	require(CONFIG.'config.php');
-	mysqli_select_db($connection,$database);
+	$db_conn = new MysqliDb($connection);
 
 	if ($method2 == 2) $output = array();
 	else $output = "";
 
-	$query_table_assignments = sprintf("SELECT assignTable,assignRoles,assignFlight,assignRound FROM %s WHERE bid='%s' AND assignment='%s' ORDER BY assignTable ASC",$prefix."judging_assignments",$uid,$method);
-	$table_assignments = mysqli_query($connection,$query_table_assignments) or die (mysqli_error($connection));
-	$row_table_assignments = mysqli_fetch_assoc($table_assignments);
-	$totalRows_table_assignments = mysqli_num_rows($table_assignments);
+	$db_conn->where('bid', $uid);
+	$db_conn->where('assignment', $method);
+	$db_conn->orderBy('assignTable', 'ASC');
+	$rows_table_assignments = $db_conn->get($prefix."judging_assignments", null, "assignTable,assignRoles,assignFlight,assignRound");
+	$row_table_assignments = ($rows_table_assignments && count($rows_table_assignments) > 0) ? $rows_table_assignments[0] : null;
+	$totalRows_table_assignments = $db_conn->count;
 
 	if (($row_table_assignments) && ($totalRows_table_assignments > 0)) {
 
 		require(LANG.'language.lang.php');
 
-		do {
+		foreach ($rows_table_assignments as $row_table_assignments) {
 			
 			$table_info = explode("^",get_table_info(1,"basic",$row_table_assignments['assignTable'],"default","default"));
 			$location = "";
@@ -3228,9 +3228,9 @@ function table_assignments($uid,$method,$time_zone,$date_format,$time_format,$me
 
 			}
 
-			
 
-		} while ($row_table_assignments = mysqli_fetch_assoc($table_assignments));
+
+		}
 
 	}
 
@@ -3246,23 +3246,27 @@ function available_at_location($location,$role,$round) {
 	// and returns a total number available less those who have been
 	// assigned to the location and round.
 	require(CONFIG.'config.php');
-	mysqli_select_db($connection,$database);
+	$db_conn = new MysqliDb($connection);
 
-	if ($role == "judges") $query_available = sprintf("SELECT brewerJudgeLocation FROM %s WHERE brewerJudgeLocation IS NOT NULL", $prefix."brewer");
-	if ($role == "stewards") $query_available = sprintf("SELECT brewerStewardLocation FROM %s WHERE brewerStewardLocation IS NOT NULL", $prefix."brewer");
-	$available = mysqli_query($connection,$query_available) or die (mysqli_error($connection));
-	$row_available = mysqli_fetch_assoc($available);
-	$totalRows_available = mysqli_num_rows($available);
+	if ($role == "judges") {
+		$db_conn->where('brewerJudgeLocation IS NOT NULL');
+		$rows_available = $db_conn->get($prefix."brewer", null, "brewerJudgeLocation");
+	}
+	if ($role == "stewards") {
+		$db_conn->where('brewerStewardLocation IS NOT NULL');
+		$rows_available = $db_conn->get($prefix."brewer", null, "brewerStewardLocation");
+	}
+	$totalRows_available = $db_conn->count;
 
 	$return = 0;
 
 	if ($totalRows_available > 0) {
 
-		do {
+		foreach ($rows_available as $row_available) {
 			if ($role == "judges") $available_location = explode(",",$row_available['brewerJudgeLocation']);
 			if ($role == "stewards") $available_location =  explode(",",$row_available['brewerStewardLocation']);
 			if (in_array("Y-".$location,$available_location)) $return += 1;
-		} while ($row_available = mysqli_fetch_assoc($available));
+		}
 
 	}
 
@@ -3293,10 +3297,9 @@ function readable_judging_number($style,$number) {
 function dropoff_location($input) {
 	require(CONFIG.'config.php');
 	require(LANG.'language.lang.php');
-	mysqli_select_db($connection,$database);
-	$query_dropoff = sprintf("SELECT dropLocationName FROM %s WHERE id='%s'",$prefix."drop_off",$input);
-	$dropoff = mysqli_query($connection,$query_dropoff) or die (mysqli_error($connection));
-	$row_dropoff = mysqli_fetch_assoc($dropoff);
+	$db_conn = new MysqliDb($connection);
+	$db_conn->where('id', $input);
+	$row_dropoff = $db_conn->getOne($prefix."drop_off", "dropLocationName");
 	if ($input == 0) return $label_shipping_entries;
 	elseif (($input > 0) && ($input < 999))	return $row_dropoff['dropLocationName'];
 	else return $brewer_text_005;
@@ -3323,11 +3326,10 @@ function judge_steward_availability($input,$method,$prefix) {
 			if ($b[0] == "Y") {
 			
 				require(CONFIG.'config.php');
-				mysqli_select_db($connection,$database);
-				
-				$query_location = sprintf("SELECT judgingLocName,judgingLocType FROM %s WHERE id='%s'", $prefix."judging_locations", $b[1]);
-				$location = mysqli_query($connection,$query_location) or die (mysqli_error($connection));
-				$row_location = mysqli_fetch_assoc($location);
+				$db_conn = new MysqliDb($connection);
+
+				$db_conn->where('id', $b[1]);
+				$row_location = $db_conn->getOne($prefix."judging_locations", "judgingLocName,judgingLocType");
 
 				if ($method == "1") $location_name = $row_location['judgingLocName'];
 				else $location_name = html_entity_decode($row_location['judgingLocName']);
@@ -3371,14 +3373,14 @@ function judge_steward_availability($input,$method,$prefix) {
 
 function judge_entries($uid,$method) {
 	require(CONFIG.'config.php');
-	mysqli_select_db($connection,$database);
-	$query_judge_entries = sprintf("SELECT brewStyle, brewCategory, brewSubCategory, brewCategorySort FROM %s WHERE brewBrewerID='%s' ORDER BY brewCategorySort ASC",$prefix."brewing",$uid);
-	$judge_entries = mysqli_query($connection,$query_judge_entries) or die (mysqli_error($connection));
-	$row_judge_entries = mysqli_fetch_assoc($judge_entries);
-	$totalRows_judge_entries = mysqli_num_rows($judge_entries);
+	$db_conn = new MysqliDb($connection);
+	$db_conn->where('brewBrewerID', $uid);
+	$db_conn->orderBy('brewCategorySort', 'ASC');
+	$rows_judge_entries = $db_conn->get($prefix."brewing", null, "brewStyle, brewCategory, brewSubCategory, brewCategorySort");
+	$totalRows_judge_entries = $db_conn->count;
 
 	if ($totalRows_judge_entries > 0) {
-		do {
+		foreach ($rows_judge_entries as $row_judge_entries) {
 
 			if ($_SESSION['prefsStyleSet'] == "BA") {
 				if ($method == 1) $entries[] = "<a href=\"".$base_url."index.php?section=admin&amp;go=entries&amp;filter=".$row_judge_entries['brewCategorySort']."\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"View the ".$row_judge_entries['brewStyle']." Entries\">".$row_judge_entries['brewStyle']."</a>";
@@ -3390,7 +3392,7 @@ function judge_entries($uid,$method) {
 				else $entries[] = $row_judge_entries['brewCategory'].$row_judge_entries['brewSubCategory'];
 			}
 
-		} while ($row_judge_entries = mysqli_fetch_assoc($judge_entries));
+		}
 		$return = implode(", ",$entries);
 		$return = rtrim($return,", ");
 	}
@@ -4472,11 +4474,11 @@ function style_number_const($style_category_number,$style_sub,$style_set_display
 // Check if user is assigned to the flight that a entry is part of.
 function user_flight_assignment($uid,$table_id,$method=0) {
 	require(CONFIG.'config.php');
-	mysqli_select_db($connection,$database);
+	$db_conn = new MysqliDb($connection);
 
-	$query_flight_assign = sprintf("SELECT * FROM %s WHERE bid=%s AND assignTable=%s",$prefix."judging_assignments",$uid,$table_id);
-	$flight_assign = mysqli_query($connection,$query_flight_assign) or die (mysqli_error($connection));
-	$row_flight_assign = mysqli_fetch_assoc($flight_assign);
+	$db_conn->where('bid', $uid);
+	$db_conn->where('assignTable', $table_id);
+	$row_flight_assign = $db_conn->getOne($prefix."judging_assignments");
 
 	if ($method == 0) return $row_flight_assign['assignFlight'];
 	if ($method == 1) return $row_flight_assign['assignRoles'];
@@ -4486,19 +4488,19 @@ function user_flight_assignment($uid,$table_id,$method=0) {
 
 function entry_flight_assignment($eid,$table_id) {
 	require(CONFIG.'config.php');
-	mysqli_select_db($connection,$database);
-	
-	$query_flight_assign = sprintf("SELECT flightNumber FROM %s WHERE flightEntryID=%s AND flightTable=%s",$prefix."judging_flights",$eid,$table_id);
-	$flight_assign = mysqli_query($connection,$query_flight_assign) or die (mysqli_error($connection));
-	$row_flight_assign = mysqli_fetch_assoc($flight_assign);
-	
+	$db_conn = new MysqliDb($connection);
+
+	$db_conn->where('flightEntryID', $eid);
+	$db_conn->where('flightTable', $table_id);
+	$row_flight_assign = $db_conn->getOne($prefix."judging_flights", "flightNumber");
+
 	return $row_flight_assign['flightNumber'];
 }
 
 function flight_count_info($eid,$method) {
 
 	require(CONFIG.'config.php');
-	mysqli_select_db($connection,$database);
+	$db_conn = new MysqliDb($connection);
 
 	// Get the flight where entry is assigned
 	$r = array(
@@ -4506,17 +4508,16 @@ function flight_count_info($eid,$method) {
 		"total_flight_evals" => 0
 	);
 
-	$query_flight_assign = sprintf("SELECT flightNumber,flightTable FROM %s WHERE flightEntryID='%s'",$prefix."judging_flights",$eid);
-	$flight_assign = mysqli_query($connection,$query_flight_assign) or die (mysqli_error($connection));
-	$row_flight_assign = mysqli_fetch_assoc($flight_assign);
+	$db_conn->where('flightEntryID', $eid);
+	$row_flight_assign = $db_conn->getOne($prefix."judging_flights", "flightNumber,flightTable");
 
 	if (($method == 0) && (!empty($row_flight_assign))) {
 
 		// Get count of entries in that flight
-		$query_flight_info = sprintf("SELECT id,flightEntryID FROM %s WHERE flightTable='%s' AND flightNumber='%s'",$prefix."judging_flights",$row_flight_assign['flightTable'],$row_flight_assign['flightNumber']);
-		$flight_info = mysqli_query($connection,$query_flight_info) or die (mysqli_error($connection));
-		$row_flight_info = mysqli_fetch_assoc($flight_info);
-		$totalRows_flight_info = mysqli_num_rows($flight_info);
+		$db_conn->where('flightTable', $row_flight_assign['flightTable']);
+		$db_conn->where('flightNumber', $row_flight_assign['flightNumber']);
+		$rows_flight_info = $db_conn->get($prefix."judging_flights", null, "id,flightEntryID");
+		$totalRows_flight_info = $db_conn->count;
 		//$totalRows_flight_info = 0;
 
 		// Get eids of ALL entries in that flight
@@ -4525,15 +4526,15 @@ function flight_count_info($eid,$method) {
 		$flight_evals = 0;
 
 		if ($totalRows_flight_info > 0) {
-			do {
+			foreach ($rows_flight_info as $row_flight_info) {
 				$flight_entry_ids[] = $row_flight_info['flightEntryID'];
-			} while ($row_flight_info = mysqli_fetch_assoc($flight_info));
+			}
 		}
 
 		foreach ($flight_entry_ids as $eid) {
-			$query_flight_evals = sprintf("SELECT DISTINCT eid FROM %s WHERE evalTable='%s'",$prefix."evaluation",$row_flight_assign['flightTable']);
-			$flight_evals = mysqli_query($connection,$query_flight_evals) or die (mysqli_error($connection));
-			$totalRows_flight_evals = mysqli_num_rows($flight_evals);
+			$db_conn->where('evalTable', $row_flight_assign['flightTable']);
+			$rows_flight_evals = $db_conn->get($prefix."evaluation", null, "DISTINCT eid");
+			$totalRows_flight_evals = $db_conn->count;
 			$flight_evals =+ $totalRows_flight_evals;
 		}
 

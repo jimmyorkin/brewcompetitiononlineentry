@@ -623,6 +623,68 @@ class SourceHardeningTest extends TestCase
     }
 
     /**
+     * P2 SQLi migration, task 1e (common.lib.php judge/table/flight
+     * assignment functions): available_at_location(), judge_assignment(),
+     * user_flight_assignment(), and entry_flight_assignment() converted from
+     * raw mysqli_query()/sprintf() to $db_conn (MysqliDb builder
+     * where()/get()/getOne(), or rawQueryOne() with `?` placeholders for the
+     * two-table JOIN), matching upstream/master's own conversion of the same
+     * functions byte-for-byte.
+     *
+     * None of these four are reachable through a Playwright flow on this
+     * shared stack without either state that doesn't exist (available_at_
+     * location) or a global, shared setting that would change behavior for
+     * every concurrent session (the other three):
+     *  - available_at_location(): confirmed genuinely dead code by a
+     *    full-repo grep - zero callers anywhere in this fork, and in
+     *    upstream/master the only hit outside its own definition is a code
+     *    comment in lib/admin.lib.php (not an actual call).
+     *  - judge_assignment(): its only caller is output/labels.output.php's
+     *    PDF judge-label generation, gated behind the "virtual locations"
+     *    feature - binary PDF output with no simple page-render assertion,
+     *    not worth standing up for this one query.
+     *  - user_flight_assignment() / entry_flight_assignment(): both are only
+     *    called from eval/judging_dashboard.eval.php inside an
+     *    `if (!$queued)` block gated on the shared
+     *    judging_preferences.jPrefsQueued flag. This stack's seeded baseline
+     *    has jPrefsQueued='Y' (queued mode), so that block never executes;
+     *    flipping it to 'N' would change queued-vs-non-queued judging
+     *    behavior for every judge on this long-lived shared stack, the same
+     *    category of global-shared-state risk already established as out of
+     *    bounds (e.g. task 1's own sections-files spec declining to flip
+     *    prefsDisplayWinners).
+     *
+     * All four were verified directly against this stack's live database via
+     * a one-off PHP CLI script run inside the web container: each converted
+     * query runs without a SQL error, and an injection-shaped bound value
+     * (e.g. "1' OR '1'='1") returns no row rather than widening the match to
+     * every row - see the task-1e report for that script and its output.
+     */
+    public function test_judge_table_flight_assignment_functions_stay_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/common.lib.php');
+        $this->assertNotFalse($source);
+
+        $availableAtLocation = $this->extractFunction($source, 'available_at_location');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $availableAtLocation), 'available_at_location() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString("\$db_conn->where('brewerJudgeLocation IS NOT NULL');\n\t\t\$rows_available = \$db_conn->get(\$prefix.\"brewer\", null, \"brewerJudgeLocation\");", $availableAtLocation);
+        $this->assertStringContainsString("\$db_conn->where('brewerStewardLocation IS NOT NULL');\n\t\t\$rows_available = \$db_conn->get(\$prefix.\"brewer\", null, \"brewerStewardLocation\");", $availableAtLocation);
+
+        $judgeAssignment = $this->extractFunction($source, 'judge_assignment');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $judgeAssignment), 'judge_assignment() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString('$row_judge_assignment = $db_conn->rawQueryOne($query_judge_assignment, array($uid, $loc_id));', $judgeAssignment);
+        $this->assertStringContainsString('WHERE a.bid=? AND a.assignLocation=?', $judgeAssignment);
+
+        $userFlightAssignment = $this->extractFunction($source, 'user_flight_assignment');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $userFlightAssignment), 'user_flight_assignment() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString("\$db_conn->where('bid', \$uid);\n\t\$db_conn->where('assignTable', \$table_id);\n\t\$row_flight_assign = \$db_conn->getOne(\$prefix.\"judging_assignments\");", $userFlightAssignment);
+
+        $entryFlightAssignment = $this->extractFunction($source, 'entry_flight_assignment');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $entryFlightAssignment), 'entry_flight_assignment() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString("\$db_conn->where('flightEntryID', \$eid);\n\t\$db_conn->where('flightTable', \$table_id);\n\t\$row_flight_assign = \$db_conn->getOne(\$prefix.\"judging_flights\", \"flightNumber\");", $entryFlightAssignment);
+    }
+
+    /**
      * Returns the source text of a single top-level function, from its
      * `function name(` line through the line containing the next top-level
      * `function ` declaration (exclusive). Good enough for the narrow,

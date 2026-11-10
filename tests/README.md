@@ -7,7 +7,7 @@ Approval tiers still need the database prefix and schema work described in
 
 ```bash
 composer install            # first time only
-vendor/bin/phpunit          # 233 tests, 5 skipped, no database needed
+vendor/bin/phpunit          # 234 tests, 5 skipped, no database needed
 ```
 
 `tests/bootstrap.php` defines the path constants and stubs, then loads
@@ -169,3 +169,33 @@ overall (now via the still-present, still-unfixed `$club_array` bug
 instead), so this is documented as a known, unavoidable consequence of the
 conversion mechanism rather than a behavior change worth preserving
 bug-for-bug.
+
+It also guards `lib/common.lib.php`'s `available_at_location()`,
+`judge_assignment()`, `user_flight_assignment()`, and
+`entry_flight_assignment()` (P2 SQLi migration, task 1e) - all four
+converted to `$db_conn` (MysqliDb builder `where()`/`get()`/`getOne()`, or
+`rawQueryOne()` with `?` placeholders for `judge_assignment()`'s two-table
+JOIN), matching `upstream/master`'s own conversion byte-for-byte.
+`available_at_location()` is genuinely dead code: a full-repo grep finds no
+caller anywhere in this fork, and in `upstream/master` the only hit outside
+its own definition is a code comment in `lib/admin.lib.php`, not an actual
+call. The other three are reachable in production but not safely
+e2e-testable on this shared stack: `judge_assignment()`'s only caller is
+`output/labels.output.php`'s PDF judge-label generation behind the "virtual
+locations" feature (binary PDF output, not worth standing up for one query);
+`user_flight_assignment()`/`entry_flight_assignment()` are only called from
+`eval/judging_dashboard.eval.php` inside an `if (!$queued)` block gated on
+the shared `judging_preferences.jPrefsQueued` flag, which this stack's
+seeded baseline has set to `'Y'` - flipping it to `'N'` would change
+queued-vs-non-queued judging behavior for every judge on this long-lived
+shared stack, the same category of global-shared-state risk as the
+`winners.sec.php`/`prefsDisplayWinners` guard above. All four were verified
+directly against this stack's live database via a one-off PHP CLI script
+run inside the web container: each converted query runs without a SQL
+error, and an injection-shaped bound value (`"1' OR '1'='1"`) returns no
+row rather than widening the match to every row. The task's other six
+functions - `brewer_assignment()`, `table_assignments()`,
+`dropoff_location()`, `judge_steward_availability()`, `judge_entries()`,
+and `flight_count_info()` - are reachable in production and are covered by
+`e2e/tests/sqli-migration-judge-table-flight-assignment-functions.spec.ts`
+instead.
