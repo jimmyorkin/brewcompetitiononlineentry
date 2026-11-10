@@ -7,7 +7,7 @@ Approval tiers still need the database prefix and schema work described in
 
 ```bash
 composer install            # first time only
-vendor/bin/phpunit          # 230 tests, 5 skipped, no database needed
+vendor/bin/phpunit          # 233 tests, 5 skipped, no database needed
 ```
 
 `tests/bootstrap.php` defines the path constants and stubs, then loads
@@ -130,3 +130,42 @@ It also guards `highlight_required()` (same task) - genuinely dead code, no
 caller anywhere in this fork, and no counterpart at all in `upstream/master`
 (confirmed by a full-repo grep of both), consistent with its own
 `// Unused. 2.6.0.` comment.
+
+It also guards `purge_entries()`'s `"unpaid"` branch (P2 SQLi migration,
+task 1d). Unlike `"unconfirmed"`/`"special"` (covered live by
+`e2e/tests/sqli-migration-admin-data-integrity-functions.spec.ts`), this
+branch is reachable but not safely e2e-testable on this shared stack: its
+real baseline currently has 18 rows with `brewPaid IS NULL`, which the live
+admin "Purge All Unpaid Entries" endpoint would delete.
+
+It also documents and guards a deliberate divergence from `upstream/master`'s
+own conversion in `data_integrity_check()` (same task): the duplicate-
+`judging_scores`-row cleanup uses `$db_conn->get()` (no row limit) for its
+per-`eid` row count, not upstream's `getOne()`. `getOne()` applies an
+implicit `LIMIT 1`, so `$db_conn->count` after it is always 0 or 1 - it can
+never satisfy the `"> 1"` duplicate check that follows, silently disabling
+the cleanup entirely. This looks like a functional regression upstream's own
+migration introduced (confirmed by reading `MysqliDb::get()`/`getOne()`/
+`_dynamicBindResults()`'s LIMIT-1 behavior directly), not a pre-existing bug
+predating any SQLi conversion, so it was not carried over.
+
+It also guards `convert_to_ba()`, `convert_to_pro()`, and
+`remove_sensitive_data()` (same task) - all three genuinely dead code (no
+caller anywhere in this fork, and none of the three exist in
+`upstream/master` at all, confirmed by a full-repo and upstream grep).
+`convert_to_ba()` and `remove_sensitive_data()` also carry pre-existing bugs
+left exactly as-is (not this migration's job to fix unreachable dead code's
+unrelated bugs): `convert_to_ba()`'s final `UPDATE` targets `"brewing"`, not
+`"styles"`, for the `brewStyleActive` column, which doesn't exist on
+`"brewing"`; `remove_sensitive_data()` references the undefined
+`$club_array`. `remove_sensitive_data()` additionally used to reference a
+second query's raw `mysqli_result` one query too early, in its first loop's
+own `do-while` continuation check - converting that cursor-style loop to
+MysqliDb's array-returning `get()`/`foreach` (the builder has no
+cursor-fetch equivalent to preserve the exact crash point) incidentally
+makes that first loop run to completion instead of erroring immediately on
+it. The function remains just as unreachable and still fatally broken
+overall (now via the still-present, still-unfixed `$club_array` bug
+instead), so this is documented as a known, unavoidable consequence of the
+conversion mechanism rather than a behavior change worth preserving
+bug-for-bug.

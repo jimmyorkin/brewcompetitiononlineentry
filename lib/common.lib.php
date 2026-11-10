@@ -243,81 +243,76 @@ function purge_entries($type, $interval) {
 	$styles_db_table = $prefix."styles";
 
 	if ($type == "unconfirmed") {
-		
-		$query_check = sprintf("SELECT id FROM %s WHERE brewConfirmed='0'", $prefix."brewing");
-		if ($interval > 0) $query_check .= " AND brewUpdated < DATE_SUB( NOW(), INTERVAL 1 DAY)";
-		$check = mysqli_query($connection,$query_check) or die (mysqli_error($connection));
-		$row_check = mysqli_fetch_assoc($check);
-		$totalRows_check = mysqli_num_rows($check);
+
+		$db_conn->where('brewConfirmed', '0');
+		if ($interval > 0) $db_conn->where('brewUpdated < DATE_SUB( NOW(), INTERVAL 1 DAY)');
+		$rows_check = $db_conn->get($prefix."brewing", null, "id");
+		$totalRows_check = $db_conn->count;
 
 		if ($totalRows_check == 0) $count += 1;
 
 		if ($totalRows_check > 0) {
-			
-			do { 
-				$a[] = $row_check['id']; 
-			} while ($row_check = mysqli_fetch_assoc($check));
-			
-			foreach ($a as $id) {
+
+			foreach ($rows_check as $row_check) {
 
 				$update_table = $prefix."brewing";
-				$db_conn->where ('id', $id);
+				$db_conn->where ('id', $row_check['id']);
 				$result = $db_conn->delete ($update_table);
 				if ($result) $count += 1;
 
 			}
-		
+
 		}
-	
+
 	}
 
 	if ($type == "special") {
-		
+
 		/*
-		
+
 		if (HOSTED) {
-			
-			$query_check = sprintf("SELECT a.id, a.brewUpdated, a.brewInfo, a.brewCategorySort, a.brewSubCategory FROM %s as a, %s as b WHERE a.brewCategorySort=b.brewStyleGroup AND a.brewSubCategory=b.brewStyleNum AND b.brewStyleReqSpec=1 AND (a.brewInfo IS NULL OR a.brewInfo='') AND b.brewStyleVersion = '%s'", $prefix."brewing", $styles_db_table, $_SESSION['prefsStyleSet']);
+
+			$query_check = "SELECT a.id, a.brewUpdated, a.brewInfo, a.brewCategorySort, a.brewSubCategory FROM ".$prefix."brewing"." as a, ".$styles_db_table." as b WHERE a.brewCategorySort=b.brewStyleGroup AND a.brewSubCategory=b.brewStyleNum AND b.brewStyleReqSpec=1 AND (a.brewInfo IS NULL OR a.brewInfo='') AND b.brewStyleVersion = ?";
+			$params_check = array($_SESSION['prefsStyleSet']);
 
 			if ($interval > 0) $query_check .=" AND a.brewUpdated < DATE_SUB( NOW(), INTERVAL 1 DAY)";
-			$check = mysqli_query($connection,$query_check) or die (mysqli_error($connection));
-			$row_check = mysqli_fetch_assoc($check);
-			$totalRows_check = mysqli_num_rows($check);
+			$rows_check = $db_conn->rawQuery($query_check, $params_check);
+			$totalRows_check = $db_conn->count;
 
 			if ($totalRows_check == 0) $count += 1;
 
 			if ($totalRows_check > 0) {
-				
-				do {
+
+				foreach ($rows_check as $row_check) {
 
 					$update_table = $prefix."brewing";
 					$db_conn->where ('id', $row_check['id']);
 					$result = $db_conn->delete ($update_table);
 					if ($result) $count += 1;
 
-				} while ($row_check = mysqli_fetch_assoc($check));
+				}
 
 			}
 
-			$query_check_custom = sprintf("SELECT a.id, a.brewUpdated, a.brewInfo, a.brewCategorySort, a.brewSubCategory FROM %s as a, %s as b WHERE a.brewCategorySort=b.brewStyleGroup AND a.brewSubCategory=b.brewStyleNum AND b.brewStyleReqSpec=1 AND (a.brewInfo IS NULL OR a.brewInfo='') AND b.brewStyleVersion = '%s'", $prefix."brewing", $prefix."styles", $_SESSION['prefsStyleSet']);
+			$query_check_custom = "SELECT a.id, a.brewUpdated, a.brewInfo, a.brewCategorySort, a.brewSubCategory FROM ".$prefix."brewing"." as a, ".$prefix."styles"." as b WHERE a.brewCategorySort=b.brewStyleGroup AND a.brewSubCategory=b.brewStyleNum AND b.brewStyleReqSpec=1 AND (a.brewInfo IS NULL OR a.brewInfo='') AND b.brewStyleVersion = ?";
+			$params_check_custom = array($_SESSION['prefsStyleSet']);
 
 			if ($interval > 0) $query_check_custom .=" AND a.brewUpdated < DATE_SUB( NOW(), INTERVAL 1 DAY)";
-			$check_custom = mysqli_query($connection,$query_check_custom) or die (mysqli_error($connection));
-			$row_check_custom = mysqli_fetch_assoc($check_custom);
-			$totalRows_check_custom = mysqli_num_rows($check_custom);
+			$rows_check_custom = $db_conn->rawQuery($query_check_custom, $params_check_custom);
+			$totalRows_check_custom = $db_conn->count;
 
 			if ($totalRows_check_custom == 0) $count += 1;
 
 			if ($totalRows_check_custom > 0) {
-				
-				do {
+
+				foreach ($rows_check_custom as $row_check_custom) {
 
 					$update_table = $prefix."brewing";
 					$db_conn->where ('id', $row_check_custom['id']);
 					$result = $db_conn->delete ($update_table);
 					if ($result) $count += 1;
 
-				} while ($row_check_custom = mysqli_fetch_assoc($check_custom));
+				}
 
 			}
 
@@ -325,52 +320,50 @@ function purge_entries($type, $interval) {
 
 		*/
 
-		$query_check = sprintf("SELECT a.id, a.brewUpdated, a.brewInfo, a.brewCategorySort, a.brewSubCategory FROM %s as a, %s as b WHERE a.brewCategorySort=b.brewStyleGroup AND a.brewSubCategory=b.brewStyleNum AND b.brewStyleReqSpec=1 AND (a.brewInfo IS NULL OR a.brewInfo='') AND b.brewStyleVersion = '%s'", $prefix."brewing", $styles_db_table, $_SESSION['prefsStyleSet']);
+		$query_check = "SELECT a.id, a.brewUpdated, a.brewInfo, a.brewCategorySort, a.brewSubCategory FROM ".$prefix."brewing"." as a, ".$styles_db_table." as b WHERE a.brewCategorySort=b.brewStyleGroup AND a.brewSubCategory=b.brewStyleNum AND b.brewStyleReqSpec=1 AND (a.brewInfo IS NULL OR a.brewInfo='') AND b.brewStyleVersion = ?";
+		$params_check = array($_SESSION['prefsStyleSet']);
 
 		if ($interval > 0) $query_check .=" AND a.brewUpdated < DATE_SUB( NOW(), INTERVAL 1 DAY)";
-		$check = mysqli_query($connection,$query_check) or die (mysqli_error($connection));
-		$row_check = mysqli_fetch_assoc($check);
-		$totalRows_check = mysqli_num_rows($check);
+		$rows_check = $db_conn->rawQuery($query_check, $params_check);
+		$totalRows_check = $db_conn->count;
 
 		if ($totalRows_check == 0) $count += 1;
 
 		if ($totalRows_check > 0) {
-			
-			do {
+
+			foreach ($rows_check as $row_check) {
 
 				$update_table = $prefix."brewing";
 				$db_conn->where ('id', $row_check['id']);
 				$result = $db_conn->delete ($update_table);
 				if ($result) $count += 1;
 
-			} while ($row_check = mysqli_fetch_assoc($check));
+			}
 
 		}
 
 	}
 
 	if ($type == "unpaid") {
-		
-		$query_check = sprintf("SELECT id FROM %s WHERE brewPaid='0' OR brewPaid IS NULL", $prefix."brewing");
-		if ($interval > 0) $query_check .=" AND a.brewUpdated < DATE_SUB( NOW(), INTERVAL 1 DAY)";
-		$check = mysqli_query($connection,$query_check) or die (mysqli_error($connection));
-		$row_check = mysqli_fetch_assoc($check);
-		$totalRows_check = mysqli_num_rows($check);
+
+		$db_conn->where("(brewPaid='0' OR brewPaid IS NULL)");
+		if ($interval > 0) $db_conn->where('brewUpdated < DATE_SUB( NOW(), INTERVAL 1 DAY)');
+		$rows_check = $db_conn->get($prefix."brewing", null, "id");
+		$totalRows_check = $db_conn->count;
 
 		if ($totalRows_check == 0) $count += 1;
 
 		if ($totalRows_check > 0) {
 
-			do {
+			foreach ($rows_check as $row_check) {
 
 				$update_table = $prefix."brewing";
 				$db_conn->where ('id', $row_check['id']);
 				$result = $db_conn->delete ($update_table);
 				if ($result) $count += 1;
 
-			} while ($row_check = mysqli_fetch_assoc($check));
+			}
 
-			
 		}
 
 	}
@@ -2874,27 +2867,24 @@ function data_integrity_check() {
 	$errors = 0;
 	
 	$query_missing_emails = "UPDATE ".$prefix."brewer SET brewerEmail = ( SELECT user_name FROM ".$prefix."users WHERE ".$prefix."users.id = ".$prefix."brewer.uid ) WHERE brewerEmail IS NULL OR brewerEmail = ''";
-	$missing_emails = mysqli_query($connection,$query_missing_emails) or die (mysqli_error($connection));
+	$missing_emails = $db_conn->rawQuery($query_missing_emails);
 
 	// Match user emails against the record in the brewer table,
 	// Compare user's id against uid,
 	// If no match, replace uid with user's id
 
-	$query_user_check = sprintf("SELECT id,user_name FROM %s", $prefix."users");
-	$user_check = mysqli_query($connection,$query_user_check) or die (mysqli_error($connection));
-	$row_user_check = mysqli_fetch_assoc($user_check);
+	$rows_user_check = $db_conn->get($prefix."users", null, "id,user_name");
 
-	do {
+	foreach ($rows_user_check as $row_user_check) {
 
 		// Get Brewer Info
-		$query_brewer = sprintf("SELECT id,uid,brewerEmail,brewerFirstName,brewerLastname FROM %s WHERE brewerEmail='%s'",$prefix."brewer",$row_user_check['user_name']);
-		$brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
-		$row_brewer = mysqli_fetch_assoc($brewer);
-		$totalRows_brewer = mysqli_num_rows($brewer);
+		$db_conn->where('brewerEmail', $row_user_check['user_name']);
+		$row_brewer = $db_conn->getOne($prefix."brewer", "id,uid,brewerEmail,brewerFirstName,brewerLastname");
+		$totalRows_brewer = $db_conn->count;
 
 		// Check to see if info is matching up. If not...
 		if (($row_brewer['brewerEmail'] == $row_user_check['user_name']) && ($row_brewer['uid'] != $row_user_check['id']) && ($totalRows_brewer == 1)) {
-			
+
 			// Update to the correct uid
 			$update_table = $prefix."brewer";
 			$data = array('uid' => $row_user_check['id']);
@@ -2903,22 +2893,22 @@ function data_integrity_check() {
 			if (!$result) $errors += 1;
 
 			// Change all associated entries to the correct uid (brewBrewerID row) in the "brewing" table
-			$query_brewer_entries = sprintf("SELECT id FROM %s WHERE brewBrewerLastName='%s' AND brewBrewerFirstName='%s'",$prefix."brewing",$row_brewer['brewerLastName'],$row_brewer['brewerLastName']);
-			$brewer_entries = mysqli_query($connection,$query_brewer_entries) or die (mysqli_error($connection));
-			$row_brewer_entries = mysqli_fetch_assoc($brewer_entries);
-			$totalRows_brewer_entries = mysqli_num_rows($brewer_entries);
+			$db_conn->where('brewBrewerLastName', $row_brewer['brewerLastName']);
+			$db_conn->where('brewBrewerFirstName', $row_brewer['brewerLastName']);
+			$rows_brewer_entries = $db_conn->get($prefix."brewing", null, "id");
+			$totalRows_brewer_entries = $db_conn->count;
 
 			if ($totalRows_brewer_entries > 0) {
-				
-				do {
-					
+
+				foreach ($rows_brewer_entries as $row_brewer_entries) {
+
 					$update_table = $prefix."brewing";
 					$data = array('brewBrewerID' => $row_user_check['id']);
 					$db_conn->where ('id', $row_brewer_entries['id']);
 					$result = $db_conn->update ($update_table, $data);
 					if (!$result) $errors += 1;
 
-				} while ($row_brewer_entries = mysqli_fetch_assoc($brewer_entries));
+				}
 
 			}
 
@@ -2940,72 +2930,80 @@ function data_integrity_check() {
 
 		} // end if ($totalRows_brewer == 0)
 
-	} while ($row_user_check = mysqli_fetch_assoc($user_check));
+	}
 
 	// Check if there are "blank" entries. If so, delete.
-	$query_blank = sprintf("SELECT id FROM %s WHERE (brewStyle IS NULL OR brewStyle = '') AND (brewCategory IS NULL OR brewCategory = '') AND (brewCategorySort IS NULL OR brewCategorySort = '') AND (brewBrewerID IS NULL OR brewBrewerID = '')",$prefix."brewing");
-	$blank = mysqli_query($connection,$query_blank) or die (mysqli_error($connection));
-	$row_blank = mysqli_fetch_assoc($blank);
-	$totalRows_blank = mysqli_num_rows($blank);
+	$db_conn->where("(brewStyle IS NULL OR brewStyle = '')");
+	$db_conn->where("(brewCategory IS NULL OR brewCategory = '')");
+	$db_conn->where("(brewCategorySort IS NULL OR brewCategorySort = '')");
+	$db_conn->where("(brewBrewerID IS NULL OR brewBrewerID = '')");
+	$rows_blank = $db_conn->get($prefix."brewing", null, "id");
+	$totalRows_blank = $db_conn->count;
 
 	if ($totalRows_blank > 0) {
-		
-		do {
+
+		foreach ($rows_blank as $row_blank) {
 
 			$update_table = $prefix."brewing";
 			$db_conn->where ('id', $row_blank['id']);
 			$result = $db_conn->delete ($update_table);
 			if (!$result) $errors += 1;
 
-		} while ($row_blank = mysqli_fetch_assoc($blank));
-	
+		}
+
 	}
 
 	// Check if there are "blanks" in the brewer table. If so, delete.
-	$query_blank1 = sprintf("SELECT id FROM %s WHERE (brewerFirstName IS NULL OR brewerFirstName = '') AND (brewerLastName IS NULL OR brewerLastName = '')",$prefix."brewer");
-	$blank1 = mysqli_query($connection,$query_blank1) or die (mysqli_error($connection));
-	$row_blank1 = mysqli_fetch_assoc($blank1);
-	$totalRows_blank1 = mysqli_num_rows($blank1);
+	$db_conn->where("(brewerFirstName IS NULL OR brewerFirstName = '')");
+	$db_conn->where("(brewerLastName IS NULL OR brewerLastName = '')");
+	$rows_blank1 = $db_conn->get($prefix."brewer", null, "id");
+	$totalRows_blank1 = $db_conn->count;
 
 	if ($totalRows_blank1 > 0) {
-		
-		do {
-			
+
+		foreach ($rows_blank1 as $row_blank1) {
+
 			$update_table = $prefix."brewer";
 			$db_conn->where ('id', $row_blank1['id']);
 			$result = $db_conn->delete ($update_table);
 			if (!$result) $errors += 1;
 
-		} while ($row_blank1 = mysqli_fetch_assoc($blank1));
+		}
 
 	}
 
 	// Look for duplicate entries in the judging_scores table
-	$query_judging_duplicates = sprintf("SELECT eid FROM %s",$prefix."judging_scores");
-	$judging_duplicates = mysqli_query($connection,$query_judging_duplicates) or die (mysqli_error($connection));
-	$row_judging_duplicates = mysqli_fetch_assoc($judging_duplicates);
-	$totalRows_judging_duplicates = mysqli_num_rows($judging_duplicates);
+	$rows_judging_duplicates = $db_conn->get($prefix."judging_scores", null, "eid");
+	$totalRows_judging_duplicates = $db_conn->count;
 
 	if ($totalRows_judging_duplicates > 2) {
 
-		do { 
-			$a[] = $row_judging_duplicates['eid']; 
-		} while ($row_judging_duplicates = mysqli_fetch_assoc($judging_duplicates));
+		foreach ($rows_judging_duplicates as $row_judging_duplicates) {
+			$a[] = $row_judging_duplicates['eid'];
+		}
 
 		foreach ($a as $eid) {
 
-			$query_duplicates = sprintf("SELECT id FROM %s WHERE eid='%s'",$prefix."judging_scores",$eid);
-			$duplicates = mysqli_query($connection,$query_duplicates) or die (mysqli_error($connection));
-			$row_duplicates = mysqli_fetch_assoc($duplicates);
-			$totalRows_duplicates = mysqli_num_rows($duplicates);
+			// NOTE: deliberately $db_conn->get() here, not getOne() (which
+			// upstream/master's own equivalent conversion uses) - getOne()
+			// applies an implicit LIMIT 1, which would make $db_conn->count
+			// always 0 or 1 and make the ">1" duplicate check below never
+			// pass, silently disabling this cleanup (a functional
+			// regression upstream's own migration appears to have
+			// introduced, confirmed by reading their get()/getOne()
+			// LIMIT-1 implementation). Using get() with no row limit here
+			// preserves the original raw query's real "how many rows share
+			// this eid" count.
+			$db_conn->where('eid', $eid);
+			$rows_duplicates = $db_conn->get($prefix."judging_scores", null, "id");
+			$totalRows_duplicates = $db_conn->count;
 
 			if ($totalRows_duplicates > 1) {
 
 				for($i=1; $i<$totalRows_duplicates; $i++) {
 
-					$query_duplicate = sprintf("SELECT id FROM %s WHERE eid='%s'",$prefix."judging_scores",$eid);
-					$duplicate = mysqli_query($connection,$query_duplicate) or die (mysqli_error($connection));
-					$row_duplicate = mysqli_fetch_assoc($duplicate);
+					$db_conn->where('eid', $eid);
+					$row_duplicate = $db_conn->getOne($prefix."judging_scores", "id");
 
 					$update_table = $prefix."judging_scores";
 					$db_conn->where ('id', $row_duplicate['id']);
@@ -3972,16 +3970,23 @@ function get_ba_style_info($id) {
 }
 
 // Unused.
+// Dead code: zero callers anywhere in this fork or upstream/master (confirmed
+// by a full-repo grep) - this function doesn't exist upstream at all.
+// Converted for source-hardening consistency with the rest of this
+// migration, not because it's reachable. Left otherwise exactly as-is,
+// including its pre-existing bug (the final UPDATE below targets "brewing",
+// not "styles", for the brewStyleActive column, which doesn't exist on
+// "brewing" - this would error if the function were ever actually called).
+// See tests/Unit/SourceHardeningTest.php for its query-shape guard.
 function convert_to_ba() {
 
 	require(CONFIG.'config.php');
 	mysqli_select_db($connection,$database);
+	$db_conn = new MysqliDb($connection);
 
 	include (INCLUDES.'ba_constants.inc.php');
 
-	$query_check = sprintf("SELECT id, brewCategory, brewCategorySort, brewSubCategory, brewStyle, brewMead1, brewMead2, brewMead3, brewInfo FROM %s", $prefix."brewing");
-	$check = mysqli_query($connection,$query_check) or die (mysqli_error($connection));
-	$row_check = mysqli_fetch_assoc($check);
+	$rows_check = $db_conn->get($prefix."brewing", null, "id, brewCategory, brewCategorySort, brewSubCategory, brewStyle, brewMead1, brewMead2, brewMead3, brewInfo");
 
 	$return = "";
 
@@ -3989,7 +3994,7 @@ function convert_to_ba() {
 	$sweet = array("Dry","Medium Dry","Medium","Medium Sweet","Sweet");
 	$strength = array("Hydromel","Standard","Sack");
 
-	do {
+	foreach ($rows_check as $row_check) {
 
 		$ba_category = "";
 		$ba_category_sort = "";
@@ -4001,9 +4006,9 @@ function convert_to_ba() {
 		$ba_style_info = "";
 		$ba_category_id = "";
 
-		$query_ba_random = sprintf("SELECT * FROM %s WHERE brewStyleVersion='BA' ORDER BY RAND() LIMIT 1", $prefix."styles");
-		$ba_random = mysqli_query($connection,$query_ba_random) or die (mysqli_error($connection));
-		$row_ba_random = mysqli_fetch_assoc($ba_random);
+		$db_conn->where('brewStyleVersion', 'BA');
+		$db_conn->orderBy('RAND()', 'ASC');
+		$row_ba_random = $db_conn->getOne($prefix."styles");
 
 		if ($row_ba_random['brewStyleReqSpec'] == 1) $brew_info = "Special ingredients, yo.";
 		else $brew_info = "";
@@ -4018,39 +4023,51 @@ function convert_to_ba() {
 
 		$ba_category_sort = $row_ba_random['brewStyleGroup'];
 
-		$updateSQL = sprintf("UPDATE %s SET brewCategory='%s', brewCategorySort='%s', brewSubCategory='%s', brewStyle='%s', brewMead1='%s', brewMead2='%s', brewMead3='%s', brewInfo='%s' WHERE id=%s;",$prefix."brewing",$ba_category,$ba_category_sort,$ba_sub_category,$ba_style,$ba_carb,$ba_sweetness,$ba_strength,$brew_info,$row_check['id']);
-		mysqli_real_escape_string($connection,$updateSQL);
-		$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
-
-		//$return .= $updateSQL."<br>";
+		$update_table = $prefix."brewing";
+		$data = array(
+			'brewCategory' => $ba_category,
+			'brewCategorySort' => $ba_category_sort,
+			'brewSubCategory' => $ba_sub_category,
+			'brewStyle' => $ba_style,
+			'brewMead1' => $ba_carb,
+			'brewMead2' => $ba_sweetness,
+			'brewMead3' => $ba_strength,
+			'brewInfo' => $brew_info
+		);
+		$db_conn->where ('id', $row_check['id']);
+		$result = $db_conn->update ($update_table, $data);
 
 		//$return .= $ba_style_info."<br>";
 
-	} while ($row_check = mysqli_fetch_assoc($check));
+	}
 
 	// Change preference
 	if (session_status() === PHP_SESSION_NONE) session_start();
 	$_SESSION['prefsStyleSet'] = "BA";
 
-	$updateSQL = sprintf("UPDATE %s SET brewStyleActive='Y' WHERE brewStyleVersion='BA';",$prefix."brewing");
-	mysqli_real_escape_string($connection,$updateSQL);
-	$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+	$update_table = $prefix."brewing";
+	$data = array('brewStyleActive' => 'Y');
+	$db_conn->where ('brewStyleVersion', 'BA');
+	$result = $db_conn->update ($update_table, $data);
 
 	return $return;
 
 }
 
-// Unused.
+// Unused. Dead code: zero callers anywhere in this fork or upstream/master
+// (confirmed by a full-repo grep) - this function doesn't exist upstream at
+// all. Converted for source-hardening consistency with the rest of this
+// migration, not because it's reachable. See
+// tests/Unit/SourceHardeningTest.php for its query-shape guard.
 function convert_to_pro() {
 
 	require(CONFIG.'config.php');
 	mysqli_select_db($connection,$database);
+	$db_conn = new MysqliDb($connection);
 
 	include (INCLUDES.'ba_constants.inc.php');
 
-	$query_check = sprintf("SELECT id FROM %s", $prefix."brewer");
-	$check = mysqli_query($connection,$query_check) or die (mysqli_error($connection));
-	$row_check = mysqli_fetch_assoc($check);
+	$rows_check = $db_conn->get($prefix."brewer", null, "id");
 
 	$return = "";
 
@@ -4058,14 +4075,13 @@ function convert_to_pro() {
 	"10 Barrel Brewing Company","105 West Brewing Company","12 Degree Brewing","14er Brewing Company","3 Freaks Brewery","300 Suns Brewing","38 State Brewing Company","4 Noses Brewing Company","4B&rsquo;s Brewery","7 Hermits Brewing Company","Alpine Dog Brewing Company","Anheuser-Busch","Animas Brewing Company","Asher Brewing Company","Aspen Brewing Company","Avalanche Brewing Company","Avery Brewing Company","Backcountry Brewery","Baere Brewing Company","Banded Oak Brewing Company","Barnett &amp; Son Brewing Company","Barrels &amp; Bottles Brewery","Beer By Design","Berthoud Brewing Company","Beryl&rsquo;s Beer Company","Bierstadt Lagerhaus","BierWerks Brewery","Big Beaver Brewing Company","Big Thompson Brewery","BJ&rsquo;s Restaurant &amp; Brewery ","Black Bottle Brewery","Black Project Spontaneous &amp; Wild Ales","Black Shirt Brewing Company","Black Sky Brewery","Blue Moon Brewing Co. at the Sandlot","Blue Moon Brewing Company","Blue Spruce Brewing Company","Boggy Draw Brewery","Bonfire Brewing","Bootstrap Brewing Company","Bottom Shelf Brewery","BREW Pub &amp; Kitchen","Brewability Lab","Brewery Rickoli","Briar Common Brewery + Eatery","Bristol Brewing Company","Brix Taphouse &amp; Brewery","Broken Compass Brewery","Broken Plow Brewery","BRU Handbuilt Ales &amp; Eats","Brues Alehouse Brewing Company","Bruz Beers","Buckhorn Brewers","Bull &amp; Bush Pub &amp; Brewery","Butcherknife Brewing Company","Call to Arms Brewing Company","Cannonball Creek Brewing Company","Capitol Creek Brewery","Carbondale Beer Works","Carver Brewing Company","Casey Brewing &amp; Blending"," Beer Company","CAUTION: Brewing Company","CB &amp; Potts Restaurant &amp; Brewery Englewood","CB &amp; Potts Restaurant &amp; Brewery Flatirons","CB &amp; Potts Restaurant &amp; Brewery ","CB &amp; Potts Restaurant &amp; Brewery ","CB &amp; Potts Restaurant &amp; Brewery ","Cellar West Artisan Ales","Cerberus Brewing Company","Cerebral Brewing","Chain Reaction Brewing","Cheluna Brewing Company","City Star Brewing","CO-Brew","Cogstone Brewing Company","Colorado Boy Pizzeria &amp; Brewery","Colorado Boy Pub &amp; Brewery","Colorado Mountain Brewery","Colorado Mountain Brewery at the Roundhouse","Colorado Plus Brew Pub","Comrade Brewing Company","CooperSmith&rsquo;s Pub &amp; Brewing Company","Copper Club Brewing Company","Copper Kettle Brewing Company","Crabtree Brewing Company","Crazy Mountain Brewing Company","Crazy Mountain Tap Room","Creede Brewing Company","Crestone Brewing Company","Crooked Stave Artisan Beer Project","Crow Hop Brewing Company","Crystal Springs Brewing Company","Dad &amp; Dude&rsquo;s Breweria","DC Oakes Brewhouse and Eatery","De Steeg Brewing","Dead Hippie Brewing","Declaration Brewing","Deep Draft Brewing Company","Arvada Beer Company","Diebolt Brewing Company","Dillon DAM Brewery","Dodgeton Creek Brewing Company","Dolores River Brewery","Dostal Alley Brewpub &amp; Casino","Dry Dock Brewing Company North","Dry Dock Brewing Company South","Echo Brewing Cask and Barrel","Echo Brewing Company","Eddyline Brewery","El Rancho Brewing Company","Elevation Beer Company","Elk Mountain Brewing Company","Epic Brewing Company","Equinox Brewing Company","Estes Park Brewery","Evergreen Tap House &amp; Brewery","Factotum Brewhouse","FATE Brewing Company","FERMÆNTRA","Fiction Beer Company","Fieldhouse Brewing Company","Finkel &amp; Garf Brewing Company","Floodstage Ale Works","Florence Brewing Company","Fossil Craft Beer Company","Front Range Brewing Company","Funkwerks","Gilded Goat Brewing","Glenwood Canyon Brewing Company","Gold Camp Brewing Company","Goldspot Brewing Company","Gordon Biersch Brewery","Gore Range Brewery","Grand Lake Brewing Tavern","Grandma&rsquo;s House","Gravity Brewing","Great Divide Brewing Company","Great Frontier Brewing Company","Great Storm Brewing","Green Mountain Beer Company","Grimm Brothers Brewhouse Taproom","Grist Brewing Company","Grist Brewing Company Lab","Großen Bart Brewery","Guanella Pass Brewing Company","Gunbarrel Brewing Company","Halfpenny Brewing Company","Hideaway Park Brewery","High Alpine Brewing Company","High Hops Brewery","Hogshead Brewery","Holidaily Brewing Company","Horse and Dragon Brewing Company","Horsefly Brewing Company","Intersect Brewing","Iron Bird Brewing Company","Ironworks Brewery &amp; Pub","J Wells Brewery","J. Fargo&rsquo;s Family Dining &amp; Micro Brewery","Jagged Mountain Craft Brewery","JAKs Brewing Company","James Peak Brewery &amp; Smokehouse","Jessup Farm Barrel House","Joyride Brewing Company","Kannah Creek Brewing Company","Kettle and Spoke Brewery","Kokopelli Beer Company","LandLocked Ales","Lariat Lodge Brewing","Launch Pad Brewery","Left Hand Brewing Company","Liquid Mechanics Brewing Company","Little Machine Beer","Living The Dream Brewing Company","Local Relic","Locavore Beer Works","Lone Tree Brewing Company","Lost Highway Brewing Company","Lowdown Brewery + Kitchen","Lumpy Ridge Brewing Company","Mad Jack&rsquo;s Mountain Brewery","Mahogany Ridge Brewery and Grill","Main Street Brewery &amp; Restaurant","Mancos Brewing Company","Manitou Brewing Company","Mash Lab Brewing","Maxline Brewing","McClellan&rsquo;s Brewing Company","MillerCoors Brewing Company","Mockery Brewing","Moffat Station Restaurant and Brewery","Moonlight Pizza &amp; Brewery","Mother Tucker Brewery","Mountain Sun Pub &amp; Brewery","Mountain Tap Brewery","Mountain Toad Brewing","Nano 108 Brewing Company","Never Summer Brewing Company","New Belgium Brewing Company","New Image Brewing Company","New Terrain Brewing Company","Nighthawk Brewery","Odd13 Brewing","Odell Brewing Company","Odyssey Beerwerks","Old Colorado Brewing Company","Open Door Brewing Company","Oskar Blues Grill &amp; Brew","Oskar Blues Tasty Weasel Tap Room (Main Brewery)","Our Mutual Friend Brewing Company","Ouray Brewery","Ourayle House Brewery (Mr. Grumpy Pants)","Outer Range Brewing Company","Pagosa Brewing Company","Palisade Brewing Company","Paradox Beer Company","Parts and Labor Brewing","PDub Brewing Company","Peak to Peak Tap &amp; Brew","Peaks N Pines Brewing Company","Periodic Brewing","Phantom Canyon Brewing Company","Pikes Peak Brewing Company","Pints Pub Brewery &amp; Freehouse","Pitchers Sports Restaurant","Platt Park Brewing Company","Powder Keg Brewing Company","Prost Brewing Company","Pug Ryan&rsquo;s Brewery","Pumphouse Brewery","Rails End Beer Company","Rally King Brewing","Ratio Beerworks","Red Leg Brewing Company","Renegade Brewing Company","Resolute Brewing Company","Revolution Brewing","Riff Raff Brewing Company","River North Brewery","Roaring Fork Beer Company","Rock Bottom Brewery ","Rock Cut Brewing Company","Rockslide Brewery &amp; Restaurant","Rocky Mountain Brewery","Rockyard American Grill &amp; Brewing Company","Royal Gorge Brewing Company","Saint Patrick&rsquo;s Brewing Company","San Luis Valley Brewing Company","Sanitas Brewing Company","Seedstock Brewery","Shamrock Brewing Company","Shine Brewing Company","Shoes &amp; Brews","Ska Brewing Company","SKEYE Brewing","Smiling Toad Brewery","Smugglers Brewpub","Snowbank Brewing","SomePlace Else Brewery","Something Brewery","Soulcraft Brewing","South Park Brewing","Southern Sun Pub &amp; Brewery","Spangalang Brewery","Spice Trade Brewing Company","Square Peg Brewerks","Station 26 Brewing Company","Steamworks Brewing Company","Storm Peak Brewing Company","Storybook Brewing","Strange Craft Beer Company","Suds Brothers Brewery II","Telluride Brewing Company","The Bakers&rsquo; Brewery","The Brew on Broadway","The Eldo Brewery &amp; Taproom","The Industrial Revolution Brewing Company","The Intrepid Sojourner Beer Project","The Peak Bistro &amp; Brewery","The Post Brewing Company","Three Barrel Brewing Company","Three Four Beer Company","Tivoli Brewing Company","Tommyknocker Brewery &amp; Pub","Trinity Brewing Company","Triple S Brewing Company","TRVE Brewing Company","Twisted Pine Brewing Company","Two Rascals Brewing","Two22 Brew","Upslope Brewing Company","Ursula Brewery","Ute Pass Brewing Company","UTurn BBQ","Vail Brewing Company","Verboten Brewing","Very Nice Brewing Company","Veteran Brothers Brewing Company","Vindication Brewing Company","Vine Street Pub &amp; Brewery","Vision Quest Brewing Company","Walter Brewing Company","WeldWerks Brewing Company","West Flanders Brewing Company","Westbound &amp; Down Brewing Company","WestFax Brewing Company"," Brewing Company","Whistle Pig Brewing Company","White Labs Tasting Room","Wibby Brewing","Wild Woods Brewery","WildEdge Brewing Collective","Wiley Roots Brewing Company","Wit&rsquo;s End Brewing Company","Wolfe Brewing Company","Wonderland Brewing Company","Wynkoop Brewing Company","Yampa Valley Brewing Company","Zephyr Brewing Company","Zuni Street Brewing Company","Zwei Brewing"
 	);
 
-	do {
+	foreach ($rows_check as $row_check) {
 
 		$key = (array_rand($breweries,1));
 		$value = $breweries[$key];
 
-		$query_check_brewery = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewerBreweryName='%s'", $prefix."brewer",$value);
-		$check_brewery = mysqli_query($connection,$query_check_brewery) or die (mysqli_error($connection));
-		$row_check_brewery = mysqli_fetch_assoc($check_brewery);
+		$db_conn->where('brewerBreweryName', $value);
+		$row_check_brewery = $db_conn->getOne($prefix."brewer", "COUNT(*) as 'count'");
 
 		$update = TRUE;
 
@@ -4075,23 +4091,46 @@ function convert_to_pro() {
 
 		else {
 			$update = FALSE;
-			$updateSQL = sprintf("UPDATE %s SET brewerBreweryName='%s' WHERE id=%s;",$prefix."brewer",$value,$row_check['id']);
-			mysqli_real_escape_string($connection,$updateSQL);
-			$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+			$update_table = $prefix."brewer";
+			$data = array('brewerBreweryName' => $value);
+			$db_conn->where ('id', $row_check['id']);
+			$result = $db_conn->update ($update_table, $data);
 		}
 
 	// $return .= $updateSQL."<br>";
 
-	} while ($row_check = mysqli_fetch_assoc($check));
+	}
 
 	return $return;
 
 }
 
+// Dead code: zero callers anywhere in this fork or upstream/master
+// (confirmed by a full-repo grep) - this function doesn't exist upstream at
+// all. Converted for source-hardening consistency with the rest of this
+// migration, not because it's reachable; it also could not be if anyone
+// tried: $club_array is referenced below but never defined anywhere in this
+// function (a pre-existing bug, left as-is - not this migration's job to
+// fix unreachable dead code's unrelated bugs). Before this conversion, the
+// function also referenced $check_brewer (the raw mysqli_result for the
+// *second* query below) one query too early, in the first loop's own
+// do-while condition - a second independent pre-existing bug that made the
+// first loop's continuation check reference an undefined variable and fail
+// outright on its very first iteration. Converting that cursor-style
+// do-while to MysqliDb's array-returning get()/foreach (the builder has no
+// cursor-fetch equivalent to preserve the exact crash point) incidentally
+// makes the first loop run to completion instead of erroring immediately -
+// the function remains just as unreachable and still fatally broken
+// overall (now via the still-present, still-unfixed $club_array bug
+// instead), so this is flagged here rather than treated as a behavior
+// change worth preserving bug-for-bug.
+// See tests/Unit/SourceHardeningTest.php for this function's query-shape
+// guard.
 function remove_sensitive_data() {
 
 	require(CONFIG.'config.php');
 	mysqli_select_db($connection,$database);
+	$db_conn = new MysqliDb($connection);
 	include (INCLUDES.'constants.inc.php');
 
 	$result = "";
@@ -4160,34 +4199,30 @@ function remove_sensitive_data() {
 	"Frasier"
 	);
 
-	$query_check_user = sprintf("SELECT * FROM %s", $prefix."users");
-	$check_user = mysqli_query($connection,$query_check_user) or die (mysqli_error($connection));
-	$row_check_user = mysqli_fetch_assoc($check_user);
+	$rows_check_user = $db_conn->get($prefix."users");
 
 	$user_array = "";
 	$user_name = $default_to."@brewingcompetitions.com";
 
-	do {
+	foreach ($rows_check_user as $row_check_user) {
 			if ($row_check_user['userLevel'] > 1) {
 			$random = random_generator(7,2);
-			$updateSQL = sprintf("UPDATE %s
-						 SET
-						 user_name='%s',
-						 password='f52dde34d49c8d69ab7fa5ee9ca13c72',
-						 userQuestion='Randomly generated.',
-						 userQuestionAnswer='%s'
-						 WHERE id='%s'",  $prefix."users", $user_name, $random, $row_check_user['id']);
-			mysqli_real_escape_string($connection,$updateSQL);
-			$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+			$update_table = $prefix."users";
+			$data = array(
+				'user_name' => $user_name,
+				'password' => 'f52dde34d49c8d69ab7fa5ee9ca13c72',
+				'userQuestion' => 'Randomly generated.',
+				'userQuestionAnswer' => $random
+			);
+			$db_conn->where ('id', $row_check_user['id']);
+			$result = $db_conn->update ($update_table, $data);
 			$user_array[] = $row_check_user['id'];
 			}
-	} while ($row_check_brewer = mysqli_fetch_assoc($check_brewer));
+	}
 
-	$query_check_brewer = sprintf("SELECT * FROM %s", $prefix."brewer");
-	$check_brewer = mysqli_query($connection,$query_check_brewer) or die (mysqli_error($connection));
-	$row_check_brewer = mysqli_fetch_assoc($check_brewer);
+	$rows_check_brewer = $db_conn->get($prefix."brewer");
 
-	do {
+	foreach ($rows_check_brewer as $row_check_brewer) {
 
 			if ((is_array($user_array)) && (in_array($row_check_brewer['uid'],$user_array))) {
 
@@ -4207,9 +4242,9 @@ function remove_sensitive_data() {
 						 $club_name = $club_array[$club_name_key];
 					}
 
-					$query_check_name = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE brewerFirstName='%s' AND brewerLastName='%s'", $prefix."brewer", $first_name, $last_name);
-					$check_name = mysqli_query($connection,$query_check_name) or die (mysqli_error($connection));
-					$row_check_name = mysqli_fetch_assoc($check_name);
+					$db_conn->where('brewerFirstName', $first_name);
+					$db_conn->where('brewerLastName', $last_name);
+					$row_check_name = $db_conn->getOne($prefix."brewer", "COUNT(*) as 'count'");
 
 					if ($row_check_name['count'] > 0) {
 						$update = TRUE;
@@ -4217,29 +4252,29 @@ function remove_sensitive_data() {
 
 					else {
 						$update = FALSE;
-						$updateSQL = sprintf("UPDATE %s
-							 SET
-							 brewerFirstName='%s',
-							 brewerLastName='%s',
-							 brewerAddress='1234 Main Street',
-							 brewerCity='Anytown',
-							 brewerState='CO',
-							 brewerZip='',
-							 brewerPhone1='303-555-1234',
-							 brewerPhone2='303-555-9876',
-							 brewerEmail='%s',
-							 brewerJudgeID='A0000',
-							 brewerClubs='%s'
-							 WHERE id='%s'", $prefix."brewer", $first_name, $last_name, $user_name, $club_name, $row_check_brewer['id']);
-						mysqli_real_escape_string($connection,$updateSQL);
-						$result = mysqli_query($connection,$updateSQL) or die (mysqli_error($connection));
+						$update_table = $prefix."brewer";
+						$data = array(
+							'brewerFirstName' => $first_name,
+							'brewerLastName' => $last_name,
+							'brewerAddress' => '1234 Main Street',
+							'brewerCity' => 'Anytown',
+							'brewerState' => 'CO',
+							'brewerZip' => '',
+							'brewerPhone1' => '303-555-1234',
+							'brewerPhone2' => '303-555-9876',
+							'brewerEmail' => $user_name,
+							'brewerJudgeID' => 'A0000',
+							'brewerClubs' => $club_name
+						);
+						$db_conn->where ('id', $row_check_brewer['id']);
+						$result = $db_conn->update ($update_table, $data);
 					}
 
 				}
 
 				// $result .= $updateSQL."<br>";
 			}
-	} while ($row_check_brewer = mysqli_fetch_assoc($check_brewer));
+	}
 
 	return $result;
 

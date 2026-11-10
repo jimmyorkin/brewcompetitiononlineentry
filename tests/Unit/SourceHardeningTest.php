@@ -517,6 +517,112 @@ class SourceHardeningTest extends TestCase
     }
 
     /**
+     * P2 SQLi migration, task 1d: purge_entries()'s "unpaid" branch
+     * (`brewPaid='0' OR brewPaid IS NULL`) converted to
+     * $db_conn->where()/get(), matching upstream/master's own conversion.
+     * Not exercised live by e2e/tests/sqli-migration-admin-data-integrity-functions.spec.ts:
+     * this stack's own real baseline currently has 18 rows with
+     * brewPaid IS NULL (confirmed by direct query), so running the live
+     * admin "Purge All Unpaid Entries" endpoint would delete real shared
+     * data, not just disposable test fixtures - the same
+     * irreversible-against-shared-data case this migration's task brief
+     * flags to avoid, not a dead-code case like the three guards below.
+     */
+    public function test_purge_entries_unpaid_branch_stays_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/common.lib.php');
+        $this->assertNotFalse($source);
+
+        $purgeEntries = $this->extractFunction($source, 'purge_entries');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $purgeEntries), 'purge_entries() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString('$db_conn->where("(brewPaid=\'0\' OR brewPaid IS NULL)");', $purgeEntries);
+    }
+
+    /**
+     * P2 SQLi migration, task 1d: data_integrity_check()'s duplicate-
+     * judging_scores-row cleanup. Deliberately diverges from
+     * upstream/master's own equivalent conversion: upstream uses
+     * $db_conn->getOne() for the per-eid row *count* check
+     * ($totalRows_duplicates = $db_conn->count), but getOne() applies an
+     * implicit LIMIT 1, so $db_conn->count there is always 0 or 1 - it can
+     * never satisfy upstream's own "> 1" duplicate check, silently
+     * disabling this cleanup entirely. That's a functional regression
+     * upstream's own migration appears to have introduced (confirmed by
+     * reading MysqliDb's get()/getOne()/_dynamicBindResults() LIMIT-1
+     * behavior directly), not a pre-existing bug predating any SQLi
+     * conversion - so it is not preserved here. This fork instead uses
+     * $db_conn->get() (no row limit) for that count, preserving the
+     * original raw query's real behavior (an accurate per-eid row count)
+     * while still fully parameterizing the query.
+     */
+    public function test_data_integrity_check_duplicate_judging_scores_count_uses_get_not_getone(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/common.lib.php');
+        $this->assertNotFalse($source);
+
+        $dataIntegrityCheck = $this->extractFunction($source, 'data_integrity_check');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $dataIntegrityCheck), 'data_integrity_check() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString('$rows_duplicates = $db_conn->get($prefix."judging_scores", null, "id");', $dataIntegrityCheck);
+        $this->assertStringNotContainsString('$row_duplicates = $db_conn->getOne($prefix."judging_scores", "id");', $dataIntegrityCheck, 'the per-eid duplicate COUNT must not come from a LIMIT-1 getOne() call - it silently breaks the ">1" check (see test docblock)');
+    }
+
+    /**
+     * P2 SQLi migration, task 1d: convert_to_ba(), convert_to_pro(), and
+     * remove_sensitive_data() converted to MysqliDb builder calls
+     * (where()/get()/getOne()/update()). All three are genuinely dead code:
+     * zero callers anywhere in this fork (confirmed by a full-repo grep
+     * beyond their own definitions) and none of the three exist in
+     * upstream/master at all (confirmed by a full upstream-tree grep).
+     * Not reachable through the e2e suite for that reason - same precedent
+     * as task 1a's total_entries_brewer()/total_paid() and task 1c's
+     * highlight_required() guards above.
+     *
+     * Both convert_to_ba() and remove_sensitive_data() also carry
+     * pre-existing bugs unrelated to this migration, left exactly as-is
+     * (not this migration's job to fix unreachable dead code's unrelated
+     * bugs): convert_to_ba()'s final UPDATE targets "brewing", not
+     * "styles", for the brewStyleActive column (which doesn't exist on
+     * "brewing"); remove_sensitive_data() references the undefined
+     * $club_array. remove_sensitive_data() additionally used to reference
+     * $check_brewer (a second query's raw mysqli_result) one query too
+     * early, in its first loop's own do-while continuation check - a
+     * second, independent pre-existing bug. Converting that cursor-style
+     * do-while to MysqliDb's array-returning get()/foreach (the builder has
+     * no cursor-fetch equivalent to preserve the exact crash point)
+     * incidentally makes the first loop run to completion instead of
+     * erroring immediately on it; the function remains just as unreachable
+     * and still fatally broken overall (now via the still-present,
+     * still-unfixed $club_array bug instead), so this is a known,
+     * deliberate consequence of the conversion mechanism, not a behavior
+     * change worth preserving bug-for-bug.
+     */
+    public function test_dead_code_convert_and_remove_sensitive_data_functions_stay_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/common.lib.php');
+        $this->assertNotFalse($source);
+
+        $convertToBa = $this->extractFunction($source, 'convert_to_ba');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $convertToBa), 'convert_to_ba() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString('$rows_check = $db_conn->get($prefix."brewing", null, "id, brewCategory, brewCategorySort, brewSubCategory, brewStyle, brewMead1, brewMead2, brewMead3, brewInfo");', $convertToBa);
+        $this->assertStringContainsString("\$db_conn->where('brewStyleVersion', 'BA');\n\t\t\$db_conn->orderBy('RAND()', 'ASC');\n\t\t\$row_ba_random = \$db_conn->getOne(\$prefix.\"styles\");", $convertToBa);
+        // Pre-existing bug, left as-is: targets "brewing", not "styles".
+        $this->assertStringContainsString("\$db_conn->where ('brewStyleVersion', 'BA');\n\t\$result = \$db_conn->update (\$update_table, \$data);", $convertToBa);
+
+        $convertToPro = $this->extractFunction($source, 'convert_to_pro');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $convertToPro), 'convert_to_pro() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString('$rows_check = $db_conn->get($prefix."brewer", null, "id");', $convertToPro);
+        $this->assertStringContainsString('$row_check_brewery = $db_conn->getOne($prefix."brewer", "COUNT(*) as \'count\'");', $convertToPro);
+
+        $removeSensitiveData = $this->extractFunction($source, 'remove_sensitive_data');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $removeSensitiveData), 'remove_sensitive_data() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString('$rows_check_user = $db_conn->get($prefix."users");', $removeSensitiveData);
+        $this->assertStringContainsString('$rows_check_brewer = $db_conn->get($prefix."brewer");', $removeSensitiveData);
+        $this->assertStringContainsString('$row_check_name = $db_conn->getOne($prefix."brewer", "COUNT(*) as \'count\'");', $removeSensitiveData);
+        // Pre-existing bug, left as-is: $club_array is never defined.
+        $this->assertStringContainsString('array_rand($club_array,1)', $removeSensitiveData);
+    }
+
+    /**
      * Returns the source text of a single top-level function, from its
      * `function name(` line through the line containing the next top-level
      * `function ` declaration (exclusive). Good enough for the narrow,
