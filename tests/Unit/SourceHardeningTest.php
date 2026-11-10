@@ -685,6 +685,67 @@ class SourceHardeningTest extends TestCase
     }
 
     /**
+     * P2 SQLi migration, task 1f (common.lib.php misc single-call
+     * count/lookup utility functions): user_check() converted from raw
+     * mysqli_query()/sprintf() to $db_conn (MysqliDb builder where()/
+     * getOne()), matching upstream/master's own conversion byte-for-byte.
+     *
+     * Genuinely dead code: a full-repo grep finds zero callers anywhere in
+     * this fork, and the same is true in upstream/master (its only hits
+     * outside its own definition are in tests/Unit/SecurityAndCryptoTest.php,
+     * documenting it as "NOT pure: it opens a DB connection" - not an actual
+     * call either). Converted anyway per scope, guarded here instead of by an
+     * e2e test.
+     */
+    public function test_user_check_dead_code_stays_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/common.lib.php');
+        $this->assertNotFalse($source);
+
+        $userCheck = $this->extractFunction($source, 'user_check');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $userCheck), 'user_check() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString("\$db_conn->where('user_name', \$user_name);\n\t\$row_userCheck = \$db_conn->getOne(\$prefix.\"users\");", $userCheck);
+    }
+
+    /**
+     * P2 SQLi migration, task 1f: check_bos_loc() converted from raw
+     * mysqli_query()/sprintf() (with the id interpolated directly into the
+     * SQL string via double-quote variable interpolation, not even sprintf's
+     * %s) to $db_conn (MysqliDb builder where()/getOne()), for consistency
+     * with the rest of this migration.
+     *
+     * Not merely dead code but entirely commented out (wrapped in a `/ *
+     * ... * /` block starting at the line above its own `function` keyword) -
+     * confirmed by a full-repo grep: zero callers anywhere in this fork
+     * (unsurprising, since PHP never parses commented-out code at all), and
+     * the function doesn't exist in upstream/master under this name at all.
+     * Converting the commented-out text has no runtime effect either way, but
+     * keeps it consistent with the rest of this migration's style rather than
+     * leaving a stale raw-SQL example lying around; guarded here since it can
+     * never be exercised through any real request.
+     */
+    public function test_check_bos_loc_dead_commented_out_code_stays_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/common.lib.php');
+        $this->assertNotFalse($source);
+
+        $checkBosLoc = $this->extractFunction($source, 'check_bos_loc');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $checkBosLoc), 'check_bos_loc() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString("\$db_conn->where('id', \$id);\n\t\$row_judging = \$db_conn->getOne(\$prefix.\"judging_locations\", \"judgingLocName,judgingDate\");", $checkBosLoc);
+        // Still inside an unclosed comment block at the point the function
+        // starts, i.e. never live PHP: the nearest preceding "/*" has no "*/"
+        // between it and "function check_bos_loc(".
+        $functionStart = strpos($source, 'function check_bos_loc(');
+        $before = substr($source, 0, $functionStart);
+        $lastCommentOpen = strrpos($before, '/*');
+        $this->assertNotFalse($lastCommentOpen, 'check_bos_loc() is no longer preceded by any comment opener');
+        $this->assertFalse(
+            strpos(substr($source, $lastCommentOpen, $functionStart - $lastCommentOpen), '*/'),
+            'check_bos_loc() is no longer inside the commented-out block (a "*/" now closes it before the function starts)'
+        );
+    }
+
+    /**
      * Returns the source text of a single top-level function, from its
      * `function name(` line through the line containing the next top-level
      * `function ` declaration (exclusive). Good enough for the narrow,

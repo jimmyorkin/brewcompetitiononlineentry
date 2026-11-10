@@ -7,7 +7,7 @@ Approval tiers still need the database prefix and schema work described in
 
 ```bash
 composer install            # first time only
-vendor/bin/phpunit          # 234 tests, 5 skipped, no database needed
+vendor/bin/phpunit          # 236 tests, 5 skipped, no database needed
 ```
 
 `tests/bootstrap.php` defines the path constants and stubs, then loads
@@ -199,3 +199,36 @@ functions - `brewer_assignment()`, `table_assignments()`,
 and `flight_count_info()` - are reachable in production and are covered by
 `e2e/tests/sqli-migration-judge-table-flight-assignment-functions.spec.ts`
 instead.
+
+It also guards `lib/common.lib.php`'s `user_check()` and `check_bos_loc()`
+(P2 SQLi migration, task 1f - the last sub-task of Task 1) - both converted
+to `$db_conn` (MysqliDb builder `where()`/`getOne()`), matching
+`upstream/master`'s own conversion of `user_check()` byte-for-byte (
+`check_bos_loc()` doesn't exist upstream under this name at all).
+`user_check()` is genuinely dead code: a full-repo grep finds zero callers
+anywhere in this fork, and the same is true in `upstream/master` (its only
+hits outside its own definition are in
+`tests/Unit/SecurityAndCryptoTest.php`, documenting it as "NOT pure" rather
+than calling it). `check_bos_loc()` is not merely dead but entirely
+commented out, wrapped in a `/* ... */` block that has wrapped it since
+before this migration - PHP never parses it, so converting its text has no
+runtime effect; it's converted anyway for consistency with the rest of this
+migration and guarded here since it can never be exercised through any real
+request. The task's other 16 functions - `get_contact_count()`,
+`get_entry_count()`, `get_evaluation_count()`, `get_participant_count()`,
+`entry_info()`, `table_exists()`, `judging_location_info()`,
+`verify_token()`, `pro_am_check()`, `user_submitted_eval()`, `eval_exits()`,
+`entries_unconfirmed()`, `check_special_ingredients()`,
+`entries_no_special()`, `get_archive_count()`, and `brewer_info()` - are
+reachable in production. Twelve are covered by
+`e2e/tests/sqli-migration-misc-utility-functions.spec.ts`; the other four
+(`judging_location_info()`, `pro_am_check()`, `user_submitted_eval()`,
+`eval_exits()`) are reachable only behind a judging-table/judge-assignment
+setup or PDF output not worth standing up for one query each, and are
+instead verified by a one-off PHP CLI script seeding real fixtures and
+comparing against independently-computed ground truth, including
+non-numeric-prefix injection-shaped negative controls (a numeric-prefixed
+payload against an int column resolves via ordinary MySQL numeric-string
+coercion, the same benign phenomenon already documented for task 1c's
+`get_table_info()` - not injection succeeding) - see the task-1f report for
+that script and its output.
