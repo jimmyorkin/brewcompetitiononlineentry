@@ -98,10 +98,9 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 		if (strstr($username,'@'))  {
 
 			// Sanity check from AJAX widget
-			$query_userCheck = sprintf("SELECT user_name FROM %s WHERE user_name = '%s'",$prefix."users",$username);
-			$userCheck = mysqli_query($connection,$query_userCheck) or die (mysqli_error($connection));
-			$row_userCheck = mysqli_fetch_assoc($userCheck);
-			$totalRows_userCheck = mysqli_num_rows($userCheck);
+			$db_conn->where("user_name", $username);
+			$row_userCheck = $db_conn->getOne($prefix."users", "user_name");
+			$totalRows_userCheck = $db_conn->count;
 
 			if ($totalRows_userCheck > 0) {
 
@@ -140,9 +139,8 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 				}
 
 				// Get the id from the "users" table to insert as the uid in the "brewer" table
-				$query_user= "SELECT * FROM $users_db_table WHERE user_name = '$username'";
-				$user = mysqli_query($connection,$query_user) or die (mysqli_error($connection));
-				$row_user = mysqli_fetch_assoc($user);
+				$db_conn->where("user_name", $username);
+				$row_user = $db_conn->getOne($users_db_table);
 
 				$update_table = $prefix."brewer";
 				$data = array(
@@ -227,9 +225,8 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 				 * clear out assignments and associate with the newly added staff member.
 				 */
 
-				$query_stray = sprintf("SELECT COUNT(*) AS 'count' FROM %s WHERE uid='%s'", $prefix."staff", $row_user['id']);
-	 			$stray = mysqli_query($connection,$query_stray) or die (mysqli_error($connection));
-	 			$row_stray = mysqli_fetch_assoc($stray);
+	 			$db_conn->where("uid", $row_user['id']);
+	 			$row_stray = $db_conn->getOne($prefix."staff", "COUNT(*) AS 'count'");
 
 	 			if ($row_stray['count'] == 0) {
 
@@ -382,9 +379,8 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 					// Redirect to Judge Info section if willing to judge
 					if ($brewerJudge == "Y") {
 
-						$query_brewer= sprintf("SELECT id FROM $brewer_db_table WHERE uid = '%s'", $row_user['id']);
-						$brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
-						$row_brewer = mysqli_fetch_assoc($brewer);
+						$db_conn->where("uid", $row_user['id']);
+						$row_brewer = $db_conn->getOne($brewer_db_table, "id");
 
 						$redirect = $base_url."index.php?section=brewer&action=edit&go=account&psort=judge&id=".$row_brewer['id'];
 						$redirect = prep_redirect_link($redirect);
@@ -411,10 +407,9 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 					// Redirect to Judge Info section if willing to judge
 					if ($brewerJudge == "Y") {
 
-						$query_brewer= sprintf("SELECT id FROM $brewer_db_table WHERE uid = '%s'", $row_user['id']);
-						$brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
-						$row_brewer = mysqli_fetch_assoc($brewer);
-						
+						$db_conn->where("uid", $row_user['id']);
+						$row_brewer = $db_conn->getOne($brewer_db_table, "id");
+
 						if ($view == "quick") {
 							$insertGoTo = $base_url."index.php?section=admin&go=participants&msg=28";
 							if ($errors) $insertGoTo = $base_url."index.php?section=admin&go=participants&msg=3";

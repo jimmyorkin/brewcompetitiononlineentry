@@ -902,6 +902,49 @@ class SourceHardeningTest extends TestCase
     }
 
     /**
+     * P2 SQLi migration, task 3a: includes/process/process_brewer.inc.php
+     * and includes/process/process_brewing.inc.php's own direct raw queries
+     * not reachable live on this already-set-up shared stack.
+     * query_brewer_check only runs during the one-time setup wizard's
+     * "add admin participant" step (unreachable once setup is complete);
+     * query_brews (the entry-sub-category limit check) only fires when
+     * judging_preferences.prefsUserEntryLimit is non-empty, which this
+     * stack's baseline leaves unset. All 30 of this task's raw
+     * mysqli_query() calls across the 4 target files - including these
+     * two - are converted; the e2e spec covers the other 28 live.
+     */
+    public function test_process_brewer_and_brewing_remaining_queries_stay_parameterized(): void
+    {
+        $brewerSource = file_get_contents(ROOT . 'includes/process/process_brewer.inc.php');
+        $this->assertNotFalse($brewerSource);
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $brewerSource), 'process_brewer.inc.php has reverted to raw mysqli_query()');
+        $this->assertStringContainsString("\$row_brewer_check = \$db_conn->getOne(\$brewer_db_table, \"COUNT(*) as 'count'\");", $brewerSource);
+
+        $brewingSource = file_get_contents(ROOT . 'includes/process/process_brewing.inc.php');
+        $this->assertNotFalse($brewingSource);
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $brewingSource), 'process_brewing.inc.php has reverted to raw mysqli_query()');
+        $this->assertStringContainsString("\$db_conn->where(\"brewBrewerId\", \$_SESSION['user_id']);\n\t\t\$row_brews = \$db_conn->getOne(\$brewing_db_table, \"COUNT(*) as 'count'\");", $brewingSource);
+    }
+
+    /**
+     * P2 SQLi migration, task 3a: includes/process/process_users.inc.php
+     * and includes/process/process_users_register.inc.php have zero raw
+     * mysqli_query() calls remaining - all 6 and 5 calls respectively are
+     * exercised live by the e2e spec, this is a belt-and-suspenders guard
+     * against a future regression reintroducing one.
+     */
+    public function test_process_users_and_users_register_stay_parameterized(): void
+    {
+        $usersSource = file_get_contents(ROOT . 'includes/process/process_users.inc.php');
+        $this->assertNotFalse($usersSource);
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $usersSource), 'process_users.inc.php has reverted to raw mysqli_query()');
+
+        $usersRegisterSource = file_get_contents(ROOT . 'includes/process/process_users_register.inc.php');
+        $this->assertNotFalse($usersRegisterSource);
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $usersRegisterSource), 'process_users_register.inc.php has reverted to raw mysqli_query()');
+    }
+
+    /**
      * Returns the source text of a single top-level function, from its
      * `function name(` line through the line containing the next top-level
      * `function ` declaration (exclusive). Good enough for the narrow,
