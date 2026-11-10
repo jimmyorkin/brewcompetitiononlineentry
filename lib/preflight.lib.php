@@ -11,11 +11,10 @@ $system_name_change = FALSE;
 $recently_updated = FALSE;
 
 if (check_setup($prefix."system",$database)) {
-	
-	$query_system = sprintf("SELECT * FROM `%s` WHERE id='1'",$prefix."system");
-	$system = mysqli_query($connection,$query_system) or die (mysqli_error($connection));
-	$row_system = mysqli_fetch_assoc($system);
-	
+
+	$db_conn->where('id', '1');
+	$row_system = $db_conn->getOne($prefix."system");
+
 	if ($row_system['version'] != $current_version) {
 		unset($_SESSION['session_set_'.$prefix_session]);
 		unset($_SESSION['currentVersion']);
@@ -29,10 +28,9 @@ if (check_setup($prefix."system",$database)) {
 if (check_setup($prefix."bcoem_sys",$database)) {
 	
 	$system_name_change = TRUE;
-	$query_system = sprintf("SELECT * FROM `%s` WHERE id='1'",$prefix."bcoem_sys");
-	$system = mysqli_query($connection,$query_system) or die (mysqli_error($connection));
-	$row_system = mysqli_fetch_assoc($system);
-	
+	$db_conn->where('id', '1');
+	$row_system = $db_conn->getOne($prefix."bcoem_sys");
+
 	if ($row_system['version'] != $current_version) {
 		unset($_SESSION['session_set_'.$prefix_session]);
 		unset($_SESSION['currentVersion']);
@@ -80,9 +78,8 @@ if ((!isset($_SESSION['currentVersion'])) || ((isset($_SESSION['currentVersion']
 			$setup_relocate = "Location: ".$base_url."setup.php?section=step".($row_system['setup_last_step']+1);
 
 			if ($row_system['setup_last_step'] == 1) {
-				$query_user = sprintf("SELECT user_name FROM %s WHERE id='1'",$prefix."users");
-				$user = mysqli_query($connection,$query_user) or die (mysqli_error($connection));
-				$row_user = mysqli_fetch_assoc($user);
+				$db_conn->where('id', '1');
+				$row_user = $db_conn->getOne($prefix."users", "user_name");
 				$setup_relocate .= "&go=".$row_user['user_name'];
 			}
 
@@ -144,7 +141,7 @@ else $setup_success = TRUE;
 
 if ((!$system_name_change) && (check_setup($prefix."system",$database))) {
 	$query_sys = sprintf("RENAME TABLE `%s` TO `%s`",$prefix."system",$prefix."bcoem_sys");
-	$sys = mysqli_query($connection,$query_sys) or die (mysqli_error($connection));
+	$sys = $db_conn->rawQuery($query_sys);
 	$system_name_change = TRUE;
 }
 

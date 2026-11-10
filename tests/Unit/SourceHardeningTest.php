@@ -746,6 +746,162 @@ class SourceHardeningTest extends TestCase
     }
 
     /**
+     * P2 SQLi migration, task 2: lib/process.lib.php's judging-number
+     * functions (check_judging_num, generate_judging_num,
+     * generate_judging_numbers) converted from raw mysqli_query()/sprintf()
+     * to MysqliDb builder calls, matching upstream/master's own conversion.
+     * Exercised indirectly through the entry-add/judging-number-regenerate
+     * flows, but not safely e2e-testable in isolation (regenerating judging
+     * numbers for the whole brewing table on a shared stack would renumber
+     * every other session's live entries) - guarded here directly.
+     */
+    public function test_check_judging_num_stays_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/process.lib.php');
+        $this->assertNotFalse($source);
+
+        $fn = $this->extractFunction($source, 'check_judging_num');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $fn), 'check_judging_num() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString("\$db_conn->where('brewJudgingNumber', \$input);", $fn);
+    }
+
+    public function test_generate_judging_num_method_2_stays_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/process.lib.php');
+        $this->assertNotFalse($source);
+
+        $fn = $this->extractFunction($source, 'generate_judging_num');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $fn), 'generate_judging_num() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString("\$db_conn->where('brewCategory', \$style_cat_num);", $fn);
+    }
+
+    public function test_generate_judging_numbers_stays_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/process.lib.php');
+        $this->assertNotFalse($source);
+
+        $fn = $this->extractFunction($source, 'generate_judging_numbers');
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $fn), 'generate_judging_numbers() has reverted to raw mysqli_query()');
+        $this->assertStringContainsString('$db_conn->get(', $fn);
+    }
+
+    /**
+     * P2 SQLi migration, task 2: lib/process.lib.php's style-attribute
+     * lookups (check_sweetness, check_carb, check_mead_strength), called
+     * from includes/process/process_brewing.inc.php only when a Mead/Cider-
+     * family style is selected on the entry form - not covered by this
+     * task's e2e spec (no existing helper drives that style-specific form
+     * path), so guarded here plus a one-off PHP-CLI verification recorded
+     * in the task report.
+     *
+     * @dataProvider styleAttributeFunctions
+     */
+    public function test_style_attribute_function_stays_parameterized(string $name, string $whereFragment): void
+    {
+        $source = file_get_contents(ROOT . 'lib/process.lib.php');
+        $this->assertNotFalse($source);
+
+        $fn = $this->extractFunction($source, $name);
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $fn), "{$name}() has reverted to raw mysqli_query()");
+        $this->assertStringContainsString($whereFragment, $fn);
+    }
+
+    public static function styleAttributeFunctions(): array
+    {
+        return [
+            'check_sweetness'     => ['check_sweetness', '$db_conn->rawQueryOne($query_brews, array($style_0, $style_explodies[1], $_SESSION[\'prefsStyleSet\']));'],
+            'check_carb'          => ['check_carb', '$db_conn->rawQueryOne($query_brews, array($style_0, $style_explodies[1], $_SESSION[\'prefsStyleSet\']));'],
+            'check_mead_strength' => ['check_mead_strength', '$db_conn->rawQueryOne($query_brews, array($style_0, $style_explodies[1], $styleSet));'],
+        ];
+    }
+
+    /**
+     * P2 SQLi migration, task 2: lib/preflight.lib.php's system/bcoem_sys/
+     * users lookups, run on literally every request before routing even
+     * begins - converted to MysqliDb builder calls. Not independently
+     * e2e-testable (there's no way to drive preflight checks into a
+     * distinguishable UI state on an already-set-up stack), but exercised
+     * on every page load by every other e2e test in this suite; guarded
+     * directly here too.
+     */
+    public function test_preflight_system_lookups_stay_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'lib/preflight.lib.php');
+        $this->assertNotFalse($source);
+
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $source), 'preflight.lib.php has reverted to raw mysqli_query() for a value-bearing SELECT');
+        $this->assertStringContainsString("\$db_conn->where('id', '1');\n\t\$row_system = \$db_conn->getOne(\$prefix.\"system\");", $source);
+        $this->assertStringContainsString("\$db_conn->where('id', '1');\n\t\$row_system = \$db_conn->getOne(\$prefix.\"bcoem_sys\");", $source);
+        $this->assertStringContainsString("\$db_conn->where('id', '1');\n\t\t\t\t\$row_user = \$db_conn->getOne(\$prefix.\"users\", \"user_name\");", $source);
+        // RENAME TABLE is DDL with no bound value (both names are trusted
+        // $prefix-derived identifiers) - MysqliDb's rawQuery() can still
+        // prepare it (unlike SHOW TABLES LIKE/ALTER DATABASE elsewhere in
+        // this migration), matching upstream's own conversion.
+        $this->assertStringContainsString('$sys = $db_conn->rawQuery($query_sys);', $source);
+    }
+
+    /**
+     * P2 SQLi migration, task 2: site/bootstrap.php's first-run/update
+     * bootstrap checks (character-set check, preferences/contest_info
+     * baseline-row checks) - only reachable on a freshly-installed stack
+     * before $_SESSION['characterSet']/['preferencesSet']/['compInfoSet']
+     * are set, which this already-set-up shared e2e stack never exhibits -
+     * guarded directly here. ALTER DATABASE/ALTER TABLE are left as raw
+     * mysqli_query() (matching upstream/master's own explicit choice): both
+     * are DDL statements MySQL's prepared-statement protocol cannot bind at
+     * all, and both only ever interpolate trusted identifiers ($database,
+     * $db_table_array entries), never a request-derived value.
+     */
+    public function test_bootstrap_first_run_lookups_stay_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'site/bootstrap.php');
+        $this->assertNotFalse($source);
+
+        $this->assertStringContainsString("\$row_character_check = \$db_conn->rawQueryOne(\"SHOW VARIABLES LIKE 'character_set_database'\");", $source);
+        $this->assertStringContainsString("\$db_conn->orderBy('id', 'ASC');\n\t\t\$row_prefs_check = \$db_conn->getOne(\$preferences_db_table, 'id');", $source);
+        $this->assertStringContainsString("\$db_conn->orderBy('id', 'ASC');\n\t\t\$row_contest_info_check = \$db_conn->getOne(\$contest_info_db_table, 'id');", $source);
+        // The two DDL statements intentionally remain raw mysqli_query() calls.
+        $this->assertStringContainsString('$result = mysqli_query($connection,$sql) or die (mysqli_error($connection));', $source);
+    }
+
+    /**
+     * P2 SQLi migration, task 2: includes/process.inc.php's own direct raw
+     * queries not already covered by this task's e2e spec (prefsTimeZone
+     * lookup during setup, the "publish" action's judging-locations loop).
+     * check_discount's UPDATE is covered live by the e2e spec above.
+     */
+    public function test_process_inc_remaining_queries_stay_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'includes/process.inc.php');
+        $this->assertNotFalse($source);
+
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $source), 'includes/process.inc.php has reverted to raw mysqli_query()');
+        $this->assertStringContainsString("\$db_conn->where('id', '1');\n\t\t\t\$row_prefs_tz = \$db_conn->getOne(\$prefix.\"preferences\", \"prefsTimeZone\");", $source);
+        $this->assertStringContainsString("\$db_conn->where('uid', \$id);\n\t\t\t\$result = \$db_conn->update(\$brewer_db_table, array('brewerDiscount' => 'Y'));", $source);
+        $this->assertStringContainsString('$rows_judging_locations = $db_conn->get($prefix."judging_locations", null, "id,judgingDate");', $source);
+    }
+
+    /**
+     * P2 SQLi migration, task 2: includes/data_cleanup.inc.php's purge
+     * paths not already covered by this task's e2e spec (the "entries"
+     * purge-by-date path is covered live). These run against real
+     * participant/scores/judge-assignment data and are destructive, so are
+     * guarded via source pattern rather than exercised against the shared
+     * stack's real rows.
+     */
+    public function test_data_cleanup_remaining_queries_stay_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'includes/data_cleanup.inc.php');
+        $this->assertNotFalse($source);
+
+        $this->assertSame(0, preg_match('/mysqli_query\(/', $source), 'includes/data_cleanup.inc.php has reverted to raw mysqli_query()');
+        $this->assertStringContainsString("\$db_conn->where('userLevel', '2', '<');\n\t\t\t\$rows_admin = \$db_conn->get(\$prefix.\"users\", null, \"id\");", $source);
+        $this->assertStringContainsString('$rows_stray_brewers = $db_conn->get($prefix."brewer", null, "id,uid");', $source);
+        $this->assertStringContainsString('$rows_judge_locations = $db_conn->get($judging_locations_db_table, null, "id");', $source);
+        $this->assertStringContainsString('$rows_availability = $db_conn->get($judging_assignments_db_table, null, "id");', $source);
+    }
+
+    /**
      * Returns the source text of a single top-level function, from its
      * `function name(` line through the line containing the next top-level
      * `function ` declaration (exclusive). Good enough for the narrow,

@@ -7,7 +7,7 @@ Approval tiers still need the database prefix and schema work described in
 
 ```bash
 composer install            # first time only
-vendor/bin/phpunit          # 236 tests, 5 skipped, no database needed
+vendor/bin/phpunit          # 246 tests, 5 skipped, no database needed
 ```
 
 `tests/bootstrap.php` defines the path constants and stubs, then loads
@@ -232,3 +232,39 @@ payload against an int column resolves via ordinary MySQL numeric-string
 coercion, the same benign phenomenon already documented for task 1c's
 `get_table_info()` - not injection succeeding) - see the task-1f report for
 that script and its output.
+
+It also guards the raw-SQL conversions in `lib/process.lib.php`,
+`lib/preflight.lib.php`, `includes/process.inc.php`, `site/bootstrap.php`,
+and `includes/data_cleanup.inc.php` (P2 SQLi migration, task 2 - the
+remaining libs and the core request-flow router). `process.inc.php` is
+included on nearly every form submission the app handles, so this task's
+real acceptance bar was re-running the whole existing
+`e2e/tests/smoke.spec.ts` clean against the converted code (it was), not
+just this task's own new coverage. `lib/process.lib.php`'s
+`check_judging_num()`, `generate_judging_num()`, and
+`generate_judging_numbers()` are reachable only by regenerating judging
+numbers for the whole `brewing` table, which would renumber every other
+session's live entries on this shared stack; its `check_sweetness()`,
+`check_carb()`, and `check_mead_strength()` style-attribute lookups are
+reachable only via the entry form's Mead/Cider-specific fields, which no
+existing e2e helper drives. `lib/preflight.lib.php`'s system/`bcoem_sys`/
+users lookups run on every request before routing even begins, so aren't
+independently distinguishable in the UI (every other e2e test in this
+suite exercises them indirectly). `site/bootstrap.php`'s first-run/update
+bootstrap checks (character-set check, `preferences`/`contest_info`
+baseline-row checks) are reachable only on a stack that has never
+completed setup, which this already-set-up shared stack never exhibits;
+its two `ALTER DATABASE`/`ALTER TABLE` statements deliberately remain raw
+`mysqli_query()` calls, matching `upstream/master`'s own explicit choice -
+both are DDL MySQL's prepared-statement protocol cannot bind at all, and
+both only ever interpolate trusted identifiers, never a request-derived
+value. `includes/data_cleanup.inc.php`'s "entries" purge-by-date path is
+covered live by
+`e2e/tests/sqli-migration-core-request-flow.spec.ts`; its remaining
+destructive purge paths (participants/scores/tables/availability/payments)
+touch real judge-assignment and score data and are guarded here instead.
+`includes/process.inc.php`'s `check_discount` action (the one call site
+with a genuinely request-derived bound value, `$id` from `$_GET['id']`) is
+also covered live by that same spec, which asserts the converted
+`UPDATE ... WHERE uid=?` affects exactly one `brewer` row (the submitter's
+own), not every brewer's.
