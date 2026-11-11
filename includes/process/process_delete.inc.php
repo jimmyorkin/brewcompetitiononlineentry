@@ -340,10 +340,11 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		// this as a real bug (judging_assignments rows for this table are never
 		// actually cleared, and an unrelated assignment row elsewhere that happens to
 		// share that numeric id could be deleted instead) and fixes it by deleting
-		// judging_assignments WHERE assignTable=$id directly. That fix is paired in
-		// upstream with an 11-file INSERT-side guard (commit 8d0f393a) and is not
-		// safe to adopt in isolation here without changing this function's observable
-		// behavior - preserved exactly as-is, parameterization only.
+		// judging_assignments WHERE assignTable=$id directly, in commit 52ebd611
+		// ("More Addressing of Issue #1751"). That fix is self-contained on this
+		// file's side; it's left unconverted here purely for this task's scope
+		// discipline (parameterization only, no behavior changes), not because a
+		// scoped backport would be unsafe.
 		$db_conn->where('scoreTable', $id);
 		$rows_delete_assign = $db_conn->get($judging_scores_db_table, null, "id");
 
