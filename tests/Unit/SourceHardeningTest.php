@@ -1056,6 +1056,114 @@ class SourceHardeningTest extends TestCase
     }
 
     /**
+     * P2 SQLi migration, task 4 (includes/db/*.db.php group, 9 files/49
+     * calls). All 9 files are guarded against a raw mysqli_query()/cursor-
+     * fetch regression here; e2e/tests/sqli-migration-db-output-reports.
+     * spec.ts covers 4 of them live (output_assignments.db.php's and
+     * output_bos_mat.db.php's quote-breakout-payload tests - this task's
+     * headline deliverable, closing the sterilize()-only/not-parameterized
+     * gap flagged back in Phase 1 - plus entries_by_style.db.php and
+     * organizations.db.php). The other 5 (common.db.php, output_labels.
+     * db.php, output_pullsheets_bos.db.php, output_pullsheets_entries.
+     * db.php, scores_bestbrewer.db.php) were additionally verified via a
+     * direct PHP CLI script run inside the web container: each request-
+     * derived bound value (output_labels' $filter/$id, output_pullsheets_
+     * bos'/output_pullsheets_entries' $type/$value) was fed a non-numeric-
+     * prefixed quote-breakout payload directly into both the pre-conversion
+     * sprintf()-built query and the post-conversion mysqli_prepare()-bound
+     * query against this stack's live database: the old query widened to
+     * 56-1.59M rows (a full unscoped table/cross-join read) in every case,
+     * the new one returned 0 (bound as one opaque literal, no row matches).
+     * scores_bestbrewer.db.php's two queries take no request-derived value
+     * at all (only trusted table-name identifiers), so there's nothing to
+     * bind - verified only to have moved off the legacy mysqli_query() call
+     * form. common.db.php is reachable (and reached) on every single page
+     * load in the whole e2e suite, including the sensitive
+     * $_SESSION['loginUsername']-keyed user/brewer lookup that copies a
+     * logged-in user's full row - including userLevel - into $_SESSION
+     * (unchanged by this task: same WHERE column, same session-key
+     * assignment, now bound instead of sprintf()'d).
+     */
+    public function test_task_4_db_files_stay_parameterized(): void
+    {
+        $files = [
+            'includes/db/common.db.php',
+            'includes/db/entries_by_style.db.php',
+            'includes/db/organizations.db.php',
+            'includes/db/output_assignments.db.php',
+            'includes/db/output_bos_mat.db.php',
+            'includes/db/output_labels.db.php',
+            'includes/db/output_pullsheets_bos.db.php',
+            'includes/db/output_pullsheets_entries.db.php',
+            'includes/db/scores_bestbrewer.db.php',
+        ];
+
+        foreach ($files as $file) {
+            $source = file_get_contents(ROOT . $file);
+            $this->assertNotFalse($source, "cannot read $file");
+
+            // entries_by_style.db.php still textually contains two
+            // mysqli_query( strings, but both are inside a literal /* ... */
+            // PHP comment block (a disabled SINGLE-mode code path) - never
+            // parsed as executable PHP. Strip C-style comments before
+            // checking so this guard only ever flags real, live code.
+            $stripped = preg_replace('#/\*.*?\*/#s', '', $source);
+            $this->assertNotNull($stripped, "comment-stripping failed for $file");
+
+            $this->assertSame(
+                0,
+                preg_match('/mysqli_query\(/', $stripped),
+                "$file has reverted to a raw mysqli_query() call outside its dead comment block"
+            );
+        }
+    }
+
+    /**
+     * P2 SQLi migration, task 4: output_assignments.db.php's/output_bos_mat.
+     * db.php's/output_labels.db.php's/output_pullsheets_bos.db.php's/
+     * output_pullsheets_entries.db.php's/scores_bestbrewer.db.php's queries
+     * are consumed elsewhere (output/assignments.output.php, output/
+     * pullsheets.output.php, output/bos_mat.output.php, output/labels.
+     * output.php, awards.php, sections/bestbrewer.sec.php) via the
+     * producer's own raw mysqli_result variable in a `while
+     * (mysqli_fetch_assoc($x))` loop - none of those consumer files are in
+     * this task's assigned scope, so rather than ripple the conversion into
+     * them, every one of those queries still uses mysqli_prepare()/
+     * mysqli_stmt_bind_param()/mysqli_stmt_execute()/mysqli_stmt_get_result()
+     * (fully parameterized) instead of MysqliDb's array-returning builder,
+     * so the variable handed back out is still a genuine mysqli_result. This
+     * guards that each of those files kept the get_result() pattern rather
+     * than silently drifting to an array-returning MysqliDb call, which
+     * would break every one of those external consumers.
+     */
+    public function test_task_4_externally_consumed_queries_keep_a_real_mysqli_result(): void
+    {
+        $expectations = [
+            'includes/db/output_assignments.db.php' => '$assignments = mysqli_stmt_get_result($stmt_assignments);',
+            'includes/db/output_bos_mat.db.php' => '$scores = mysqli_stmt_get_result($stmt_scores);',
+            'includes/db/output_labels.db.php' => '$log = mysqli_stmt_get_result($stmt_log);',
+            'includes/db/output_pullsheets_bos.db.php' => '$bos = mysqli_stmt_get_result($stmt_bos);',
+            'includes/db/output_pullsheets_entries.db.php' => '$entries = mysqli_stmt_get_result($stmt_entries);',
+            'includes/db/scores_bestbrewer.db.php' => '$bb_scores = mysqli_stmt_get_result($stmt_bb_scores);',
+        ];
+
+        foreach ($expectations as $file => $needle) {
+            $source = file_get_contents(ROOT . $file);
+            $this->assertNotFalse($source, "cannot read $file");
+            $this->assertStringContainsString($needle, $source, "$file must keep producing a real mysqli_result for its external consumer(s)");
+        }
+
+        // output_labels.db.php's $brewer and $with_entries, and output_labels.db.php's
+        // "participants"/"address_labels" branches, are consumed the same way.
+        $outputLabels = file_get_contents(ROOT . 'includes/db/output_labels.db.php');
+        $this->assertStringContainsString('$brewer = mysqli_stmt_get_result($stmt_brewer);', $outputLabels);
+        $this->assertStringContainsString('$with_entries = mysqli_stmt_get_result($stmt_with_entries);', $outputLabels);
+
+        $scoresBestbrewer = file_get_contents(ROOT . 'includes/db/scores_bestbrewer.db.php');
+        $this->assertStringContainsString('$bb_bos_scores = mysqli_stmt_get_result($stmt_bb_bos_scores);', $scoresBestbrewer);
+    }
+
+    /**
      * Returns the source text of a single top-level function, from its
      * `function name(` line through the line containing the next top-level
      * `function ` declaration (exclusive). Good enough for the narrow,
