@@ -945,6 +945,37 @@ class SourceHardeningTest extends TestCase
     }
 
     /**
+     * P2 SQLi migration, task 3b: includes/process/process_delete.inc.php
+     * has zero raw mysqli_query()/mysqli_real_escape_string() calls
+     * remaining - all 14 original call sites are exercised live by
+     * e2e/tests/sqli-migration-deletion-operations.spec.ts, except the
+     * go=="judging" branch's full-brewer-table location-relink query
+     * (converted from an unfiltered mysqli_query()+do-while cursor fetch to
+     * $db_conn->get()+foreach, with no WHERE clause added or removed either
+     * way - a mechanical conversion only). That one branch is guarded here
+     * instead of live, since a live test would need to scan this shared
+     * stack's full 1300+-row brewer table on every run for a branch whose
+     * conversion carries materially less risk than the others (no bound
+     * value, no WHERE clause at all before or after).
+     */
+    public function test_process_delete_stays_parameterized(): void
+    {
+        $source = file_get_contents(ROOT . 'includes/process/process_delete.inc.php');
+        $this->assertNotFalse($source);
+        $this->assertSame(0, preg_match('/mysqli_query\(|mysqli_fetch_assoc\(|mysqli_num_rows\(|mysqli_real_escape_string\(/', $source), 'process_delete.inc.php has reverted to raw mysqli_query()/cursor-fetch calls');
+        $this->assertStringContainsString(
+            '$rows_loc = $db_conn->get($brewer_db_table, null, "id, brewerJudgeLocation, brewerStewardLocation");',
+            $source,
+            'go=="judging" branch\'s unfiltered brewer-table scan has reverted away from the get()/foreach conversion'
+        );
+        $this->assertStringContainsString(
+            "\$db_conn->where('scoreTable', \$id);\n\t\t\$rows_delete_assign = \$db_conn->get(\$judging_scores_db_table, null, \"id\");",
+            $source,
+            'go=="judging_tables" branch must keep matching on judging_scores.scoreTable (the pre-existing, deliberately-preserved GitHub issue #1751 WHERE-column bug), not upstream\'s assignTable bugfix'
+        );
+    }
+
+    /**
      * Returns the source text of a single top-level function, from its
      * `function name(` line through the line containing the next top-level
      * `function ` declaration (exclusive). Good enough for the narrow,

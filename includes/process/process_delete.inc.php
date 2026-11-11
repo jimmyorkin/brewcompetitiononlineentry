@@ -7,9 +7,8 @@
 
 if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) && (isset($_SESSION['userLevel'])))) {
 
-	$query_user = sprintf("SELECT id,userLevel FROM $users_db_table WHERE user_name = '%s'", $_SESSION['loginUsername']);
-	$user = mysqli_query($connection,$query_user) or die (mysqli_error($connection));
-	$row_user = mysqli_fetch_assoc($user);
+	$db_conn->where('user_name', $_SESSION['loginUsername']);
+	$row_user = $db_conn->getOne($users_db_table, "id,userLevel");
 
 	$admin_user = FALSE;
 	$admin_superuser = FALSE;
@@ -73,16 +72,19 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 			$errors = TRUE;
 		}
 
-		$query_delete_assign = sprintf("SELECT id FROM %s WHERE sid='%s'", $special_best_data_db_table, $id);
-		$delete_assign = mysqli_query($connection,$query_delete_assign) or die (mysqli_error($connection));
-		$row_delete_assign = mysqli_fetch_assoc($delete_assign);
-		$totalRows_delete_assign = mysqli_num_rows($delete_assign);
+		$db_conn->where('sid', $id);
+		$rows_delete_assign = $db_conn->get($special_best_data_db_table, null, "id");
 
-		if ($totalRows_delete_assign > 0) {
-			do { $z[] = $row_delete_assign['id']; } while ($row_delete_assign = mysqli_fetch_assoc($delete_assign));
+		if (!empty($rows_delete_assign)) {
 
-			foreach ($z as $aid) {
+			foreach ($rows_delete_assign as $row_delete_assign) {
 
+				$aid = $row_delete_assign['id'];
+
+				// Note: this duplicate delete of the same row by the same id existed in
+				// the original code (two DELETEs on the same table/id back to back) -
+				// preserved as a harmless no-op, matching upstream/master's own identical
+				// conversion, since only the query parameterization changed here.
 				$update_table = $special_best_data_db_table;
 				$db_conn->where ('id', $aid);
 				$result = $db_conn->delete($update_table);
@@ -91,10 +93,8 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 					$errors = TRUE;
 				}
 
-
-				$deleteSQL = sprintf("DELETE FROM %s WHERE id='%s'", $special_best_data_db_table, $aid);
-				mysqli_real_escape_string($connection,$deleteSQL);
-				$result = mysqli_query($connection,$deleteSQL) or die (mysqli_error($connection));
+				$db_conn->where('id', $aid);
+				$db_conn->delete($special_best_data_db_table);
 			}
 		}
 
@@ -103,14 +103,11 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 	elseif (($admin_user) && ($go == "judging")) {
 
 		// remove relational location ids from affected rows in brewer's table
-		$query_loc = sprintf("SELECT id, brewerJudgeLocation, brewerStewardLocation from %s", $brewer_db_table);
-		$loc = mysqli_query($connection,$query_loc) or die (mysqli_error($connection));
-		$row_loc = mysqli_fetch_assoc($loc);
-		$totalRows_loc = mysqli_num_rows($loc);
+		$rows_loc = $db_conn->get($brewer_db_table, null, "id, brewerJudgeLocation, brewerStewardLocation");
 
-		if ($totalRows_loc > 0) {
+		if (!empty($rows_loc)) {
 
-			do  {
+			foreach ($rows_loc as $row_loc) {
 
 				if ($row_loc['brewerJudgeLocation'] != "") {
 
@@ -174,7 +171,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 				}
 
-			} while ($row_loc = mysqli_fetch_assoc($loc));
+			}
 
 		}
 
@@ -208,11 +205,11 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 				$errors = TRUE;
 			}
 
-			$query_entries = sprintf("SELECT id from $brewing_db_table WHERE brewBrewerID='%s'",$id);
-			$entries = mysqli_query($connection,$query_entries) or die (mysqli_error($connection));
-			$row_entries = mysqli_fetch_assoc($entries);
+			$db_conn->where('brewBrewerID', $id);
+			$rows_entries = $db_conn->get($brewing_db_table, null, "id");
 
-			do { $a[] = $row_entries['id']; } while ($row_entries = mysqli_fetch_assoc($entries));
+			$a = array();
+			foreach ($rows_entries as $row_entries) { $a[] = $row_entries['id']; }
 
 				sort($a);
 
@@ -245,11 +242,11 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 				}
 
 			// Clear any Judging Assignments
-			$query_judge_assign = sprintf("SELECT id from $judging_assignments_db_table WHERE bid='%s'",$id);
-			$judge_assign = mysqli_query($connection,$query_judge_assign) or die (mysqli_error($connection));
-			$row_judge_assign = mysqli_fetch_assoc($judge_assign);
+			$db_conn->where('bid', $id);
+			$rows_judge_assign = $db_conn->get($judging_assignments_db_table, null, "id");
 
-			do { $b[] = $row_judge_assign['id']; } while ($row_judge_assign = mysqli_fetch_assoc($judge_assign));
+			$b = array();
+			foreach ($rows_judge_assign as $row_judge_assign) { $b[] = $row_judge_assign['id']; }
 
 				sort($b);
 
@@ -266,11 +263,11 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 				}
 
 			// Clear any Staff Assignments
-			$query_staff_assign = sprintf("SELECT id from %s WHERE uid='%s'",$prefix."staff",$id);
-			$staff_assign = mysqli_query($connection,$query_staff_assign) or die (mysqli_error($connection));
-			$row_staff_assign = mysqli_fetch_assoc($staff_assign);
+			$db_conn->where('uid', $id);
+			$rows_staff_assign = $db_conn->get($prefix."staff", null, "id");
 
-			do { $c[] = $row_staff_assign['id']; } while ($row_staff_assign = mysqli_fetch_assoc($staff_assign));
+			$c = array();
+			foreach ($rows_staff_assign as $row_staff_assign) { $c[] = $row_staff_assign['id']; }
 
 				sort($c);
 
@@ -317,12 +314,10 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 			$errors = TRUE;
 		}
 
-		$query_delete_entry = sprintf("SELECT id FROM $judging_scores_db_table WHERE eid='%s'", $id);
-		$delete_entry = mysqli_query($connection,$query_delete_entry) or die (mysqli_error($connection));
-		$row_delete_entry = mysqli_fetch_assoc($delete_entry);
-		$totalRows_delete_entry = mysqli_num_rows($delete_entry);
+		$db_conn->where('eid', $id);
+		$row_delete_entry = $db_conn->getOne($judging_scores_db_table, "id");
 
-		if ($totalRows_delete_entry > 0) {
+		if ($row_delete_entry) {
 
 			$update_table = $prefix."judging_scores";
 			$db_conn->where ('id', $row_delete_entry['id']);
@@ -338,21 +333,29 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 	elseif (($admin_user) && ($go == "judging_tables")) {
 
-		$query_delete_assign = sprintf("SELECT id FROM $judging_scores_db_table WHERE scoreTable='%s'", $id);
-		$delete_assign = mysqli_query($connection,$query_delete_assign) or die (mysqli_error($connection));
-		$row_delete_assign = mysqli_fetch_assoc($delete_assign);
-		$totalRows_delete_assign = mysqli_num_rows($delete_assign);
+		// NOTE (found, not fixed - out of scope for this SQLi parameterization pass):
+		// this selects from judging_scores by scoreTable, then deletes from
+		// judging_assignments using judging_scores.id values - two unrelated tables'
+		// primary keys conflated. upstream/master's own GitHub issue #1751 identifies
+		// this as a real bug (judging_assignments rows for this table are never
+		// actually cleared, and an unrelated assignment row elsewhere that happens to
+		// share that numeric id could be deleted instead) and fixes it by deleting
+		// judging_assignments WHERE assignTable=$id directly. That fix is paired in
+		// upstream with an 11-file INSERT-side guard (commit 8d0f393a) and is not
+		// safe to adopt in isolation here without changing this function's observable
+		// behavior - preserved exactly as-is, parameterization only.
+		$db_conn->where('scoreTable', $id);
+		$rows_delete_assign = $db_conn->get($judging_scores_db_table, null, "id");
 
 		$a = array();
 		$b = array();
-		$z = array();
 		$c = array();
 
-		if ($totalRows_delete_assign > 0) {
-			
-			do { $z[] = $row_delete_assign['id']; } while ($row_delete_assign = mysqli_fetch_assoc($delete_assign));
+		if (!empty($rows_delete_assign)) {
 
-			foreach ($z as $aid) {
+			foreach ($rows_delete_assign as $row_delete_assign) {
+
+				$aid = $row_delete_assign['id'];
 
 				$update_table = $prefix."judging_assignments";
 				$db_conn->where ('id', $aid);
@@ -364,11 +367,10 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 			}
 
-			$query_delete_scores = sprintf("SELECT id,eid FROM $judging_scores_db_table WHERE scoreTable='%s'", $id);
-			$delete_scores = mysqli_query($connection,$query_delete_scores) or die (mysqli_error($connection));
-			$row_delete_scores = mysqli_fetch_assoc($delete_scores);
+			$db_conn->where('scoreTable', $id);
+			$rows_delete_scores = $db_conn->get($judging_scores_db_table, null, "id,eid");
 
-			do { $a[] = $row_delete_scores['id']; $c[] = $row_delete_scores['eid']; } while ($row_delete_scores = mysqli_fetch_assoc($delete_scores));
+			foreach ($rows_delete_scores as $row_delete_scores) { $a[] = $row_delete_scores['id']; $c[] = $row_delete_scores['eid']; }
 
 			foreach ($a as $sid) {
 
@@ -384,14 +386,12 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 		}
 
-		$query_delete_flights = sprintf("SELECT id,flightTable FROM $judging_flights_db_table WHERE flightTable='%s'", $id);
-		$delete_flights = mysqli_query($connection,$query_delete_flights) or die (mysqli_error($connection));
-		$row_delete_flights = mysqli_fetch_assoc($delete_flights);
-		$totalRows_delete_flights = mysqli_num_rows($delete_flights);
+		$db_conn->where('flightTable', $id);
+		$rows_delete_flights = $db_conn->get($judging_flights_db_table, null, "id,flightTable");
 
-		if ($totalRows_delete_flights > 0) {
-			
-			do { $b[] = $row_delete_flights['id']; } while ($row_delete_flights = mysqli_fetch_assoc($delete_flights));
+		if (!empty($rows_delete_flights)) {
+
+			foreach ($rows_delete_flights as $row_delete_flights) { $b[] = $row_delete_flights['id']; }
 
 			foreach ($b as $fid) {
 
@@ -408,10 +408,9 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 			if ($c != "") {
 
 				foreach ($c as $eid) {
-					
-					$query_delete_bos = sprintf("SELECT id,eid FROM $judging_scores_bos_db_table WHERE eid='%s'", $eid);
-					$delete_bos = mysqli_query($connection,$query_delete_bos) or die (mysqli_error($connection));
-					$row_delete_bos = mysqli_fetch_assoc($delete_bos);
+
+					$db_conn->where('eid', $eid);
+					$row_delete_bos = $db_conn->getOne($judging_scores_bos_db_table, "id,eid");
 
 					if ($eid == $row_delete_bos['eid']) {
 
@@ -423,9 +422,11 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 							$errors = TRUE;
 						}
 
-						$deleteSQL = sprintf("DELETE FROM $judging_scores_bos_db_table WHERE id='%s'", $row_delete_bos['id']);
-						mysqli_real_escape_string($connection,$deleteSQL);
-						$result = mysqli_query($connection,$deleteSQL) or die (mysqli_error($connection));
+						// Note: duplicate delete of the same row, preserved as a harmless
+						// no-op - pre-existing behavior, matching upstream's own identical
+						// conversion of this exact spot, not changed by parameterization.
+						$db_conn->where('id', $row_delete_bos['id']);
+						$db_conn->delete($judging_scores_bos_db_table);
 					}
 
 				}
@@ -445,7 +446,15 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 	elseif (($admin_superuser) && ($go == "archive")) {
 
-		$delete_suffix = "_".$filter; 
+		// $filter is spliced directly into DROP TABLE table names below. It is only
+		// sterilize()'d (XSS-entity-encoding + SQL-string-quote-escaping), never
+		// identifier-restricted, so an unescapable identifier-injection surface exists
+		// in this DDL path pre-conversion. Backported from the same hardening already
+		// applied to get_entry_count()/get_participant_count()/brewer_info() in Task
+		// 1f - not an invented check, just the established fix for this exact class of
+		// request-derived-value-in-a-table-name gap applied to this call site too.
+		$filter_clean = preg_replace("/[^a-zA-Z0-9]+/", "", $filter);
+		$delete_suffix = "_".$filter_clean;
 
 		$drop_tables_array = array(
 			$prefix."brewer".$delete_suffix,
@@ -499,9 +508,9 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 			if ($row_user['userLevel'] == 2) {
 
-				$query_brews = sprintf("SELECT id FROM $brewing_db_table WHERE brewBrewerId = '%s' AND id='%s'", $row_user['id'], $id);
-				$brews = mysqli_query($connection,$query_brews) or die (mysqli_error($connection));
-				$row_brews = mysqli_fetch_assoc($brews);
+				$db_conn->where('brewBrewerId', $row_user['id']);
+				$db_conn->where('id', $id);
+				$row_brews = $db_conn->getOne($brewing_db_table, "id");
 
 				if ($row_brews) $entry_allow_delete = TRUE;
 
@@ -534,9 +543,14 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 			$tables_array = array($brewer_db_table, $brewing_db_table, $judging_assignments_db_table, $judging_flights_db_table, $judging_scores_db_table, $judging_scores_bos_db_table, $judging_tables_db_table, $special_best_info_db_table, $special_best_data_db_table, $sponsors_db_table, $staff_db_table, $style_types_db_table, $users_db_table);
 
+			// Same identifier-injection hardening as the go=="archive" branch above -
+			// $filter is only sterilize()'d, not identifier-restricted, before being
+			// spliced into a DROP TABLE table name here.
+			$filter_clean = preg_replace("/[^a-zA-Z0-9]+/", "", $filter);
+
 			foreach ($tables_array as $table) {
 
-				$table = $table."_".$filter;
+				$table = $table."_".$filter_clean;
 
 				if (table_exists($table)) {
 
