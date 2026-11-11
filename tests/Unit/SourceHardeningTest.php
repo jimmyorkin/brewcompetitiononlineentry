@@ -976,6 +976,86 @@ class SourceHardeningTest extends TestCase
     }
 
     /**
+     * P2 SQLi migration, task 3c (last sub-task of task 3): all 6 files in
+     * this task's group have zero raw mysqli_query()/mysqli_fetch_assoc()/
+     * mysqli_num_rows()/mysqli_real_escape_string() calls remaining.
+     * process_sponsors.inc.php, process_styles.inc.php,
+     * process_judging_assignments.inc.php's "Y" (queued) branch, and
+     * process_judging_flights.inc.php's "assign" action are exercised live
+     * by e2e/tests/sqli-migration-config-admin-judging-setup-flows.spec.ts.
+     * process_comp_info.inc.php's one call (an unparameterized COUNT(*)
+     * with no WHERE and no user input) and process_archive.inc.php's 10
+     * calls are not safely live-testable on this shared stack (archiving
+     * renames/truncates nearly every core competition table) and were
+     * instead verified via a direct PHP CLI script comparing each converted
+     * call's output against the original raw query, including
+     * injection-shaped negative controls against the live 1371-row `users`
+     * and 1376-row `brewer` tables - see the task report for the script and
+     * its output.
+     */
+    public function test_task_3c_files_stay_parameterized(): void
+    {
+        $files = [
+            'includes/process/process_archive.inc.php',
+            'includes/process/process_comp_info.inc.php',
+            'includes/process/process_sponsors.inc.php',
+            'includes/process/process_styles.inc.php',
+            'includes/process/process_judging_assignments.inc.php',
+            'includes/process/process_judging_flights.inc.php',
+        ];
+
+        foreach ($files as $file) {
+            $source = file_get_contents(ROOT . $file);
+            $this->assertNotFalse($source, "cannot read $file");
+
+            // process_styles.inc.php still textually contains two
+            // mysqli_query( strings, but both are inside a literal /* ... */
+            // PHP comment block (a disabled HOSTED-only code path) - never
+            // parsed as executable PHP. Strip C-style comments before
+            // checking so this guard only ever flags real, live code.
+            $stripped = preg_replace('#/\*.*?\*/#s', '', $source);
+            $this->assertNotNull($stripped, "comment-stripping failed for $file");
+
+            $this->assertSame(
+                0,
+                preg_match('/mysqli_query\(|mysqli_fetch_assoc\(|mysqli_num_rows\(|mysqli_real_escape_string\(/', $stripped),
+                "$file has reverted to raw mysqli_query()/cursor-fetch calls outside its dead comment block"
+            );
+        }
+    }
+
+    /**
+     * P2 SQLi migration, task 3c: process_judging_assignments.inc.php's "N"
+     * (non-queued) branch deliberately preserves two pre-existing, upstream-
+     * fixed bugs (GitHub issue #1751/#1754, fixed upstream in commit
+     * dff9e44d "Address Issue #1751") rather than backporting the fix - this
+     * task is SQLi-only. The unassign/delete lookup stays scoped to
+     * bid+assignRound+assignLocation (not $unassign's own id, which upstream
+     * switched to), and the queued-insert-vs-update count check stays scoped
+     * to bid+assignRound+assignLocation (not upstream's added assignTable
+     * scoping). jPrefsQueued='Y' on this shared stack, so this branch isn't
+     * live-reachable without flipping a shared judging-mode flag; verified
+     * instead via the task report's direct CLI script.
+     */
+    public function test_process_judging_assignments_n_branch_preserves_pre_existing_where_columns(): void
+    {
+        $source = file_get_contents(ROOT . 'includes/process/process_judging_assignments.inc.php');
+        $this->assertNotFalse($source);
+
+        $this->assertStringContainsString(
+            "\$db_conn->where(\"bid\", sterilize(\$_POST['bid'.\$random]));\n\t\t\t\t\t\$db_conn->where(\"assignRound\", sterilize(\$_POST['assignRound'.\$random]));\n\t\t\t\t\t\$db_conn->where(\"assignLocation\", sterilize(\$_POST['assignLocation'.\$random]));\n\t\t\t\t\t\$row_flights = \$db_conn->getOne(\$judging_assignments_db_table, \"id\");",
+            $source,
+            'the unassign/delete lookup must stay scoped to bid+assignRound+assignLocation (pre-existing GitHub issue #1751/#1754 bug, upstream-fixed in dff9e44d but out of scope for this SQLi-only task), not switch to deleting by $unassign directly'
+        );
+
+        $this->assertStringContainsString(
+            "\$db_conn->where(\"bid\", sterilize(\$_POST['bid'.\$random]));\n\t\t\t\t\t\$db_conn->where(\"assignRound\", sterilize(\$_POST['assignRound'.\$random]));\n\t\t\t\t\t\$db_conn->where(\"assignLocation\", sterilize(\$_POST['assignLocation'.\$random]));\n\t\t\t\t\t\$row_flights = \$db_conn->getOne(\$judging_assignments_db_table, \"COUNT(*) as 'count'\");",
+            $source,
+            'the queued insert-vs-update count check must stay scoped to bid+assignRound+assignLocation (pre-existing GitHub issue #1751 bug, upstream-fixed in dff9e44d but out of scope for this SQLi-only task), not add upstream\'s assignTable scoping'
+        );
+    }
+
+    /**
      * Returns the source text of a single top-level function, from its
      * `function name(` line through the line containing the next top-level
      * `function ` declaration (exclusive). Good enough for the narrow,

@@ -67,10 +67,13 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 					//Perform check to see if a record is in the DB. If not, insert a new record.
 					// If so, see will update
-					$query_flights = sprintf("SELECT id FROM %s WHERE (bid='%s' AND assignTable='%s' AND assignRound='%s' AND assignFlight='%s' AND assignLocation='%s')", $prefix."judging_assignments", $_POST['bid'.$random], $_POST['assignTable'.$random], $_POST['assignRound'.$random], $_POST['assignFlight'.$random], $_POST['assignLocation'.$random]);
-					$flights = mysqli_query($connection,$query_flights) or die (mysqli_error($connection));
-					$row_flights = mysqli_fetch_assoc($flights);
-					$totalRows_flights = mysqli_num_rows($flights);
+					$db_conn->where("bid", sterilize($_POST['bid'.$random]));
+					$db_conn->where("assignTable", sterilize($_POST['assignTable'.$random]));
+					$db_conn->where("assignRound", sterilize($_POST['assignRound'.$random]));
+					$db_conn->where("assignFlight", sterilize($_POST['assignFlight'.$random]));
+					$db_conn->where("assignLocation", sterilize($_POST['assignLocation'.$random]));
+					$row_flights = $db_conn->getOne($prefix."judging_assignments", "id");
+					$totalRows_flights = $db_conn->count;
 
 					if ($totalRows_flights == 0) {
 
@@ -124,11 +127,24 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 				} // end if (($roles_only_update) && ($_POST['id'.$random] > 0))
 
 				if (($unassign > 0) && ((isset($_POST['assignFlight'.$random])) && ($_POST['assignFlight'.$random] == 0))) {
-					
-					$query_flights = sprintf("SELECT id FROM $judging_assignments_db_table WHERE bid='%s' AND assignRound='%s' and assignLocation='%s'", $_POST['bid'.$random], $_POST['assignRound'.$random], $_POST['assignLocation'.$random]);
-					$flights = mysqli_query($connection,$query_flights) or die (mysqli_error($connection));
-					$row_flights = mysqli_fetch_assoc($flights);
-					$totalRows_flights = mysqli_num_rows($flights);
+
+					/**
+					 * GitHub issue #1751/#1754 (upstream commit dff9e44d, "Address Issue
+					 * #1751"): upstream later changed this to delete by $unassign (the id
+					 * already in hand) instead of re-deriving the row via this
+					 * bid+assignRound+assignLocation lookup, because assignLocation is only
+					 * a snapshot taken when the assignment was made, not a live reference -
+					 * a stale snapshot can miss the intended row or match a different
+					 * table's row sharing the same bid+round+location. Preserved here
+					 * unconverted (not fixed): this task is SQLi-only, and the WHERE
+					 * columns/semantics stay identical to the pre-conversion query, just
+					 * parameterized.
+					 */
+					$db_conn->where("bid", sterilize($_POST['bid'.$random]));
+					$db_conn->where("assignRound", sterilize($_POST['assignRound'.$random]));
+					$db_conn->where("assignLocation", sterilize($_POST['assignLocation'.$random]));
+					$row_flights = $db_conn->getOne($judging_assignments_db_table, "id");
+					$totalRows_flights = $db_conn->count;
 
 					if ($totalRows_flights > 0) {
 
@@ -204,9 +220,20 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 					// Perform check to see if a record is in the DB. If not, insert a new record.
 					// If so, update
-					$query_flights = sprintf("SELECT COUNT(*) as 'count' FROM $judging_assignments_db_table WHERE (bid='%s' AND assignRound='%s' AND assignLocation='%s')", $_POST['bid'.$random], $_POST['assignRound'.$random], $_POST['assignLocation'.$random]);
-					$flights = mysqli_query($connection,$query_flights) or die (mysqli_error($connection));
-					$row_flights = mysqli_fetch_assoc($flights);
+					/**
+					 * GitHub issue #1751 (upstream commit dff9e44d, "Address Issue #1751"):
+					 * upstream later scoped this to bid+assignTable+assignRound instead of
+					 * bid+assignRound+assignLocation, since a judge already assigned to a
+					 * DIFFERENT table sharing the same round+location could make this count
+					 * come back >0 and silently skip the real insert for the table actually
+					 * being edited. Preserved here unconverted (not fixed): this task is
+					 * SQLi-only, and the WHERE columns/semantics stay identical to the
+					 * pre-conversion query, just parameterized.
+					 */
+					$db_conn->where("bid", sterilize($_POST['bid'.$random]));
+					$db_conn->where("assignRound", sterilize($_POST['assignRound'.$random]));
+					$db_conn->where("assignLocation", sterilize($_POST['assignLocation'.$random]));
+					$row_flights = $db_conn->getOne($judging_assignments_db_table, "COUNT(*) as 'count'");
 
 					if ($row_flights['count'] == 0) {
 

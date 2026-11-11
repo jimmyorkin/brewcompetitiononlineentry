@@ -31,9 +31,8 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 	if ($go == "add") {
 
-		$query_suffix_check = sprintf("SELECT COUNT(*) as 'count' FROM %s WHERE archiveSuffix = '%s';", $archive_db_table, $suffix);
-		$suffix_check = mysqli_query($connection,$query_suffix_check) or die (mysqli_error($connection));
-		$row_suffix_check = mysqli_fetch_assoc($suffix_check);
+		$db_conn->where("archiveSuffix", $suffix);
+		$row_suffix_check = $db_conn->getOne($archive_db_table, "COUNT(*) as 'count'");
 
 		if ($row_suffix_check['count'] > 0) {
 			$redirect = $base_url."index.php?section=admin&go=archive&msg=6";
@@ -78,9 +77,8 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 		if (!isset($_POST['keepParticipants'])) {
 
 			// Gather current User's information from the current "users" AND current "brewer" tables and store in variables
-			$query_user = sprintf("SELECT * FROM %s WHERE user_name = '%s'", $prefix."users", $_SESSION['loginUsername']);
-			$user = mysqli_query($connection,$query_user) or die (mysqli_error($connection));
-			$row_user = mysqli_fetch_assoc($user);
+			$db_conn->where("user_name", $_SESSION['loginUsername']);
+			$row_user = $db_conn->getOne($prefix."users");
 
 			$user_name = sterilize($row_user['user_name']);
 			$password = $row_user['password'];
@@ -89,9 +87,8 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 			$userQuestionAnswer = $purifier->purify($row_user['userQuestionAnswer']);
 			$userCreated = $row_user['userCreated'];
 
-			$query_name = sprintf("SELECT * FROM %s WHERE uid='%s'", $prefix."brewer", $row_user['id']);
-			$name = mysqli_query($connection,$query_name) or die (mysqli_error($connection));
-			$row_name = mysqli_fetch_assoc($name);
+			$db_conn->where("uid", sterilize($row_user['id']));
+			$row_name = $db_conn->getOne($prefix."brewer");
 
 			$brewerFirstName = $purifier->purify($row_name['brewerFirstName']);
 			$brewerLastName = $purifier->purify($row_name['brewerLastName']);
@@ -416,9 +413,9 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 			}
 
-			$query_login = "SELECT COUNT(*) as 'count' FROM $users_db_table WHERE user_name = '$user_name' AND password = '$password'";
-			$login = mysqli_query($connection,$query_login) or die (mysqli_error($connection));
-			$row_login = mysqli_fetch_assoc($login);
+			$db_conn->where("user_name", $user_name);
+			$db_conn->where("password", $password);
+			$row_login = $db_conn->getOne($users_db_table, "COUNT(*) as 'count'");
 
 			// Authenticate the user
 			if ($row_login['count'] == 1) {
@@ -429,9 +426,8 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 				$_SESSION['session_set_'.$prefix_session] = $prefix_session;
 				$_SESSION['loginUsername'] = $user_name;
 
-				$query_contest_info = sprintf("SELECT * FROM %s WHERE id=1", $prefix."contest_info");
-				$contest_info = mysqli_query($connection,$query_contest_info) or die (mysqli_error($connection));
-				$row_contest_info = mysqli_fetch_assoc($contest_info);
+				$db_conn->where("id", 1);
+				$row_contest_info = $db_conn->getOne($prefix."contest_info");
 
 				// Comp Name
 				$_SESSION['contestName'] = $row_contest_info['contestName'];
@@ -459,9 +455,8 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 
 				$_SESSION['contest_info_general'.$prefix_session] = $prefix_session;
 
-				$query_prefs = sprintf("SELECT * FROM %s WHERE id=1", $prefix."preferences");
-				$prefs = mysqli_query($connection,$query_prefs) or die (mysqli_error($connection));
-				$row_prefs = mysqli_fetch_assoc($prefs);
+				$db_conn->where("id", 1);
+				$row_prefs = $db_conn->getOne($prefix."preferences");
 
 				$_SESSION['prefsTemp'] = $row_prefs['prefsTemp'];
 				$_SESSION['prefsWeight1'] = $row_prefs['prefsWeight1'];
@@ -498,9 +493,8 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 				$_SESSION['prefsSpecialCharLimit'] = $row_prefs['prefsSpecialCharLimit'];
 				$_SESSION['prefsStyleSet'] = $row_prefs['prefsStyleSet'];
 
-				$query_judging_prefs = sprintf("SELECT * FROM %s WHERE id='1'", $prefix."judging_preferences");
-				$judging_prefs = mysqli_query($connection,$query_judging_prefs) or die (mysqli_error($connection));
-				$row_judging_prefs = mysqli_fetch_assoc($judging_prefs);
+				$db_conn->where("id", 1);
+				$row_judging_prefs = $db_conn->getOne($prefix."judging_preferences");
 
 				$_SESSION['jPrefsQueued'] = $row_judging_prefs['jPrefsQueued'];
 				$_SESSION['jPrefsFlightEntries'] = $row_judging_prefs['jPrefsFlightEntries'];
@@ -508,26 +502,22 @@ if ((isset($_SERVER['HTTP_REFERER'])) && ((isset($_SESSION['loginUsername'])) &&
 				$_SESSION['jPrefsRounds'] = $row_judging_prefs['jPrefsRounds'];
 
 				// Get counts for common, mostly static items
-				$query_sponsor_count = sprintf("SELECT COUNT(*) as 'count' FROM %s", $prefix."sponsors");
-				$result_sponsor_count = mysqli_query($connection,$query_sponsor_count) or die (mysqli_error($connection));
-				$row_sponsor_count = mysqli_fetch_assoc($result_sponsor_count);
+				$row_sponsor_count = $db_conn->getOne($prefix."sponsors", "COUNT(*) as 'count'");
 
 				$_SESSION['sponsorCount'] = $row_sponsor_count['count'];
 				$_SESSION['prefs'.$prefix_session] = "1";
 				$_SESSION['prefix'] = $prefix;
 
-				$query_user = sprintf("SELECT * FROM %s WHERE user_name = '%s'", $prefix."users", $_SESSION['loginUsername']);
-				$user = mysqli_query($connection,$query_user) or die (mysqli_error($connection));
-				$row_user = mysqli_fetch_assoc($user);
+				$db_conn->where("user_name", $_SESSION['loginUsername']);
+				$row_user = $db_conn->getOne($prefix."users");
 
 				$_SESSION['user_id'] = $row_user['id'];
 				$_SESSION['userCreated'] = $row_user['userCreated'];
 				$_SESSION['user_name'] = $row_user['user_name'];
 				$_SESSION['userLevel'] = $row_user['userLevel'];
 
-				$query_name = sprintf("SELECT * FROM %s WHERE uid='%s'", $prefix."brewer", $_SESSION['user_id']);
-				$name = mysqli_query($connection,$query_name) or die (mysqli_error($connection));
-				$row_name = mysqli_fetch_assoc($name);
+				$db_conn->where("uid", sterilize($_SESSION['user_id']));
+				$row_name = $db_conn->getOne($prefix."brewer");
 
 				$_SESSION['brewerID']  = $row_name['id'];
 				$_SESSION['brewerFirstName'] = $row_name['brewerFirstName'];

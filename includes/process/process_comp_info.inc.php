@@ -198,9 +198,7 @@ if ((isset($_SERVER['HTTP_REFERER'])) && (((isset($_SESSION['loginUsername'])) &
 		}
 
 		// Check to see if processed correctly.
-		$query_comp_info_check = sprintf("SELECT COUNT(*) as 'count' FROM %s",$contest_info_db_table);
-		$comp_info_check = mysqli_query($connection,$query_comp_info_check) or die (mysqli_error($connection));
-		$row_comp_info_check = mysqli_fetch_assoc($comp_info_check);
+		$row_comp_info_check = $db_conn->getOne($contest_info_db_table, "COUNT(*) as 'count'");
 
 		// If so, mark step as complete in system table and redirect to next step.
 		if ($row_comp_info_check['count'] == 1) {
