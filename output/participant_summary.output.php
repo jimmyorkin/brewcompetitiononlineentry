@@ -18,10 +18,10 @@ include (LIB.'output.lib.php');
 
 // Best of Show check
 function bos_place_output($entry_id,$prefix,$connection) {
-    $query_bos = sprintf("SELECT a.scorePlace FROM %s a, %s b, %s c WHERE a.eid = %s AND c.uid = b.brewBrewerID", $prefix."judging_scores_bos", $prefix."brewing", $prefix."brewer", $entry_id);
-    $bos = mysqli_query($connection,$query_bos) or die (mysqli_error($connection));
-    $row_bos = mysqli_fetch_assoc($bos);
-    $totalRows_bos = mysqli_num_rows($bos);
+    $db_conn = new MysqliDb($connection);
+    $query_bos = "SELECT a.scorePlace FROM ".$prefix."judging_scores_bos"." a, ".$prefix."brewing"." b, ".$prefix."brewer"." c WHERE a.eid = ? AND c.uid = b.brewBrewerID";
+    $row_bos = $db_conn->rawQueryOne($query_bos, array($entry_id));
+    $totalRows_bos = $db_conn->count;
 
     if ($totalRows_bos > 0) {
         $return = $row_bos['scorePlace'];
@@ -44,15 +44,15 @@ if ($row_sbi) {
 
 		$explodies = explode ("|", $special_best_cat);
 
-		$query_sbd = sprintf("SELECT * FROM %s WHERE sid='%s' ORDER BY sbd_place ASC",$prefix."special_best_data",$explodies[0]);
-		$sbd = mysqli_query($connection,$query_sbd) or die (mysqli_error($connection));
-		$row_sbd = mysqli_fetch_assoc($sbd);
-		$totalRows_sbd = mysqli_num_rows($sbd);
+		$db_conn->where('sid', $explodies[0]);
+		$db_conn->orderBy('sbd_place', 'ASC');
+		$rows_sbd = $db_conn->get($prefix."special_best_data");
+		$totalRows_sbd = $db_conn->count;
 
-		if ($row_sbd) {
-			do { 
-				$special_best_cat_winners[] = $explodies[1]."|".$row_sbd['eid']."|".$row_sbd['sbd_place']; 
-			} while ($row_sbd = mysqli_fetch_assoc($sbd));
+		if (!empty($rows_sbd)) {
+			foreach ($rows_sbd as $row_sbd) {
+				$special_best_cat_winners[] = $explodies[1]."|".$row_sbd['eid']."|".$row_sbd['sbd_place'];
+			}
 		}
 
 	}

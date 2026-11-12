@@ -1164,6 +1164,142 @@ class SourceHardeningTest extends TestCase
     }
 
     /**
+     * Task 5 (SQLi migration Phase 2): the 18 small/mechanical files. Each of
+     * these should no longer issue any raw, unparameterized mysqli_query()
+     * call after conversion to $db_conn->where()/get()/getOne()/rawQuery().
+     *
+     * @dataProvider task5FullyConvertedFiles
+     */
+    public function test_task5_file_has_no_raw_mysqli_query(string $file): void
+    {
+        $source = file_get_contents(ROOT . $file);
+        $this->assertNotFalse($source, "cannot read $file");
+        $this->assertSame(0, preg_match_all('/mysqli_query\(/', $source), "$file has reverted to raw mysqli_query()");
+    }
+
+    public static function task5FullyConvertedFiles(): array
+    {
+        return [
+            'export.output.php'              => ['output/export.output.php'],
+            'labels.output.php'              => ['output/labels.output.php'],
+            'participant_summary.output.php' => ['output/participant_summary.output.php'],
+            'print.output.php'               => ['output/print.output.php'],
+            'tables_mode.ajax.php'           => ['ajax/tables_mode.ajax.php'],
+            'install_eval_db.eval.php'       => ['eval/install_eval_db.eval.php'],
+            'awards.php'                     => ['awards.php'],
+            'qr.php'                         => ['qr.php'],
+            'brew.sec.php'                   => ['sections/brew.sec.php'],
+            'default.sec.php'                => ['sections/default.sec.php'],
+            'query_count_begin.debug.php'    => ['includes/debug/query_count_begin.debug.php'],
+            'query_count_end.debug.php'      => ['includes/debug/query_count_end.debug.php'],
+            'convert_bjcp_2015.inc.php'      => ['includes/convert/convert_bjcp_2015.inc.php'],
+            'entries.admin.php'              => ['admin/entries.admin.php'],
+            'judging_locations.admin.php'    => ['admin/judging_locations.admin.php'],
+            'style_types.admin.php'          => ['admin/style_types.admin.php'],
+        ];
+    }
+
+    /**
+     * output/pullsheets.output.php: 3 raw mysqli_query() calls were found by
+     * grep, but one (around the first "query_round_check" occurrence) is
+     * inside a /* ... *\/ block comment and never executes. Verified by
+     * reading the file directly (not inferred from the grep count) per the
+     * ledger's dead-code-claim discipline. The two live occurrences were
+     * converted; this guard pins the count at exactly 1 (the dead one) so a
+     * real regression (a new live raw call) is still caught.
+     */
+    public function test_pullsheets_output_has_only_the_known_dead_mysqli_query(): void
+    {
+        $source = file_get_contents(ROOT . 'output/pullsheets.output.php');
+        $this->assertNotFalse($source, 'cannot read output/pullsheets.output.php');
+        $this->assertSame(1, preg_match_all('/mysqli_query\(/', $source), 'output/pullsheets.output.php should have exactly one (dead/commented) mysqli_query() call left');
+
+        // The surviving occurrence must still be inside the commented-out block.
+        $pos = strpos($source, 'mysqli_query(');
+        $commentOpen = strrpos(substr($source, 0, $pos), '/*');
+        $commentClose = strrpos(substr($source, 0, $pos), '*/');
+        $this->assertNotFalse($commentOpen, 'expected the remaining mysqli_query() call to be preceded by a /* comment opener');
+        $this->assertTrue($commentOpen > $commentClose, 'the remaining mysqli_query() call is not inside an open block comment - it may be live code');
+    }
+
+    /**
+     * setup/install_db.setup.php: 1 of its 2 raw mysqli_query() calls is an
+     * ALTER DATABASE statement with no user-controlled value at all (only
+     * $database, a trusted server-side config value, is interpolated as an
+     * identifier). Porting it to the project's $db_conn->rawQuery() pattern
+     * requires $db_conn->queryUnprepared() (ALTER DATABASE cannot run as a
+     * prepared statement), which upstream made public but this fork's
+     * site/MysqliDb.php still declares `private` - a file outside Task 5's
+     * scope. Left as direct mysqli_query() and flagged rather than widening
+     * scope to site/MysqliDb.php. The other call (DROP TABLE styles) was
+     * converted normally.
+     */
+    public function test_install_db_setup_has_only_the_known_alter_database_exception(): void
+    {
+        $source = file_get_contents(ROOT . 'setup/install_db.setup.php');
+        $this->assertNotFalse($source, 'cannot read setup/install_db.setup.php');
+        $this->assertSame(1, preg_match_all('/mysqli_query\(/', $source), 'setup/install_db.setup.php should have exactly one (ALTER DATABASE) mysqli_query() call left');
+        $this->assertStringContainsString('ALTER DATABASE', $source);
+    }
+
+    /**
+     * Task 4 (includes/db/*.db.php) converted output_labels.db.php,
+     * output_assignments.db.php, output_pullsheets_bos.db.php, and
+     * output_pullsheets_entries.db.php using mysqli_prepare()/
+     * mysqli_stmt_get_result() specifically so their results remain real
+     * mysqli_result objects, because three Task 5 files consume them via raw
+     * mysqli_fetch_assoc() do-while loops. Task 5 must not disturb that
+     * consumption while converting these files' OWN separate raw queries.
+     */
+    public function test_task5_consumer_files_still_consume_db_includes_as_mysqli_result(): void
+    {
+        $labels = file_get_contents(ROOT . 'output/labels.output.php');
+        $this->assertNotFalse($labels, 'cannot read output/labels.output.php');
+        // File-level $log/$brewer/$with_entries (from output_labels.db.php) are
+        // still consumed via do-while(mysqli_fetch_assoc(...)), unchanged.
+        $this->assertMatchesRegularExpression('/while\s*\(\$row_log\s*=\s*mysqli_fetch_assoc\(\$log\)\)/', $labels);
+        $this->assertMatchesRegularExpression('/while\s*\(\$row_brewer\s*=\s*mysqli_fetch_assoc\(\$brewer\)\)/', $labels);
+        $this->assertMatchesRegularExpression('/while\s*\(\$row_with_entries\s*=\s*mysqli_fetch_assoc\(\$with_entries\)\)/', $labels);
+
+        $pullsheets = file_get_contents(ROOT . 'output/pullsheets.output.php');
+        $this->assertNotFalse($pullsheets, 'cannot read output/pullsheets.output.php');
+        // $assignments/$bos/$entries (from output_assignments.db.php,
+        // output_pullsheets_bos.db.php, output_pullsheets_entries.db.php) are
+        // still consumed via do-while(mysqli_fetch_assoc(...)), unchanged.
+        $this->assertMatchesRegularExpression('/while\s*\(\$row_assignments\s*=\s*mysqli_fetch_assoc\(\$assignments\)\)/', $pullsheets);
+        $this->assertMatchesRegularExpression('/while\s*\(\$row_bos\s*=\s*mysqli_fetch_assoc\(\$bos\)\)/', $pullsheets);
+        $this->assertMatchesRegularExpression('/while\s*\(\$row_entries\s*=\s*mysqli_fetch_assoc\(\$entries\)\)/', $pullsheets);
+
+        $awards = file_get_contents(ROOT . 'awards.php');
+        $this->assertNotFalse($awards, 'cannot read awards.php');
+        // $bb_scores/$bb_bos_scores (from scores_bestbrewer.db.php) are still
+        // consumed via do-while(mysqli_fetch_assoc(...)), unchanged.
+        $this->assertMatchesRegularExpression('/while\s*\(\$bb_row_scores\s*=\s*mysqli_fetch_assoc\(\$bb_scores\)\)/', $awards);
+        $this->assertMatchesRegularExpression('/while\s*\(\$bb_row_bos_scores\s*=\s*mysqli_fetch_assoc\(\$bb_bos_scores\)\)/', $awards);
+    }
+
+    /**
+     * Task 5 review-focus item: export.output.php's publicly-reachable
+     * "export-personal-results" branch binds $id (request-derived) as a
+     * parameter instead of interpolating it, closing the SQLi path. The
+     * missing authorization check seen in upstream (($admin_role) ||
+     * ($id == $_SESSION['user_id'])) is a separate, pre-existing
+     * access-control gap - flagged in the task report, intentionally NOT
+     * added here since it is out of this task's scope.
+     */
+    public function test_export_output_personal_results_binds_id_as_parameter(): void
+    {
+        $source = file_get_contents(ROOT . 'output/export.output.php');
+        $this->assertNotFalse($source, 'cannot read output/export.output.php');
+        $this->assertStringContainsString(
+            'a.brewBrewerID = ? AND b.bid = ? AND c.uid = ? AND a.id = b.eid',
+            $source,
+            'export-personal-results query no longer binds $id as parameters'
+        );
+        $this->assertStringContainsString('$rows_brewer = $db_conn->rawQuery($query_brewer, array($id, $id, $id));', $source);
+    }
+
+    /**
      * Returns the source text of a single top-level function, from its
      * `function name(` line through the line containing the next top-level
      * `function ` declaration (exclusive). Good enough for the narrow,

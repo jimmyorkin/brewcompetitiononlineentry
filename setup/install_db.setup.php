@@ -878,9 +878,7 @@ if ($setup_free_access == TRUE) {
 		// -------------------
 
 		$sql = sprintf("DROP TABLE IF EXISTS %s;",$prefix."styles");
-		mysqli_select_db($connection,$database);
-		mysqli_real_escape_string($connection,$sql);
-		$result = mysqli_query($connection,$sql) or die (mysqli_error($connection));
+		$db_conn->rawQuery($sql);
 
 		$sql = sprintf("
 			CREATE TABLE `%s` (

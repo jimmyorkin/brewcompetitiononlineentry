@@ -84,10 +84,9 @@ if (isset($_SESSION['loginUsername'])) {
 
 			if ($filter == "judges") {
 
-				$query_brewer = sprintf("SELECT * FROM %s WHERE brewerJudge='Y'",$prefix."brewer");
-				$brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
-				$row_brewer = mysqli_fetch_assoc($brewer);
-				
+				$db_conn->where('brewerJudge', 'Y');
+				$rows_brewer = $db_conn->get($prefix."brewer");
+
 				$filename = str_replace(" ", "_", $_SESSION['contestName']) . "_Virtual_Judge_Labels";
 				if ($psort == "3422") $filename .= "_Avery3422";
 				else $filename .= "_Avery5160";
@@ -101,9 +100,9 @@ if (isset($_SESSION['loginUsername'])) {
 				// Get a list of virtual/distributed locations
 				$virtual_locations = virtual_locations();
 
-				if ($row_brewer) {
-				
-					do {
+				if (!empty($rows_brewer)) {
+
+					foreach ($rows_brewer as $row_brewer) {
 						
 						$judge_info = judge_info($row_brewer['uid']);
 						$judge_info = explode("^", $judge_info);
@@ -183,7 +182,7 @@ if (isset($_SESSION['loginUsername'])) {
 						
 						}
 
-					} while ($row_brewer = mysqli_fetch_assoc($brewer));
+					}
 
 				}
 
@@ -447,15 +446,14 @@ if (isset($_SESSION['loginUsername'])) {
 					$table_info = explode("^",get_table_info(1,"basic",$location,"default","default"));
 
 					// First, get all of the entry ids for the table in the judging_flights db
-					$query_table_entries = sprintf("SELECT * FROM %s WHERE flightTable='%s'", $prefix."judging_flights",$location);
-					$row_table_entries = mysqli_query($connection,$query_table_entries) or die (mysqli_error($connection));
-					$table_entries = mysqli_fetch_assoc($row_table_entries);
+					$db_conn->where('flightTable', $location);
+					$rows_table_entries = $db_conn->get($prefix."judging_flights");
 
-					do {
+					foreach ($rows_table_entries as $table_entries) {
 
 						$entries_at_table[] = $table_entries['flightEntryID'];
 
-					} while($table_entries = mysqli_fetch_assoc($row_table_entries));
+					}
 
 					if (!empty($entries_at_table)) $labels_by_table = TRUE;
 				

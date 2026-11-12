@@ -7,7 +7,7 @@ Approval tiers still need the database prefix and schema work described in
 
 ```bash
 composer install            # first time only
-vendor/bin/phpunit          # 253 tests, 5 skipped, no database needed
+vendor/bin/phpunit          # 273 tests, 5 skipped, no database needed
 ```
 
 `tests/bootstrap.php` defines the path constants and stubs, then loads
@@ -68,6 +68,23 @@ app), so there is no page to exercise them through. Their conversion to
 `$db_conn->where()/getOne()` was verified directly against this stack's live
 database via the PHP CLI inside the web container instead - see the task-1a
 report for that script and its output.
+
+P2 SQLi migration, task 5 (the 18 small/mechanical remaining files) added a
+"no raw `mysqli_query()` left" regression guard per file (16 files pinned at
+0 occurrences; `output/pullsheets.output.php` pinned at exactly 1, a dead
+call inside a `/* ... */` comment block; `setup/install_db.setup.php` pinned
+at exactly 1, an `ALTER DATABASE` statement with no user-controlled value,
+left on raw `mysqli_query()` because converting it needs
+`$db_conn->queryUnprepared()`, which this fork's `site/MysqliDb.php` still
+declares `private` - a file outside task 5's scope). It also pins
+`output/export.output.php`'s publicly-reachable `export-personal-results`
+query binding `$id` as three `?` parameters instead of interpolating it, and
+confirms the three Task-4-consumer files
+(`output/labels.output.php`, `output/pullsheets.output.php`, `awards.php`)
+still consume `output_labels.db.php`/`output_assignments.db.php`/
+`output_pullsheets_bos.db.php`/`output_pullsheets_entries.db.php`/
+`scores_bestbrewer.db.php`'s results via `mysqli_fetch_assoc()` do-while
+loops, unchanged.
 
 It also guards `total_paid_received()`'s `$id>0` and `$archive` branches
 (same task). Unlike the two functions above, these branches are **not** dead

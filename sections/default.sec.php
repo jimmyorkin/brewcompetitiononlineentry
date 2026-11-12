@@ -136,10 +136,9 @@ if ($filter == "default") {
 else {
 
 	// Query the archive table for preferences
-	$query_archive_prefs = sprintf("SELECT * FROM %s WHERE archiveSuffix='%s'",$prefix."archive", $filter);
-	$archive_prefs = mysqli_query($connection,$query_archive_prefs) or die (mysqli_error($connection));
-	$row_archive_prefs = mysqli_fetch_assoc($archive_prefs);
-	$totalRows_archive_prefs = mysqli_num_rows($archive_prefs);
+	$db_conn->where("archiveSuffix", $filter);
+	$row_archive_prefs = $db_conn->getOne($prefix."archive");
+	$totalRows_archive_prefs = $db_conn->count;
 
 	$winner_method = $row_archive_prefs['archiveWinnerMethod'];
 	$style_set = $row_archive_prefs['archiveStyleSet'];

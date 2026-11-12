@@ -600,14 +600,14 @@ if ($totalRows_log_paid > 0) {
 }
 // Unpaid email addresses
 $query_log_unpaid = sprintf("SELECT a.brewerEmail, a.uid, b.brewBrewerID FROM %s a, %s b WHERE a.uid = b.brewBrewerID AND (b.brewPaid <> 1 OR b.brewPaid IS NULL)", $prefix."brewer", $prefix."brewing");
-$log_unpaid = mysqli_query($connection,$query_log_unpaid) or die (mysqli_error($connection));
-$row_log_unpaid = mysqli_fetch_assoc($log_unpaid);
-$totalRows_log_unpaid = mysqli_num_rows($log_unpaid);
+$db_conn->returnType = "array";
+$row_log_unpaid = $db_conn->rawQuery($query_log_unpaid);
+$totalRows_log_unpaid = $db_conn->count;
 
 if ($totalRows_log_unpaid > 0) {
-	do {
+	foreach ($row_log_unpaid as $row_log_unpaid) {
 		$copy_paste_unpaid_emails [] = $row_log_unpaid['brewerEmail'];
-	} while ($row_log_unpaid = mysqli_fetch_assoc($log_unpaid));
+	}
 }
 
 if ($action != "print") { ?>

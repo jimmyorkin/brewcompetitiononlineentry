@@ -8,9 +8,8 @@ if ((!isset($_SESSION['loginUsername'])) || ((isset($_SESSION['loginUsername']))
     exit();
 }
 
-$query_mead_cider_present = sprintf("SELECT styleTypeBOS FROM %s WHERE styleTypeName = 'Mead/Cider'",$prefix."style_types");
-$mead_cider_present = mysqli_query($connection,$query_mead_cider_present) or die (mysqli_error($connection));
-$row_mead_cider_present = mysqli_fetch_assoc($mead_cider_present);
+$db_conn->where ("styleTypeName", "Mead/Cider");
+$row_mead_cider_present = $db_conn->getOne ($prefix."style_types", "styleTypeBOS");
 
 $mead_cider_combined = FALSE;
 if ($row_mead_cider_present['styleTypeBOS'] == "Y") $mead_cider_combined = TRUE;

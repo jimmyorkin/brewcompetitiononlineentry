@@ -1537,9 +1537,9 @@ elseif (($go != "judging_scores_bos") && ($go != "mini_bos") && ($go != "all_ent
 
 						$random = random_generator(5,2);
 
-						$query_round_check = sprintf("SELECT flightRound FROM %s WHERE flightTable='%s' AND flightNumber='%s' LIMIT 1", $prefix."judging_flights", $row_tables['id'],$i);
-						$round_check = mysqli_query($connection,$query_round_check) or die (mysqli_error($connection));
-						$row_round_check = mysqli_fetch_assoc($round_check);
+						$db_conn->where('flightTable', $row_tables['id']);
+						$db_conn->where('flightNumber', $i);
+						$row_round_check = $db_conn->getOne($prefix."judging_flights", "flightRound");
 
 						$table_flight .= "<h3>".sprintf("%s %s: %s - %s %s, %s %s",$label_table,$row_tables['tableNumber'],$row_tables['tableName'],$label_flight,$i,$label_round,$row_round_check['flightRound'])."</h3>";
 
@@ -1791,9 +1791,9 @@ elseif (($go != "judging_scores_bos") && ($go != "mini_bos") && ($go != "all_ent
 
 					$random = random_generator(5,2);
 
-					$query_round_check = sprintf("SELECT flightRound FROM %s WHERE flightTable='%s' AND flightNumber='%s' LIMIT 1", $prefix."judging_flights", $row_tables['id'],$i);
-					$round_check = mysqli_query($connection,$query_round_check) or die (mysqli_error($connection));
-					$row_round_check = mysqli_fetch_assoc($round_check);
+					$db_conn->where('flightTable', $row_tables['id']);
+					$db_conn->where('flightNumber', $i);
+					$row_round_check = $db_conn->getOne($prefix."judging_flights", "flightRound");
 
 					$table_flight .= "<h3>".sprintf("%s %s: %s - %s %s, %s %s",$label_table,$row_tables['tableNumber'],$row_tables['tableName'],$label_flight,$i,$label_round,$row_round_check['flightRound'])."</h3>";
 

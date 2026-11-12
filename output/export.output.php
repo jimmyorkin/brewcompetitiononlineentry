@@ -82,10 +82,9 @@ if ($filter == "default") {
 else {
 
     // Query the archive table for preferences
-    $query_archive_prefs = sprintf("SELECT * FROM %s WHERE archiveSuffix='%s'",$prefix."archive", $filter);
-    $archive_prefs = mysqli_query($connection,$query_archive_prefs) or die (mysqli_error($connection));
-    $row_archive_prefs = mysqli_fetch_assoc($archive_prefs);
-    $totalRows_archive_prefs = mysqli_num_rows($archive_prefs);
+    $db_conn->where("archiveSuffix", $filter);
+    $row_archive_prefs = $db_conn->getOne($prefix."archive");
+    $totalRows_archive_prefs = $db_conn->count;
 
     if ($totalRows_archive_prefs > 0) {
 
@@ -466,10 +465,11 @@ if (($admin_role) || ((($judging_past == 0) && ($registration_open == 2) && ($en
 
             elseif (($go == "csv") && ($tb == "circuit") && ($filter == "mhp")) {
 
-                $query_mhp_brewers = sprintf("SELECT id, uid, brewerFirstName, brewerLastName, brewerMHP FROM %s WHERE brewerMHP IS NOT NULL ORDER BY brewerLastName, brewerFirstName ASC", $prefix."brewer");
-                $mhp_brewers = mysqli_query($connection,$query_mhp_brewers);
-                $row_mhp_brewers = mysqli_fetch_assoc($mhp_brewers);
-                $totalRows_mhp_brewers = mysqli_num_rows($mhp_brewers);
+                $db_conn->where("brewerMHP", NULL, "IS NOT");
+                $db_conn->orderBy("brewerLastName", "ASC");
+                $db_conn->orderBy("brewerFirstName", "ASC");
+                $rows_mhp_brewers = $db_conn->get($prefix."brewer", null, "id, uid, brewerFirstName, brewerLastName, brewerMHP");
+                $totalRows_mhp_brewers = $db_conn->count;
 
                 $a = array();
                 $results = array();
@@ -482,12 +482,11 @@ if (($admin_role) || ((($judging_past == 0) && ($registration_open == 2) && ($en
 
                 if ($totalRows_mhp_brewers > 0) {
 
-                    do {
+                    foreach ($rows_mhp_brewers as $row_mhp_brewers) {
 
-                        $query_brewer = sprintf("SELECT DISTINCT a.brewCategory, a.brewSubCategory, a.id AS eid, a.brewStyle, a.brewInfo, a.brewInfoOptional, a.brewComments, b.scoreEntry, b.scorePlace FROM %s a, %s b WHERE a.brewBrewerID = '%s' AND a.id = b.eid AND a.brewStyleType <= '3'", $prefix."brewing", $prefix."judging_scores", $row_mhp_brewers['uid']);
-                        $brewer = mysqli_query($connection,$query_brewer);
-                        $row_brewer = mysqli_fetch_assoc($brewer);
-                        $totalRows_brewer = mysqli_num_rows($brewer);
+                        $query_brewer = "SELECT DISTINCT a.brewCategory, a.brewSubCategory, a.id AS eid, a.brewStyle, a.brewInfo, a.brewInfoOptional, a.brewComments, b.scoreEntry, b.scorePlace FROM ".$prefix."brewing"." a, ".$prefix."judging_scores"." b WHERE a.brewBrewerID = ? AND a.id = b.eid AND a.brewStyleType <= '3'";
+                        $rows_brewer = $db_conn->rawQuery($query_brewer, array($row_mhp_brewers['uid']));
+                        $totalRows_brewer = $db_conn->count;
 
                         $results_count = 0;
                         $first_name = "";
@@ -496,9 +495,9 @@ if (($admin_role) || ((($judging_past == 0) && ($registration_open == 2) && ($en
                         $email = "";
                         $mhp = "";
 
-                        if ($row_brewer) {
+                        if (!empty($rows_brewer)) {
 
-                            do {
+                            foreach ($rows_brewer as $row_brewer) {
 
                                 $results_count++;
                                 
@@ -523,27 +522,26 @@ if (($admin_role) || ((($judging_past == 0) && ($registration_open == 2) && ($en
                                 if (!empty($req_info)) $req_info = str_replace("^"," ",$req_info);
 
                                 // Check Eval table for the highest score recorded for this entry
-                                $query_eid_eval = sprintf("SELECT * FROM %s WHERE eid=%s", $prefix."evaluation", $row_brewer['eid']);
-                                $eid_eval = mysqli_query($connection,$query_eid_eval);
-                                $row_eid_eval = mysqli_fetch_assoc($eid_eval);
-                                $totalRows_eid_eval = mysqli_num_rows($eid_eval);
+                                $db_conn->where("eid", $row_brewer['eid']);
+                                $rows_eid_eval = $db_conn->get($prefix."evaluation");
+                                $totalRows_eid_eval = $db_conn->count;
 
                                 if ($totalRows_eid_eval > 0) {
-                                    
-                                    do {
 
-                                        $score = 
-                                        $row_eid_eval['evalAromaScore'] + 
-                                        $row_eid_eval['evalAppearanceScore'] + 
-                                        $row_eid_eval['evalFlavorScore'] + 
-                                        $row_eid_eval['evalMouthfeelScore'] + 
+                                    foreach ($rows_eid_eval as $row_eid_eval) {
+
+                                        $score =
+                                        $row_eid_eval['evalAromaScore'] +
+                                        $row_eid_eval['evalAppearanceScore'] +
+                                        $row_eid_eval['evalFlavorScore'] +
+                                        $row_eid_eval['evalMouthfeelScore'] +
                                         $row_eid_eval['evalOverallScore']
                                         ;
 
                                         $highest_score[] = $score;
                                         $consensus_score[] = $row_eid_eval['evalFinalScore'];
 
-                                    } while($row_eid_eval = mysqli_fetch_assoc($eid_eval));
+                                    }
 
                                 }
 
@@ -571,11 +569,11 @@ if (($admin_role) || ((($judging_past == 0) && ($registration_open == 2) && ($en
                                     $row_brewer['scorePlace']
                                 );
 
-                            } while($row_brewer = mysqli_fetch_assoc($brewer));
+                            }
 
                         } // end if ($row_brewer)
 
-                    } while ($row_mhp_brewers = mysqli_fetch_assoc($mhp_brewers));
+                    }
 
                 }
 
@@ -664,48 +662,41 @@ if (($admin_role) || ((($judging_past == 0) && ($registration_open == 2) && ($en
 
                         if ($filter != "default") {
 
-                            $query_disp_archive_winners = sprintf("SELECT * FROM %s WHERE archiveSuffix='%s'",$prefix."archive",$filter);
-                            $disp_archive_winners = mysqli_query($connection,$query_disp_archive_winners);
-                            $row_disp_archive_winners = mysqli_fetch_assoc($disp_archive_winners);
-                            $totalRows_disp_archive_winners = mysqli_num_rows($disp_archive_winners);
+                            $db_conn->where("archiveSuffix", $filter);
+                            $row_disp_archive_winners = $db_conn->getOne($prefix."archive");
+                            $totalRows_disp_archive_winners = $db_conn->count;
 
                         }
-                        
+
                         $bos_for_entry = 0;
                         $pro_am_for_entry = 0;
-                        
-                        $query_bos_scores = sprintf("SELECT eid, scorePlace, scoreType FROM %s WHERE scorePlace IS NOT NULL", $prefix."judging_scores_bos".$archive_suffix);
-                        $bos_scores = mysqli_query($connection,$query_bos_scores) or die (mysqli_error($connection));
-                        $row_bos_scores = mysqli_fetch_assoc($bos_scores);
-                        $totalRows_bos_scores = mysqli_num_rows($bos_scores);
+
+                        $db_conn->where("scorePlace", NULL, "IS NOT");
+                        $rows_bos_scores = $db_conn->get($prefix."judging_scores_bos".$archive_suffix, null, "eid, scorePlace, scoreType");
+                        $totalRows_bos_scores = $db_conn->count;
 
                         $bos_score_arr = array();
                         if ($totalRows_bos_scores > 0) {
-                            do {
+                            foreach ($rows_bos_scores as $row_bos_scores) {
                                 $bos_score_arr[$row_bos_scores['eid']] = $row_bos_scores['scorePlace'];
                             }
-                            while ($row_bos_scores = mysqli_fetch_assoc($bos_scores));
                         }
 
-                        $query_pro_ams = sprintf("SELECT a.id, a.sbi_name, b.eid  FROM %s a, %s b WHERE a.id = b.sid AND b.sbd_place = '1'", $prefix."special_best_info", $prefix."special_best_data".$archive_suffix);
-                        $pro_ams = mysqli_query($connection,$query_pro_ams) or die (mysqli_error($connection));
-                        $row_pro_ams = mysqli_fetch_assoc($pro_ams);
-                        $totalRows_pro_ams = mysqli_num_rows($pro_ams);
+                        $query_pro_ams = "SELECT a.id, a.sbi_name, b.eid  FROM ".$prefix."special_best_info"." a, ".$prefix."special_best_data".$archive_suffix." b WHERE a.id = b.sid AND b.sbd_place = '1'";
+                        $rows_pro_ams = $db_conn->rawQuery($query_pro_ams);
+                        $totalRows_pro_ams = $db_conn->count;
 
                         $pro_am_arr = array();
                         if ($totalRows_pro_ams > 0) {
-                            do {
+                            foreach ($rows_pro_ams as $row_pro_ams) {
                                 $pro_am_arr[$row_pro_ams['eid']] = $row_pro_ams['sbi_name'];
                             }
-                            while ($row_pro_ams = mysqli_fetch_assoc($pro_ams));
                         }
 
                         $style_arr = array();
-                        $query_style_type = sprintf("SELECT id FROM %s",$style_types_db_table.$archive_suffix);
-                        $style_type = mysqli_query($connection,$query_style_type) or die (mysqli_error($connection));
-                        $row_style_type = mysqli_fetch_assoc($style_type);
-                        $totalRows_style_type = mysqli_num_rows($style_type);
-                        do { $style_arr[] = $row_style_type['id']; } while ($row_style_type = mysqli_fetch_assoc($style_type));
+                        $rows_style_type = $db_conn->get($style_types_db_table.$archive_suffix, null, "id");
+                        $totalRows_style_type = $db_conn->count;
+                        foreach ($rows_style_type as $row_style_type) { $style_arr[] = $row_style_type['id']; }
                         sort($style_arr);
 
                         foreach ($style_arr as $type) {
@@ -3336,10 +3327,9 @@ else echo "Not allowed.";
 
 if ((isset($_SESSION['loginUsername'])) && ($section == "export-personal-results") && ($id != "default")) {
 
-    $query_brewer = sprintf("SELECT DISTINCT a.brewCategory, a.brewSubCategory, a.id AS eid, a.brewStyle, a.brewInfo, a.brewInfoOptional, a.brewComments, b.scoreEntry, b.scorePlace, c.brewerFirstName, c.brewerLastName, c.brewerClubs, c.brewerEmail, c.brewerMHP, c.brewerBreweryName FROM %s a, %s b, %s c WHERE a.brewBrewerID = '%s' AND b.bid = '%s' AND c.uid = '%s' AND a.id = b.eid", $prefix."brewing", $prefix."judging_scores", $prefix."brewer", $id, $id, $id);
-    $brewer = mysqli_query($connection,$query_brewer);
-    $row_brewer = mysqli_fetch_assoc($brewer);
-    $totalRows_brewer = mysqli_num_rows($brewer);
+    $query_brewer = "SELECT DISTINCT a.brewCategory, a.brewSubCategory, a.id AS eid, a.brewStyle, a.brewInfo, a.brewInfoOptional, a.brewComments, b.scoreEntry, b.scorePlace, c.brewerFirstName, c.brewerLastName, c.brewerClubs, c.brewerEmail, c.brewerMHP, c.brewerBreweryName FROM ".$prefix."brewing"." a, ".$prefix."judging_scores"." b, ".$prefix."brewer"." c WHERE a.brewBrewerID = ? AND b.bid = ? AND c.uid = ? AND a.id = b.eid";
+    $rows_brewer = $db_conn->rawQuery($query_brewer, array($id, $id, $id));
+    $totalRows_brewer = $db_conn->count;
     
     $a = array();
     $personal = array();
@@ -3355,9 +3345,9 @@ if ((isset($_SESSION['loginUsername'])) && ($section == "export-personal-results
     // Results data headers
     $results[] = array("Category", "Category Name", "Required Info", "Official Score", "Highest Score", "Place");
 
-    if (($row_brewer) && ($totalRows_brewer > 0)) {
+    if (($totalRows_brewer > 0) && (!empty($rows_brewer))) {
 
-        do {
+        foreach ($rows_brewer as $row_brewer) {
 
             $results_count++;
             
@@ -3376,27 +3366,26 @@ if ((isset($_SESSION['loginUsername'])) && ($section == "export-personal-results
             if (!empty($req_info)) $req_info = str_replace("^"," ",$req_info);
 
             // Check Eval table for the highest score recorded for this entry
-            $query_eid_eval = sprintf("SELECT * FROM %s WHERE eid=%s", $prefix."evaluation", $row_brewer['eid']);
-            $eid_eval = mysqli_query($connection,$query_eid_eval);
-            $row_eid_eval = mysqli_fetch_assoc($eid_eval);
-            $totalRows_eid_eval = mysqli_num_rows($eid_eval);
+            $db_conn->where("eid", $row_brewer['eid']);
+            $rows_eid_eval = $db_conn->get($prefix."evaluation");
+            $totalRows_eid_eval = $db_conn->count;
 
             if ($totalRows_eid_eval > 0) {
-                
-                do {
 
-                    $score = 
-                    $row_eid_eval['evalAromaScore'] + 
-                    $row_eid_eval['evalAppearanceScore'] + 
-                    $row_eid_eval['evalFlavorScore'] + 
-                    $row_eid_eval['evalMouthfeelScore'] + 
+                foreach ($rows_eid_eval as $row_eid_eval) {
+
+                    $score =
+                    $row_eid_eval['evalAromaScore'] +
+                    $row_eid_eval['evalAppearanceScore'] +
+                    $row_eid_eval['evalFlavorScore'] +
+                    $row_eid_eval['evalMouthfeelScore'] +
                     $row_eid_eval['evalOverallScore']
                     ;
 
                     $highest_score[] = $score;
                     $consensus_score[] = $row_eid_eval['evalFinalScore'];
 
-                } while($row_eid_eval = mysqli_fetch_assoc($eid_eval));
+                }
 
             }
 
@@ -3430,7 +3419,7 @@ if ((isset($_SESSION['loginUsername'])) && ($section == "export-personal-results
                 if ($filter == "MHP") $mhp = convert_to_entities($row_brewer['brewerMHP']);
             }
 
-        } while($row_brewer = mysqli_fetch_assoc($brewer));
+        }
 
         // Spacer
         $results[] = array("");

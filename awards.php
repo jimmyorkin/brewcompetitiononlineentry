@@ -58,9 +58,8 @@ if (($display_to_admin) || ($display_to_public)) {
 
 	// Judges and Stewards
 	$query_assignments = sprintf("SELECT DISTINCT c.uid, c.brewerLastName, c.brewerFirstName, c.brewerJudgeRank, c.brewerClubs, a.assignment, b.staff_judge, b.staff_steward, b.staff_judge_bos, b.staff_staff, b.staff_organizer FROM %s a RIGHT JOIN (%s b CROSS JOIN %s c ON b.uid=c.uid) ON c.uid=a.bid WHERE b.staff_judge='1' OR b.staff_steward='1' OR b.staff_judge_bos='1' OR b.staff_staff='1' OR b.staff_organizer='1' ORDER BY c.brewerLastName, c.brewerFirstName ASC;", $prefix."judging_assignments", $prefix."staff", $prefix."brewer");
-	$assignments = mysqli_query($connection,$query_assignments) or die (mysqli_error($connection));
-	$row_assignments = mysqli_fetch_assoc($assignments);
-	$totalRows_assignments = mysqli_num_rows($assignments);
+	$rows_assignments = $db_conn->rawQuery($query_assignments);
+	$totalRows_assignments = $db_conn->count;
 	$judge_list = "";
 	$judge_bos = "";
 	$steward_list = "";
@@ -68,8 +67,8 @@ if (($display_to_admin) || ($display_to_public)) {
 	$staff_organizer = "";
 
 	if ($totalRows_assignments > 0) {
-		
-		do {
+
+		foreach ($rows_assignments as $row_assignments) {
 
 			if ($row_assignments['staff_judge'] == 1) {
 				$judge_list .= $row_assignments['brewerFirstName']." ".$row_assignments['brewerLastName'];
@@ -96,8 +95,8 @@ if (($display_to_admin) || ($display_to_public)) {
 				$staff_organizer .= ", ";
 			}
 
-		} while ($row_assignments = mysqli_fetch_assoc($assignments));
-	
+		}
+
 	}
 
 	$slides = "";
@@ -129,15 +128,14 @@ if (($display_to_admin) || ($display_to_public)) {
 
 					if ($assigned_judges > 0) {
 
-						$query_assigned_judge_names = sprintf("SELECT a.brewerFirstName,a.brewerLastName, b.assignRoles FROM %s a, %s b WHERE b.assignTable='%s' AND assignment = 'J' AND a.uid = b.bid ORDER BY a.brewerLastName, a.brewerFirstName ASC",$prefix."brewer",$prefix."judging_assignments",$row_tables['id']);
-						$assigned_judge_names = mysqli_query($connection,$query_assigned_judge_names);
-						$row_assigned_judge_names = mysqli_fetch_assoc($assigned_judge_names);
-						
-						do {
+						$query_assigned_judge_names = "SELECT a.brewerFirstName,a.brewerLastName, b.assignRoles FROM ".$prefix."brewer"." a, ".$prefix."judging_assignments"." b WHERE b.assignTable=? AND assignment = 'J' AND a.uid = b.bid ORDER BY a.brewerLastName, a.brewerFirstName ASC";
+						$rows_assigned_judge_names = $db_conn->rawQuery($query_assigned_judge_names, array($row_tables['id']));
+
+						foreach ($rows_assigned_judge_names as $row_assigned_judge_names) {
 							$assigned_judge_names_display .= $row_assigned_judge_names['brewerFirstName']." ".$row_assigned_judge_names['brewerLastName'];
 							if ((isset($row_assigned_judge_names['assignRoles'])) && (strpos($row_assigned_judge_names['assignRoles'], "HJ") !== false)) $assigned_judge_names_display .= " <span style=\"font-size: .75em;\">(".$label_head_judge.")</span>";
 							$assigned_judge_names_display .= ", ";
-						} while ($row_assigned_judge_names = mysqli_fetch_assoc($assigned_judge_names));
+						}
 
 						$assigned_judge_names_display = rtrim($assigned_judge_names_display, ", ");
 					
