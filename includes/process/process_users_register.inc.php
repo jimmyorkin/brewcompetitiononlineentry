@@ -118,13 +118,21 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 				$hasher_question = new PasswordHash(8, false);
 				$hash_question = $hasher_question->HashPassword(sterilize($userQuestionAnswer));
 
+				// Only a genuinely authenticated admin session may assign a userLevel other than
+				// the standard public-registration participant level (2); otherwise the client-supplied
+				// value is untrusted and would allow self-registration as an admin/staff account.
+				if ((isset($_SESSION['loginUsername'])) && (isset($_SESSION['userLevel'])) && ($_SESSION['userLevel'] <= 1)) {
+					$registerUserLevel = sterilize($_POST['userLevel']);
+				}
+				else $registerUserLevel = "2";
+
 				$userAdminObfuscate = 1;
-				if ($_POST['userLevel'] == 0) $userAdminObfuscate = 0;
+				if ($registerUserLevel == 0) $userAdminObfuscate = 0;
 
 				$update_table = $prefix."users";
 				$data = array(
 					'user_name' => $username,
-					'userLevel' => sterilize($_POST['userLevel']),
+					'userLevel' => $registerUserLevel,
 					'password' => $hash,
 					'userQuestion' => sterilize($_POST['userQuestion']),
 					'userQuestionAnswer' => $hash_question,

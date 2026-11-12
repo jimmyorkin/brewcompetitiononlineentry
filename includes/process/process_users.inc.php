@@ -189,7 +189,9 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 			}
 
 			// --------------------------- If Changing a Participant's User Name ------------------------------- //
-			if ($go == "username") {
+			// Ownership check: a user may only change their own username/email unless an admin is
+			// performing the change (filter=admin), matching this file's own admin/self-service distinction.
+			if (($go == "username") && ((($filter == "admin") && ($_SESSION['userLevel'] <= 1)) || (($filter != "admin") && ($id == $_SESSION['user_id'])))) {
 				
 				// User name found. Redirect.
 				if ($totalRows_userCheck > 0) {
@@ -336,7 +338,7 @@ if (isset($_SERVER['HTTP_REFERER'])) {
 		} // end if ($go == "password")
 
 		// --------------------------- If an admin is changing their password ------------------------------- //
-		if ($go == "change_user_password") {
+		if (($go == "change_user_password") && ($_SESSION['userLevel'] <= 1)) {
 
 			require(CLASSES.'phpass/PasswordHash.php');
 			$hasher = new PasswordHash(8, false);
