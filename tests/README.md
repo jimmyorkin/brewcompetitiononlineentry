@@ -13,6 +13,8 @@ vendor/bin/phpunit          # 273 tests, 5 skipped, no database needed
 `tests/bootstrap.php` defines the path constants and stubs, then loads
 `lib/common.lib.php`, so no database or `site/config.php` is needed.
 
+**SQLi migration Phase 2: done.** All 44 mid-similarity-tier files (146 raw `mysqli_query()` call sites) are parameterized; this count (273 tests, 5 skipped) is Task 6's final whole-branch confirmation, unchanged from task 5's own run. See [TESTING.md](../TESTING.md) for the matching Playwright results.
+
 ## How the port treated differences between 3.x and 2.7
 
 | Situation | What the test does |
