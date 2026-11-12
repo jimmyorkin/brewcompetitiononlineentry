@@ -6,9 +6,35 @@ require(LIB.'common.lib.php');
 // Force download of uploaded scoresheet PDF
 // Discourages random viewing of scoresheets by inputting direct URL
 if ((isset($_SESSION['loginUsername'])) && ($section == "pdf-download")) {
-	header("Content-disposition: attachment; filename=$id.pdf");
-	header("Content-type: application/pdf");
-	readfile(USER_DOCS."$id.pdf");
+
+	// $id becomes part of a filesystem path below, so it's restricted to a safe
+	// character set (no slashes, no "..") before being used at all. That alone
+	// isn't trusted as the only guard: the resolved real path is also required
+	// to still be inside USER_DOCS, so even a bug in the character check above
+	// can't turn this into a way to read arbitrary files on the server.
+	$pdf_path = NULL;
+
+	if ((preg_match('/^[a-zA-Z0-9._-]+$/', $id)) && (strpos($id, '..') === FALSE)) {
+
+		$user_docs_real = realpath(USER_DOCS);
+		$candidate_real = realpath(USER_DOCS.$id.".pdf");
+
+		if (($user_docs_real !== FALSE) && ($candidate_real !== FALSE) && (strncmp($candidate_real, $user_docs_real.DIRECTORY_SEPARATOR, strlen($user_docs_real.DIRECTORY_SEPARATOR)) === 0)) {
+			$pdf_path = $candidate_real;
+		}
+
+	}
+
+	if ($pdf_path !== NULL) {
+		header("Content-disposition: attachment; filename=$id.pdf");
+		header("Content-type: application/pdf");
+		readfile($pdf_path);
+	}
+
+	else {
+		header("HTTP/1.1 404 Not Found");
+	}
+
 }
 
 // Upload Function

@@ -1,0 +1,47 @@
+services:
+  web:
+    build: .
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    volumes:
+      - .:/var/www/html
+      # Override .htaccess to disable the HTTPS redirect for local dev
+      - ./docker/.htaccess:/var/www/html/.htaccess:ro
+      # Bluebonnet's site/config.php is blank and not env-driven; mount a filled copy
+      - ./docker/config.php:/var/www/html/site/config.php:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: root_password
+      MARIADB_DATABASE: bcoem
+      MARIADB_USER: bcoem
+      MARIADB_PASSWORD: bcoem_password
+    volumes:
+      - bcoem_db:/var/lib/mysql
+      # Load the baseline schema on first run (only applied when data volume is empty)
+      - ./sql/bcoem_baseline_2.7.X.sql:/baseline/bcoem_baseline_2.7.X.sql:ro
+      - ./docker/01-baseline.sh:/docker-entrypoint-initdb.d/01-baseline.sh:ro
+      # Push the baseline's 2023 contest deadlines into the future so registration/entry are open
+      - ./docker/02-open-registration.sql:/docker-entrypoint-initdb.d/02-open-registration.sql:ro
+      # Catch the stale 2.7.X baseline up to the schema the code expects
+      - ./docker/04-schema-catchup.sql:/docker-entrypoint-initdb.d/04-schema-catchup.sql:ro
+      # E2E test fixtures: pin prefsCAPTCHA=0 so automated registration works (see file header)
+      - ./docker/03-e2e-fixtures.sql:/docker-entrypoint-initdb.d/03-e2e-fixtures.sql:ro
+      # Bluebonnet layer: brewing view over brewing_bbo_real, bbo_tables, barcode_log
+      - ./docker/05-bluebonnet-schema.sql:/docker-entrypoint-initdb.d/05-bluebonnet-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    ports:
+      - "${DB_PORT:-3306}:3306"
+
+volumes:
+  bcoem_db:
+  

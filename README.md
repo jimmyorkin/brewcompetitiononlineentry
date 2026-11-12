@@ -4,6 +4,8 @@
 
 ---
 
+**Testing:** see [TESTING.md](TESTING.md) for how to run the Playwright e2e suite and add tests.
+
 Working repository of BCOE&M.
 
 Website: https://www.brewingcompetitions.com

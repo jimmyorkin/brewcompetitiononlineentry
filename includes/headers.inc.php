@@ -165,9 +165,8 @@ switch($section) {
 		$header_output = $_SESSION['contestName']." - ".$label_contact;
 		if ($msg == "1") {
 
-			$query_contact = sprintf("SELECT contactFirstName,contactLastName,contactPosition FROM $contacts_db_table WHERE id='%s'", $id);
-			$contact = mysqli_query($connection,$query_contact) or die (mysqli_error($connection));
-			$row_contact = mysqli_fetch_assoc($contact);
+			$db_conn->where('id', $id);
+			$row_contact = $db_conn->getOne($contacts_db_table, "contactFirstName,contactLastName,contactPosition");
 
 			$output = sprintf("<strong>%s ".$row_contact['contactFirstName']." ".$row_contact['contactLastName'].", ".$row_contact['contactPosition'].".</strong>",$header_text_040);
 		}

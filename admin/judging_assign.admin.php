@@ -90,48 +90,45 @@ $styles_db_table = $prefix."styles";
 
 foreach ($table_styles as $table_style) {
 
-  /*
-  if (HOSTED) $query_style = sprintf("SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s' UNION ALL SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s'", $prefix."styles", $table_style, $styles_db_table, $table_style);
-  else
-  */
-  $query_style = sprintf("SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s'", $styles_db_table, $table_style);
-  $style = mysqli_query($connection,$query_style) or die (mysqli_error($connection));
-  $row_style = mysqli_fetch_assoc($style);
+  $db_conn->where ("id", $table_style);
+  $db_conn->returnType = "array";
+  $row_style = $db_conn->getOne ($styles_db_table, "brewStyleGroup,brewStyleNum");
 
   if ($_SESSION['prefsProEdition'] == 0) {
 
-    $query_co_brewers = sprintf("SELECT brewCoBrewer FROM %s WHERE brewCoBrewer IS NOT NULL AND brewCategorySort='%s' AND brewSubCategory='%s'",$prefix."brewing",$row_style['brewStyleGroup'],$row_style['brewStyleNum']);
-    if ($_SESSION['jPrefsTablePlanning'] == 0) $query_co_brewers .= " AND brewReceived='1'";
-    $co_brewers = mysqli_query($connection,$query_co_brewers) or die (mysqli_error($connection));
-    $row_co_brewers = mysqli_fetch_assoc($co_brewers);
-    $totalRows_co_brewers = mysqli_num_rows($co_brewers);
+    $db_conn->where ("brewCoBrewer", NULL, 'IS NOT');
+    $db_conn->where ("brewCategorySort", $row_style['brewStyleGroup']);
+    $db_conn->where ("brewSubCategory", $row_style['brewStyleNum']);
+    if ($_SESSION['jPrefsTablePlanning'] == 0) $db_conn->where ("brewReceived", 1);
+    $db_conn->returnType = "array";
+    $rows_co_brewers = $db_conn->get($prefix."brewing");
+    $totalRows_co_brewers = $db_conn->count;
 
     if ($totalRows_co_brewers > 0) {
-      
-      do {
+
+      foreach ($rows_co_brewers as $row_co_brewers) {
         $co_brewers_table[] = $row_co_brewers['brewCoBrewer'];
-      } while ($row_co_brewers = mysqli_fetch_assoc($co_brewers));
-    
+      }
+
     }
 
   }
 
-
-  if ($_SESSION['prefsProEdition'] == 1) $query_ind_aff = sprintf("SELECT a.brewBrewerID, b.brewerBreweryName FROM %s a, %s b WHERE a.brewBrewerID = b.uid AND b.brewerBreweryName IS NOT NULL AND brewCategorySort='%s' AND brewSubCategory='%s'",$prefix."brewing", $prefix."brewer", $row_style['brewStyleGroup'], $row_style['brewStyleNum']);
-  else $query_ind_aff = sprintf("SELECT a.brewBrewerID, b.brewerLastName, b.brewerFirstName FROM %s a, %s b WHERE a.brewBrewerID = b.uid AND b.brewerLastName IS NOT NULL AND brewCategorySort='%s' AND brewSubCategory='%s'",$prefix."brewing", $prefix."brewer", $row_style['brewStyleGroup'], $row_style['brewStyleNum']);
-  $ind_aff = mysqli_query($connection,$query_ind_aff) or die (mysqli_error($connection));
-  $row_ind_aff = mysqli_fetch_assoc($ind_aff);
-  $totalRows_ind_aff = mysqli_num_rows($ind_aff);
+  if ($_SESSION['prefsProEdition'] == 1) $sql = sprintf("SELECT a.brewBrewerID, b.brewerBreweryName FROM %s a, %s b WHERE a.brewBrewerID = b.uid AND b.brewerBreweryName IS NOT NULL AND brewCategorySort=? AND brewSubCategory=?",$prefix."brewing", $prefix."brewer");
+  else $sql = sprintf("SELECT a.brewBrewerID, b.brewerLastName, b.brewerFirstName FROM %s a, %s b WHERE a.brewBrewerID = b.uid AND b.brewerLastName IS NOT NULL AND brewCategorySort=? AND brewSubCategory=?",$prefix."brewing", $prefix."brewer");
+  $db_conn->returnType = "array";
+  $rows_ind_aff = $db_conn->rawQuery($sql, array($row_style['brewStyleGroup'], $row_style['brewStyleNum']));
+  $totalRows_ind_aff = $db_conn->count;
 
   if ($totalRows_ind_aff > 0) {
-    
-    do {
+
+    foreach ($rows_ind_aff as $row_ind_aff) {
       if ($_SESSION['prefsProEdition'] == 1) $industry_affliations[] = $row_ind_aff['brewerBreweryName'];
       else $industry_affliations[] = $row_ind_aff['brewerFirstName']." ".$row_ind_aff['brewerLastName'];
-    } while ($row_ind_aff = mysqli_fetch_assoc($ind_aff));
-  
+    }
+
   }
-    
+
 }
 
 if ($totalRows_brewer > 0) {
@@ -198,9 +195,10 @@ if ($totalRows_brewer > 0) {
     $head_judge_role_display = "";
 
     // Determine if this participant is assigned to this table
-    $query_table_assignments = sprintf("SELECT id,bid FROM %s WHERE assignTable='%s' AND bid='%s'",$prefix."judging_assignments",$row_tables_edit['id'],$row_brewer['uid']);
-    $table_assignments = mysqli_query($connection,$query_table_assignments) or die (mysqli_error($connection));
-    $row_table_assignments = mysqli_fetch_assoc($table_assignments);
+    $db_conn->where ("assignTable", $row_tables_edit['id']);
+    $db_conn->where ("bid", $row_brewer['uid']);
+    $db_conn->returnType = "array";
+    $row_table_assignments = $db_conn->getOne ($prefix."judging_assignments", "id,bid");
 
     // If so, see if there are any entry conflicts
     if ($row_table_assignments) $entry_conflict = entry_conflict($row_table_assignments['bid'],$row_tables_edit['tableStyles']);
@@ -216,9 +214,11 @@ if ($totalRows_brewer > 0) {
     }
 
     // Get role from judging_assignments table
-    $query_judge_roles = sprintf("SELECT assignRoles FROM %s WHERE (bid='%s' AND assignTable='%s' AND assignRound='%s')", $prefix."judging_assignments", $row_brewer['uid'], $row_tables_edit['id'], $row_flights['flightRound']);
-    $judge_roles = mysqli_query($connection,$query_judge_roles) or die (mysqli_error($connection));
-    $row_judge_roles = mysqli_fetch_assoc($judge_roles);
+    $db_conn->where ("bid", $row_brewer['uid']);
+    $db_conn->where ("assignTable", $row_tables_edit['id']);
+    $db_conn->where ("assignRound", $row_flights['flightRound']);
+    $db_conn->returnType = "array";
+    $row_judge_roles = $db_conn->getOne ($prefix."judging_assignments", "assignRoles");
 
   
     if ($_SESSION['jPrefsQueued'] == "N") {

@@ -8,8 +8,11 @@ foreach ($eval_scores as $key => $value) {
 		if (!in_array($value['table'], $table_assignments_user)) {
 
 			// Get entry info
-			$query_entry = sprintf("SELECT id, brewBrewerID, brewStyle, brewCategorySort, brewCategory, brewSubCategory, brewInfo, brewJudgingNumber, brewName FROM %s WHERE id='%s'", $prefix."brewing", $value['eid']);
-			$entry = mysqli_query($connection,$query_entry) or die (mysqli_error($connection));
+			$query_entry = sprintf("SELECT id, brewBrewerID, brewStyle, brewCategorySort, brewCategory, brewSubCategory, brewInfo, brewJudgingNumber, brewName FROM %s WHERE id=?", $prefix."brewing");
+			$stmt_entry = mysqli_prepare($connection, $query_entry);
+			mysqli_stmt_bind_param($stmt_entry, "s", $value['eid']);
+			mysqli_stmt_execute($stmt_entry);
+			$entry = mysqli_stmt_get_result($stmt_entry);
 			$row_entry = mysqli_fetch_assoc($entry);
 			$totalRows_entry = mysqli_num_rows($entry);
 
@@ -39,8 +42,11 @@ foreach ($eval_scores as $key => $value) {
 	        	$style_display_otf = $style_otf.": ".$row_entry['brewStyle'];
 
 				// Get recorded evaluation entries
-				$query_evals = sprintf("SELECT evalFinalScore FROM %s WHERE eid='%s'", $prefix."evaluation", $value['eid']);
-				$evals = mysqli_query($connection,$query_evals) or die (mysqli_error($connection));
+				$query_evals = sprintf("SELECT evalFinalScore FROM %s WHERE eid=?", $prefix."evaluation");
+				$stmt_evals = mysqli_prepare($connection, $query_evals);
+				mysqli_stmt_bind_param($stmt_evals, "s", $value['eid']);
+				mysqli_stmt_execute($stmt_evals);
+				$evals = mysqli_stmt_get_result($stmt_evals);
 				$row_evals = mysqli_fetch_assoc($evals);
 				$totalRows_evals = mysqli_num_rows($evals);
 

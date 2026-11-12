@@ -145,7 +145,11 @@ function getTimeZoneDateTime($timezone_offset, $timestamp, $date_format, $time_f
 		case "time":
 			$return = $time;
 		break;
-		
+
+		case "year":
+			$return = date('Y',$timestamp);
+		break;
+
 		default: $return = $date;
 	
 	}

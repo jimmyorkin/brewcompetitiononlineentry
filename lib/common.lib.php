@@ -61,6 +61,7 @@ function in_string($haystack,$needle) {
 }
 
 function designations($judge_array,$display) {
+	if (trim($judge_array) === "") return "";
 	$return = "";
 	$rank1 = explode(",",$judge_array);
 	foreach ($rank1 as $rank2) {
@@ -209,9 +210,7 @@ function display_array_content($arrayname,$method) {
 		if ($method == "2") $a .= ", ";
 		if ($method == "3") $a .= ",";
 	}
-	$b = rtrim($a, ",&nbsp;");
 	$b = rtrim($a, ", ");
-	$b = rtrim($a, ",");
 	return $b;
 }
 
@@ -383,35 +382,17 @@ function purge_entries($type, $interval) {
 
 // function to generate random number
 function random_generator($digits,$method){
-	srand ((double) microtime() * 10000000);
+	srand ((float) microtime() * 10000000);
 
-	//Array of alphabet
-	if ($method == "1") $input = array ("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","t","d","y","u","b","w","x","y","z","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","0","1","2","3","4","5","6","7","8","9");
-	if ($method == "2") $input = array ("0","1","2","3","4","5","6","7","8","9");
-	if ($method == "3") $input = array ("0","1","2","3","4");
+	// Method "1" = alphanumeric; method "2" = numeric only
+	$pool = ($method == "2")
+		? '0123456789'
+		: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
-	$random_generator = "";// Initialize the string to store random numbers
-
-	for ($i=1;$i<$digits+1;$i++) { // Loop the number of times of required digits
-
-		if(rand(1,2) == 1){ // to decide the digit should be numeric or alphabet
-			// Add one random alphabet
-			$rand_index = array_rand($input);
-			$random_generator .=$input[$rand_index]; // One char is added
-		}
-
-		if ($method == "3") {
-			// Add one numeric digit between 0 and 4
-			$random_generator = rand(1,4); // one number is added
-		}
-
-		else {
-			// Add one numeric digit between 0 and 9
-			$random_generator .=rand(1,10); // one number is added
-		} // end of if else
-
-	} // end of for loop
-
+	$random_generator = "";
+	for ($i = 0; $i < $digits; $i++) {
+		$random_generator .= $pool[random_int(0, strlen($pool) - 1)];
+	}
 	return $random_generator;
 } // end of function
 
@@ -3051,7 +3032,7 @@ function readable_number($a){
 
 	for($i=count($bits_a); $i>0; $i--) {
 		$p = pow(1000, $i);
-		if ($a > $p){
+		if ($a >= $p){
 			$b = floor($a/$p);
 			$a -= $p * $b;
 			$out .= readable_number($b).' '.$bits_a[$i-1];
@@ -3059,7 +3040,7 @@ function readable_number($a){
 		}
 	}
 
-	if ($a > 100){
+	if ($a >= 100){
 		$b = floor($a/100);
 		$a -= 100 * $b;
 		$out .= readable_number($b).' hundred'.(($a)?' and ':' ');

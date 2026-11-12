@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+    bootstrap="tests/bootstrap.php"
+    colors="true"
+    cacheDirectory=".phpunit.cache"
+    executionOrder="depends,defects"
+    failOnRisky="true"
+    displayDetailsOnTestsThatTriggerWarnings="true"
+><!--
+    failOnWarning is intentionally NOT set: the legacy library triggers
+    pre-existing benign PHP runtime warnings (e.g. undefined array keys in
+    date_time.lib.php) that are catalogued, not test failures.
+    Only the Unit tier exists on this branch; see TESTING.md.
+-->
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

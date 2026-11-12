@@ -52,17 +52,17 @@ if ($row_scored_entries['count'] > 0) {
 			if (HOSTED) $query_styles = sprintf("SELECT brewStyleGroup,brewStyleNum FROM %s WHERE id='%s' UNION ALL SELECT brewStyleGroup, brewStyleNum FROM %s WHERE id='%s'", "bcoem_shared_styles", $value, $prefix."styles", $value);
 			else 
 			*/
-			$query_styles = sprintf("SELECT brewStyleGroup, brewStyleNum FROM %s WHERE id='%s'", $prefix."styles", $value);
-			$styles = mysqli_query($connection,$query_styles) or die (mysqli_error($connection));
-			$row_styles = mysqli_fetch_assoc($styles);
-			$totalRows_styles = mysqli_num_rows($styles);
-			
+			$db_conn->where('id', $value);
+			$row_styles = $db_conn->getOne($prefix."styles", "brewStyleGroup,brewStyleNum");
+			$totalRows_styles = $db_conn->count;
+
 			if ($totalRows_styles == 0) $missing_style = TRUE;
-			
+
 			else {
-				$query_style_count = sprintf("SELECT COUNT(*) as count FROM %s WHERE brewCategorySort='%s' AND brewSubCategory='%s' AND brewReceived='1'", $brewing_db_table, $row_styles['brewStyleGroup'], $row_styles['brewStyleNum']);
-				$style_count = mysqli_query($connection,$query_style_count) or die (mysqli_error($connection));
-				$row_style_count = mysqli_fetch_assoc($style_count);
+				$db_conn->where('brewCategorySort', $row_styles['brewStyleGroup']);
+				$db_conn->where('brewSubCategory', $row_styles['brewStyleNum']);
+				$db_conn->where('brewReceived', '1');
+				$row_style_count = $db_conn->getOne($brewing_db_table, "COUNT(*) as count");
 
 				$entry_count += $row_style_count['count'];
 			}

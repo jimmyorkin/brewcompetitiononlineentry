@@ -123,15 +123,13 @@ if ($_SESSION['prefsEval'] == 1) {
 
 	$evals = array();
 	// Check which evaluations exist
-	$query_eval_exists = sprintf("SELECT DISTINCT eid FROM %s",$prefix."evaluation");
-	$eval_exists = mysqli_query($connection,$query_eval_exists) or die (mysqli_error($connection));
-	$row_eval_exists = mysqli_fetch_assoc($eval_exists);
-	$totalRows_eval_exists = mysqli_num_rows($eval_exists);
+	$rows_eval_exists = $db_conn->get($prefix."evaluation", null, "DISTINCT eid");
+	$totalRows_eval_exists = $db_conn->count;
 
 	if ($totalRows_eval_exists > 0) {
-		do {
+		foreach ($rows_eval_exists as $row_eval_exists) {
 			$evals[] = $row_eval_exists['eid'];
-		} while ($row_eval_exists = mysqli_fetch_assoc($eval_exists));
+		}
 	}
 		 
 }
@@ -249,10 +247,10 @@ if ($totalRows_log > 0) {
 					if (HOSTED) $query_style = sprintf("SELECT id,brewStyleType FROM %s WHERE brewStyleVersion='%s'AND brewStyleGroup='%s' AND brewStyleNum='%s' UNION ALL SELECT id,brewStyleType FROM %s WHERE brewStyleVersion='%s'AND brewStyleGroup='%s' AND brewStyleNum='%s'", "bcoem_shared_styles", $_SESSION['prefsStyleSet'], $row_log['brewCategorySort'], $row_log['brewSubCategory'], $prefix."styles", $_SESSION['prefsStyleSet'], $row_log['brewCategorySort'], $row_log['brewSubCategory']);
 					else 
 					*/
-					$query_style = sprintf("SELECT id,brewStyleType FROM %s WHERE brewStyleVersion='%s'AND brewStyleGroup='%s' AND brewStyleNum='%s'",$prefix."styles",$_SESSION['prefsStyleSet'],$row_log['brewCategorySort'],$row_log['brewSubCategory']);
-					
-					$style = mysqli_query($connection,$query_style) or die (mysqli_error($connection));
-					$row_style = mysqli_fetch_assoc($style);
+					$db_conn->where("brewStyleVersion", $_SESSION['prefsStyleSet']);
+					$db_conn->where("brewStyleGroup", $row_log['brewCategorySort']);
+					$db_conn->where("brewStyleNum", $row_log['brewSubCategory']);
+					$row_style = $db_conn->getOne($prefix."styles", "id,brewStyleType");
 
 					$scoresheet = TRUE;
 					$scoresheet_es = TRUE;

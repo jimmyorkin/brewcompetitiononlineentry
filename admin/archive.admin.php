@@ -13,10 +13,11 @@ $style_set_dropdown = "";
 $results_data = FALSE;
 
 if ($action == "edit") {
-    $query_results_recorded = sprintf("SELECT COUNT(*) AS 'count' FROM %s;",$prefix."judging_scores_".$row_archive['archiveSuffix']);
-    $results_recorded = mysqli_query($connection,$query_results_recorded) or die (mysqli_error($connection));
-    $row_results_recorded = mysqli_fetch_assoc($results_recorded);
-    if ($row_results_recorded['count'] > 0) $results_data = TRUE;
+    $judging_scores_archive_table = $prefix."judging_scores_".$row_archive['archiveSuffix'];
+    if (table_exists($judging_scores_archive_table)) {
+        $row_results_recorded = $db_conn->getOne ($judging_scores_archive_table, "sum(id), COUNT(*) as count");
+        if ($row_results_recorded['count'] > 0) $results_data = TRUE;
+    }
 }
 
 foreach ($style_sets as $style_set) {

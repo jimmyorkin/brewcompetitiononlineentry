@@ -152,7 +152,7 @@ if (($judging_scoresheet == 3) || ($judging_scoresheet == 4)) {
  * on-the-fly.
  */
 
-$query_style = "";
+$style_query_pending = false;
 
 if ($action == "add") {
 
@@ -161,30 +161,32 @@ if ($action == "add") {
   if (isset($_POST['entry_number'])) {
 
     $id = ltrim(sterilize($_POST['entry_number']),"0");
-    
+
     if ($_SESSION['prefsDisplaySpecial'] == "E") {
-      $query_entry_info = sprintf("SELECT * FROM %s WHERE id='%s'",$prefix."brewing",$id);
+      $db_conn->where('id', $id);
     }
-    
+
     if ($_SESSION['prefsDisplaySpecial'] == "J") {
       $judging_number = sterilize($_POST['entry_number']);
-      $query_entry_info = sprintf("SELECT * FROM %s WHERE brewJudgingNumber='%s'",$prefix."brewing",$judging_number);
+      $db_conn->where('brewJudgingNumber', $judging_number);
     }
 
   }
-  
-  else $query_entry_info = sprintf("SELECT * FROM %s WHERE id='%s'",$prefix."brewing",$id);
-  $entry_info = mysqli_query($connection,$query_entry_info) or die (mysqli_error($connection));
-  $row_entry_info = mysqli_fetch_assoc($entry_info);
-  $totalRows_entry_info = mysqli_num_rows($entry_info);
+
+  else $db_conn->where('id', $id);
+  $row_entry_info = $db_conn->getOne($prefix."brewing");
+  $totalRows_entry_info = $db_conn->count;
 
   if ($totalRows_entry_info > 0) {
-    
+
     /*
     if (HOSTED) $query_style = sprintf("SELECT * FROM %s WHERE brewStyleGroup = '%s' AND brewStyleNum = '%s' AND brewStyleVersion='%s' UNION ALL SELECT * FROM %s WHERE brewStyleGroup = '%s' AND brewStyleNum = '%s' AND brewStyleVersion='%s'", $styles_db_table, $row_entry_info['brewCategorySort'], $row_entry_info['brewSubCategory'], $_SESSION['prefsStyleSet'], $prefix."styles", $row_entry_info['brewCategorySort'], $row_entry_info['brewSubCategory'], $_SESSION['prefsStyleSet']);
     else
     */
-    $query_style = sprintf("SELECT * FROM %s WHERE brewStyleGroup = '%s' AND brewStyleNum = '%s' AND brewStyleVersion='%s'", $prefix."styles", $row_entry_info['brewCategorySort'], $row_entry_info['brewSubCategory'], $_SESSION['prefsStyleSet']);
+    $db_conn->where('brewStyleGroup', $row_entry_info['brewCategorySort']);
+    $db_conn->where('brewStyleNum', $row_entry_info['brewSubCategory']);
+    $db_conn->where('brewStyleVersion', $_SESSION['prefsStyleSet']);
+    $style_query_pending = true;
   }
 
 }
@@ -199,11 +201,10 @@ if ($action == "edit") {
 
   $submit_button_text = $label_edit_evaluation;
  
-  if ($id == "default") $query_eval = sprintf("SELECT * FROM evaluation WHERE evalToken='%s'", $token);
-  else $query_eval = sprintf("SELECT * FROM %s WHERE id=%s",$prefix."evaluation",$id);
-  $eval = mysqli_query($connection,$query_eval) or die (mysqli_error($connection));
-  $row_eval = mysqli_fetch_assoc($eval);
-  $totalRows_eval = mysqli_num_rows($eval);
+  if ($id == "default") { $db_conn->where('evalToken', $token); $eval_table = "evaluation"; }
+  else { $db_conn->where('id', $id); $eval_table = $prefix."evaluation"; }
+  $row_eval = $db_conn->getOne($eval_table);
+  $totalRows_eval = $db_conn->count;
 
   if ($totalRows_eval > 0) {
 
@@ -216,27 +217,26 @@ if ($action == "edit") {
     $style = $row_eval['evalStyle'];
     if (($_SESSION['userLevel'] > 1) && ($row_eval['evalJudgeInfo'] != $_SESSION['user_id'])) $eval_prevent_edit = TRUE;
     
-    $query_entry_info = sprintf("SELECT * FROM %s WHERE id='%s'", $prefix."brewing", $eid);
-    $entry_info = mysqli_query($connection,$query_entry_info) or die (mysqli_error($connection));
-    $row_entry_info = mysqli_fetch_assoc($entry_info);
-    $totalRows_entry_info = mysqli_num_rows($entry_info);
-    
+    $db_conn->where('id', $eid);
+    $row_entry_info = $db_conn->getOne($prefix."brewing");
+    $totalRows_entry_info = $db_conn->count;
+
     if ($totalRows_entry_info > 0) {
       /*
       if (HOSTED) $query_style = sprintf("SELECT * FROM %s WHERE id='%s' UNION ALL SELECT * FROM %s WHERE id='%s'", $styles_db_table, $style, $prefix."styles", $style);
-      else 
+      else
       */
-      $query_style = sprintf("SELECT * FROM %s WHERE id='%s'", $prefix."styles", $style);
+      $db_conn->where('id', $style);
+      $style_query_pending = true;
     }
 
   }
 
 }
 
-if (!empty($query_style)) {
-  $style = mysqli_query($connection,$query_style) or die (mysqli_error($connection));
-  $row_style = mysqli_fetch_assoc($style);
-  $totalRows_style = mysqli_num_rows($style);
+if ($style_query_pending) {
+  $row_style = $db_conn->getOne($prefix."styles");
+  $totalRows_style = $db_conn->count;
 }
 
 if ($totalRows_entry_info > 0) {
@@ -258,9 +258,8 @@ if ($totalRows_entry_info > 0) {
   if (isset($_POST['entry_number'])) {
     
     // Get table info
-    $query_flight_info = sprintf("SELECT flightTable FROM %s WHERE flightEntryID='%s'",$prefix."judging_flights",$row_entry_info['id']);
-    $flight_info = mysqli_query($connection,$query_flight_info) or die (mysqli_error($connection));
-    $row_flight_info = mysqli_fetch_assoc($flight_info);
+    $db_conn->where('flightEntryID', $row_entry_info['id']);
+    $row_flight_info = $db_conn->getOne($prefix."judging_flights", "flightTable");
 
     if ($row_flight_info) $filter = $row_flight_info['flightTable'];
 

@@ -33,9 +33,10 @@ if (TESTING) {
 	if (HOSTED) $query_style = sprintf("SELECT brewStyleType FROM %s WHERE brewStyleVersion='%s'AND brewStyleGroup='%s' AND brewStyleNum='%s' UNION ALL SELECT brewStyleType FROM %s WHERE brewStyleVersion='%s'AND brewStyleGroup='%s' AND brewStyleNum='%s'",$prefix."styles",$_SESSION['prefsStyleSet'],$row_entries['brewCategorySort'],$row_entries['brewSubCategory'],$styles_db_table,$_SESSION['prefsStyleSet'],$row_entries['brewCategorySort'],$row_entries['brewSubCategory']);
 	else 
 	*/
-	$query_style = sprintf("SELECT brewStyleType FROM %s WHERE brewStyleVersion='%s'AND brewStyleGroup='%s' AND brewStyleNum='%s'",$prefix."styles",$_SESSION['prefsStyleSet'],$row_entries['brewCategorySort'],$row_entries['brewSubCategory']);
-	$style = mysqli_query($connection,$query_style) or die (mysqli_error($connection));
-	$row_style = mysqli_fetch_assoc($style);
+	$db_conn->where ("brewStyleVersion", $_SESSION['prefsStyleSet']);
+	$db_conn->where ("brewStyleGroup", $row_entries['brewCategorySort']);
+	$db_conn->where ("brewStyleNum", $row_entries['brewSubCategory']);
+	$row_style = $db_conn->getOne ($prefix."styles", "brewStyleType");
 	
 	$add_link_full = $base_url."index.php?section=evaluation&amp;go=scoresheet&amp;action=add&amp;filter=".$tbl_id."&amp;sort=1&amp;id=".$row_entries['id'];
 	$add_link_checklist = $base_url."index.php?section=evaluation&amp;go=scoresheet&amp;action=add&amp;filter=".$tbl_id."&amp;sort=2&amp;id=".$row_entries['id'];

@@ -1,0 +1,22 @@
+{
+    "name": "bluebonnet/brewcompetitiononlineentry",
+    "description": "Dev tooling only (PHPUnit). The application itself has no runtime dependencies managed here.",
+    "type": "project",
+    "require-dev": {
+        "phpunit/phpunit": "^10.0"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "BCOEM\\Tests\\Unit\\": "tests/Unit/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "platform": {
+            "php": "8.2.32"
+        }
+    },
+    "scripts": {
+        "test:unit": "phpunit --testsuite Unit"
+    }
+}

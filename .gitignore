@@ -28,3 +28,7 @@ templates/simple-us-entry-barcode.html
 templates/simple-us-entry.html
 brewingcompetitions.com
 bbo/.htpasswd
+
+# PHPUnit / Composer dev tooling
+vendor/
+.phpunit.cache/

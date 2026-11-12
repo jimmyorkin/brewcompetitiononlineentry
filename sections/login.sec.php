@@ -37,8 +37,10 @@ if (($action == "forgot") && ($go == "verify") && (!isset($_SESSION['loginUserna
 	if ($username == "default") $username_check = $_POST['loginUsername'];
 	else $username_check = $username;
 
-	$query_userCheck = sprintf("SELECT * FROM %s WHERE user_name = '%s'",$prefix."users",$username_check);
-	$userCheck = mysqli_query($connection,$query_userCheck) or die (mysqli_error($connection));
+	$stmt_userCheck = mysqli_prepare($connection, sprintf("SELECT * FROM %s WHERE user_name = ?",$prefix."users")) or die("A database error occurred.");
+	mysqli_stmt_bind_param($stmt_userCheck, "s", $username_check);
+	mysqli_stmt_execute($stmt_userCheck);
+	$userCheck = mysqli_stmt_get_result($stmt_userCheck);
 	$row_userCheck = mysqli_fetch_assoc($userCheck);
 	$totalRows_userCheck = mysqli_num_rows($userCheck);
 	

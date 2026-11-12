@@ -15,8 +15,10 @@ if ($action == "forgot") {
 	
 	$username = $_POST['loginUsername'];
 		
-	$query_forgot = sprintf("SELECT * FROM %s WHERE user_name = '%s'",$users_db_table,$_POST['loginUsername']);
-	$forgot = mysqli_query($connection,$query_forgot) or die (mysqli_error($connection));
+	$stmt_forgot = mysqli_prepare($connection, sprintf("SELECT * FROM %s WHERE user_name = ?", $users_db_table)) or die("A database error occurred.");
+	mysqli_stmt_bind_param($stmt_forgot, "s", $username);
+	mysqli_stmt_execute($stmt_forgot);
+	$forgot = mysqli_stmt_get_result($stmt_forgot);
 	$row_forgot = mysqli_fetch_assoc($forgot);
 	$totalRows_forgot = mysqli_num_rows($forgot);
 			

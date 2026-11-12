@@ -19,13 +19,15 @@ if ($section == "step4") {
         $currency_code = "USD";
     }
 
-    $query_brewer = sprintf("SELECT brewerFirstName,brewerLastName,brewerEmail FROM %s ORDER BY id ASC LIMIT 1",$prefix."brewer");
-    $brewer = mysqli_query($connection,$query_brewer) or die (mysqli_error($connection));
-    $row_brewer = mysqli_fetch_assoc($brewer);
+    $db_conn->returnType = "array";
+    $db_conn->orderBy("id", "ASC");
+    $row_brewer = $db_conn->getOne($prefix."brewer", "brewerFirstName,brewerLastName,brewerEmail");
+    if (empty($row_brewer)) $row_brewer = array();
 
-    $query_comp_info = sprintf("SELECT COUNT(*) as 'count' FROM %s ORDER BY id ASC LIMIT 1",$prefix."contest_info");
-    $comp_info = mysqli_query($connection,$query_comp_info) or die (mysqli_error($connection));
-    $row_comp_info = mysqli_fetch_assoc($comp_info);
+    $db_conn->returnType = "array";
+    $db_conn->orderBy("id", "ASC");
+    $row_comp_info = $db_conn->getOne($prefix."contest_info", "COUNT(*) as 'count'");
+    if (empty($row_comp_info)) $row_comp_info = array();
 
     if ($row_comp_info['count'] >= 1) {
         $action = "edit";
