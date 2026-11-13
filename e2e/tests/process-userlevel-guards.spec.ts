@@ -73,42 +73,50 @@ async function restoreBrewing(snapshot: BrewingRow[]): Promise<void> {
 }
 
 test.describe('generate_judging_numbers userLevel guard', () => {
-  test('a non-admin cannot regenerate judging numbers', async ({ page }) => {
-    const before = await snapshotBrewing();
-    const token = await entrantToken(page);
+  // The restore runs in afterEach, not a per-test finally: Playwright abandons
+  // a timed-out test body mid-await (its finally never runs) but still runs
+  // afterEach hooks, so the live brewing table gets restored even on timeout.
+  let snapshot: BrewingRow[] | null = null;
 
-    try {
-      await page.request.post('/includes/process.inc.php?section=admin&action=generate_judging_numbers&sort=identical', {
-        headers: { referer: page.url() },
-        form: { token },
-      });
+  test.beforeEach(async () => {
+    snapshot = await snapshotBrewing();
+  });
 
-      const after = await snapshotBrewing();
-      expect(after).toEqual(before);
-    } finally {
-      await restoreBrewing(before);
+  test.afterEach(async () => {
+    if (snapshot) {
+      await restoreBrewing(snapshot);
+      snapshot = null;
     }
   });
 
+  test('a non-admin cannot regenerate judging numbers', async ({ page }) => {
+    const before = snapshot!;
+    const token = await entrantToken(page);
+
+    await page.request.post('/includes/process.inc.php?section=admin&action=generate_judging_numbers&sort=identical', {
+      headers: { referer: page.url() },
+      form: { token },
+    });
+
+    const after = await snapshotBrewing();
+    expect(after).toEqual(before);
+  });
+
   test('a logged-in admin can regenerate judging numbers', async ({ page }) => {
-    const before = await snapshotBrewing();
+    const before = snapshot!;
     await loginAsAdmin(page);
     await page.goto('/index.php?section=admin&go=styles');
     const token = await getToken(page);
 
-    try {
-      await page.request.post('/includes/process.inc.php?section=admin&action=generate_judging_numbers&sort=identical', {
-        headers: { referer: page.url() },
-        form: { token },
-      });
+    await page.request.post('/includes/process.inc.php?section=admin&action=generate_judging_numbers&sort=identical', {
+      headers: { referer: page.url() },
+      form: { token },
+    });
 
-      const after = await snapshotBrewing();
-      expect(after.map(r => r.brewJudgingNumber)).toEqual(
-        before.map(r => String(r.id).padStart(6, '0'))
-      );
-    } finally {
-      await restoreBrewing(before);
-    }
+    const after = await snapshotBrewing();
+    expect(after.map(r => r.brewJudgingNumber)).toEqual(
+      before.map(r => String(r.id).padStart(6, '0'))
+    );
   });
 });
 
@@ -129,38 +137,41 @@ function makeFixturePdf(tag: string): string {
 }
 
 test.describe('delete_scoresheets userLevel guard', () => {
-  test('a non-admin cannot delete scoresheets', async ({ page }) => {
-    const fixture = makeFixturePdf('attack');
-    const token = await entrantToken(page);
+  // Fixture removal runs in afterEach (not a per-test finally) so it survives
+  // Playwright test-body timeouts, same reasoning as the brewing restore above.
+  let fixture: string | null = null;
 
-    try {
-      await page.request.post('/includes/process.inc.php?section=admin&action=delete_scoresheets', {
-        headers: { referer: page.url() },
-        form: { token },
-      });
-
-      expect(fs.existsSync(fixture)).toBe(true);
-    } finally {
+  test.afterEach(() => {
+    if (fixture) {
       fs.rmSync(fixture, { force: true });
+      fixture = null;
     }
   });
 
+  test('a non-admin cannot delete scoresheets', async ({ page }) => {
+    fixture = makeFixturePdf('attack');
+    const token = await entrantToken(page);
+
+    await page.request.post('/includes/process.inc.php?section=admin&action=delete_scoresheets', {
+      headers: { referer: page.url() },
+      form: { token },
+    });
+
+    expect(fs.existsSync(fixture)).toBe(true);
+  });
+
   test('a logged-in admin can delete scoresheets', async ({ page }) => {
-    const fixture = makeFixturePdf('admin');
+    fixture = makeFixturePdf('admin');
     await loginAsAdmin(page);
     await page.goto('/index.php?section=admin&go=styles');
     const token = await getToken(page);
 
-    try {
-      await page.request.post('/includes/process.inc.php?section=admin&action=delete_scoresheets', {
-        headers: { referer: page.url() },
-        form: { token },
-      });
+    await page.request.post('/includes/process.inc.php?section=admin&action=delete_scoresheets', {
+      headers: { referer: page.url() },
+      form: { token },
+    });
 
-      expect(fs.existsSync(fixture)).toBe(false);
-    } finally {
-      fs.rmSync(fixture, { force: true });
-    }
+    expect(fs.existsSync(fixture)).toBe(false);
   });
 });
 
