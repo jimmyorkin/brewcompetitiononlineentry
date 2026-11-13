@@ -1283,9 +1283,9 @@ class SourceHardeningTest extends TestCase
      * "export-personal-results" branch binds $id (request-derived) as a
      * parameter instead of interpolating it, closing the SQLi path. The
      * missing authorization check seen in upstream (($admin_role) ||
-     * ($id == $_SESSION['user_id'])) is a separate, pre-existing
-     * access-control gap - flagged in the task report, intentionally NOT
-     * added here since it is out of this task's scope.
+     * ($id == $_SESSION['user_id'])) was a separate, pre-existing
+     * access-control gap - fixed by the access-control-fixes plan's task 4,
+     * pinned by test_export_output_personal_results_has_ownership_guard().
      */
     public function test_export_output_personal_results_binds_id_as_parameter(): void
     {
@@ -1297,6 +1297,29 @@ class SourceHardeningTest extends TestCase
             'export-personal-results query no longer binds $id as parameters'
         );
         $this->assertStringContainsString('$rows_brewer = $db_conn->rawQuery($query_brewer, array($id, $id, $id));', $source);
+    }
+
+    /**
+     * Access-control-fixes task 4: export.output.php's
+     * "export-personal-results" branch gated only on an authenticated
+     * session plus $id != "default", so any logged-in entrant could download
+     * any OTHER entrant's personal-results CSV (IDOR) by changing the id URL
+     * parameter. Upstream's gate (upstream/master output/export.output.php,
+     * its line 4062) carries an additional ownership/admin clause, adopted
+     * verbatim since both of its halves already exist in this fork with the
+     * same semantics ($admin_role is defined earlier in this same file;
+     * $_SESSION['user_id'] is set at login in includes/db/common.db.php).
+     * This pins the fixed gate so a refactor cannot silently drop it.
+     */
+    public function test_export_output_personal_results_has_ownership_guard(): void
+    {
+        $source = file_get_contents(ROOT . 'output/export.output.php');
+        $this->assertNotFalse($source, 'cannot read output/export.output.php');
+        $this->assertStringContainsString(
+            'if ((isset($_SESSION[\'loginUsername\'])) && ($section == "export-personal-results") && ($id != "default") && (($admin_role) || ($id == $_SESSION[\'user_id\'])))',
+            $source,
+            'export-personal-results must keep upstream\'s ownership/admin clause (IDOR guard)'
+        );
     }
 
     /**

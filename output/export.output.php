@@ -3325,7 +3325,7 @@ if (($admin_role) || ((($judging_past == 0) && ($registration_open == 2) && ($en
 
 else echo "Not allowed."; 
 
-if ((isset($_SESSION['loginUsername'])) && ($section == "export-personal-results") && ($id != "default")) {
+if ((isset($_SESSION['loginUsername'])) && ($section == "export-personal-results") && ($id != "default") && (($admin_role) || ($id == $_SESSION['user_id']))) {
 
     $query_brewer = "SELECT DISTINCT a.brewCategory, a.brewSubCategory, a.id AS eid, a.brewStyle, a.brewInfo, a.brewInfoOptional, a.brewComments, b.scoreEntry, b.scorePlace, c.brewerFirstName, c.brewerLastName, c.brewerClubs, c.brewerEmail, c.brewerMHP, c.brewerBreweryName FROM ".$prefix."brewing"." a, ".$prefix."judging_scores"." b, ".$prefix."brewer"." c WHERE a.brewBrewerID = ? AND b.bid = ? AND c.uid = ? AND a.id = b.eid";
     $rows_brewer = $db_conn->rawQuery($query_brewer, array($id, $id, $id));

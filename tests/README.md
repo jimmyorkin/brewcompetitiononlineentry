@@ -7,11 +7,13 @@ Approval tiers still need the database prefix and schema work described in
 
 ```bash
 composer install            # first time only
-vendor/bin/phpunit          # 273 tests, 5 skipped, no database needed
+vendor/bin/phpunit          # 274 tests, 5 skipped, no database needed
 ```
 
 `tests/bootstrap.php` defines the path constants and stubs, then loads
 `lib/common.lib.php`, so no database or `site/config.php` is needed.
+
+**Access-control fixes, task 4: done.** The IDOR in `output/export.output.php`'s `export-personal-results` branch is fixed with upstream's exact ownership/admin clause and covered by `e2e/tests/export-personal-results-idor.spec.ts`; `SourceHardeningTest.php` gains one test pinning the fixed gate (274 tests, 5 skipped, up from 273). See [TESTING.md](../TESTING.md).
 
 **Access-control fixes, task 3: done.** Three missing `userLevel` guards in `includes/process.inc.php` (`delete_scoresheets`, `generate_judging_numbers`, `convert_bjcp`) are fixed and covered by `e2e/tests/process-userlevel-guards.spec.ts`; no PHPUnit change (273 tests, 5 skipped, unchanged). See [TESTING.md](../TESTING.md).
 
