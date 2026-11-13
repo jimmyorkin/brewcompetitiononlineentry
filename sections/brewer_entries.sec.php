@@ -63,7 +63,12 @@ if (($totalRows_log > 0) && ($show_scores)) {
 	if ($_SESSION['prefsProEdition'] == 1) $pay_button_label = $label_results_export;
 	else $pay_button_label = $label_results_export_personal;
 
-	$link_results_export = $base_url."includes/output.inc.php?section=export-personal-results&amp;id=".$_SESSION['brewerID'];
+	// Pass the users-table id, not brewer.id: export-personal-results' query
+	// and its ownership guard both treat id as users.id (brewer.uid). Upstream
+	// passes brewerID here too, which silently exports the wrong person's
+	// results wherever the two id sequences have drifted - a deliberate,
+	// benign divergence from upstream.
+	$link_results_export = $base_url."includes/output.inc.php?section=export-personal-results&amp;id=".$_SESSION['user_id'];
 	$pay_button .= sprintf("<a href=\"%s\" class=\"btn btn-success hide-loader\" target=\"_blank\"><i class=\"fa fa-lg fa-file-csv\" style=\"margin-right: 8px;\"></i>%s</a>",$link_results_export, $pay_button_label);
 
 }
