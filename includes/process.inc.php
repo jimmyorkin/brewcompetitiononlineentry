@@ -185,6 +185,11 @@ if (((isset($_SERVER['HTTP_REFERER'])) && ($referrer['host'] == $_SERVER['SERVER
 	// Delete scoresheets in user_docs folder
 	elseif ($action == "delete_scoresheets") {
 
+		if ((!isset($_SESSION['userLevel'])) || ($_SESSION['userLevel'] > 1)) {
+			header("Location: ".$base_url."403.php");
+			exit();
+		}
+
 		rdelete(USER_DOCS,"");
 		if ($filter == "admin-dashboard") $redirect_go_to = sprintf("Location: %s", $base_url."index.php?section=admin&msg=31");
 		else $redirect_go_to = sprintf("Location: %s", $base_url."index.php?section=admin&go=upload_scoresheets&action=".$filter."&msg=31");
@@ -209,6 +214,11 @@ if (((isset($_SERVER['HTTP_REFERER'])) && ($referrer['host'] == $_SERVER['SERVER
 
 	// Regenerate judging numbers
 	elseif ($action == "generate_judging_numbers") {
+
+		if ((!isset($_SESSION['userLevel'])) || ($_SESSION['userLevel'] > 1)) {
+			header("Location: ".$base_url."403.php");
+			exit();
+		}
 
 		generate_judging_numbers($prefix."brewing",$sort);
 
@@ -236,6 +246,11 @@ if (((isset($_SERVER['HTTP_REFERER'])) && ($referrer['host'] == $_SERVER['SERVER
 
 	// Convert entries to selected BJCP version
 	elseif ($action == "convert_bjcp") {
+
+		if ((!isset($_SESSION['userLevel'])) || ($_SESSION['userLevel'] > 1)) {
+			header("Location: ".$base_url."403.php");
+			exit();
+		}
 
 		include (LIB.'convert.lib.php');
 
